@@ -16,7 +16,7 @@ import {
 } from "react-icons/hi2";
 import { Shield, Check, X, Search, Lock, Unlock, ChevronDown, ChevronUp } from "lucide-react";
 import { Alert, Button, Card, Badge, Input } from "@/components/ui";
-import { PageHeader } from "@/components/hr/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 
 export default function EmployeeRolesPermissionsPage() {

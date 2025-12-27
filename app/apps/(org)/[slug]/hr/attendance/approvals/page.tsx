@@ -8,7 +8,7 @@ import {
   HiOutlineCheckCircle,
   HiOutlineXCircle,
   HiOutlineClock,
-  HiOutlineFilter,
+  HiOutlineFunnel,
 } from "react-icons/hi2";
 import {
   Table,
@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/table";
 import { Alert, Button, Card, Badge, Input } from "@/components/ui";
 import { getAttendances, approveAttendance } from "@/lib/services/hr";
-import type { Attendance, ApprovalStatus } from "@/lib/types/hr";
+import type { Attendance } from "@/lib/types/hr";
+import { ApprovalStatus } from "@/lib/types/hr";
 import { usePermissions, useAttendancePermissions } from "@/lib/hooks";
 import { Can } from "@/components/apps/common/protected-route";
 
@@ -35,7 +36,7 @@ export default function AttendanceApprovalsPage() {
   const [filteredAttendances, setFilteredAttendances] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<ApprovalStatus | "all">("pending");
+  const [statusFilter, setStatusFilter] = useState<ApprovalStatus | "all">(ApprovalStatus.PENDING);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -270,21 +271,21 @@ export default function AttendanceApprovalsPage() {
             </Button>
             <Button
               variant={statusFilter === "pending" ? "default" : "outline"}
-              onClick={() => setStatusFilter("pending")}
+              onClick={() => setStatusFilter(ApprovalStatus.PENDING)}
               size="sm"
             >
               En attente ({attendances.filter((a) => a.approval_status === "pending").length})
             </Button>
             <Button
               variant={statusFilter === "approved" ? "default" : "outline"}
-              onClick={() => setStatusFilter("approved")}
+              onClick={() => setStatusFilter(ApprovalStatus.APPROVED)}
               size="sm"
             >
               Approuvés ({attendances.filter((a) => a.approval_status === "approved").length})
             </Button>
             <Button
               variant={statusFilter === "rejected" ? "default" : "outline"}
-              onClick={() => setStatusFilter("rejected")}
+              onClick={() => setStatusFilter(ApprovalStatus.REJECTED)}
               size="sm"
             >
               Rejetés ({attendances.filter((a) => a.approval_status === "rejected").length})
