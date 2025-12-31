@@ -34,7 +34,7 @@ export default function EditExpensePage() {
   const [formData, setFormData] = useState<ExpenseUpdate>({
     description: "",
     amount: 0,
-    category: "",
+    category_id: "",
     expense_date: "",
     payment_method: "cash",
     beneficiary: "",
@@ -56,7 +56,7 @@ export default function EditExpensePage() {
       setFormData({
         description: expense.description || "",
         amount: expense.amount || 0,
-        category: expense.category || "",
+        category_id: expense.category || "",
         expense_date: expense.expense_date?.split("T")[0] || "",
         payment_method: expense.payment_method || "cash",
         beneficiary: expense.beneficiary || "",
@@ -94,7 +94,14 @@ export default function EditExpensePage() {
     try {
       setSaving(true);
       setError(null);
-      await updateExpense(id, formData);
+      
+      // Convertir category_id vide en null pour le backend
+      const dataToSend = {
+        ...formData,
+        category_id: formData.category_id || null,
+      };
+      
+      await updateExpense(id, dataToSend);
       router.push(`/apps/${slug}/inventory/expenses/${id}`);
     } catch (err: any) {
       setError(err.message || "Erreur lors de la mise à jour");
@@ -175,8 +182,8 @@ export default function EditExpensePage() {
               <QuickSelect
                 label="Catégorie"
                 items={categories.map(c => ({ id: c.id, name: c.name }))}
-                selectedId={formData.category || ""}
-                onSelect={(id) => setFormData(prev => ({ ...prev, category: id }))}
+                selectedId={formData.category_id || ""}
+                onSelect={(id) => setFormData(prev => ({ ...prev, category_id: id }))}
                 onCreate={async (name) => {
                   const newCat = await createExpenseCategory({ name, is_active: true });
                   setCategories(prev => [...prev, newCat]);

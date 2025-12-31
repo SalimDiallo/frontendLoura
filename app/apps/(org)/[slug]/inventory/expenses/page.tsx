@@ -3,7 +3,15 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Alert, Badge, Card, Input } from "@/components/ui";
-import { getExpenses, getExpenseSummary, deleteExpense, getExpenseCategories } from "@/lib/services/inventory";
+import { PDFPreviewModal } from "@/components/ui/pdf-preview-modal";
+import { 
+  getExpenses, 
+  getExpenseSummary, 
+  deleteExpense, 
+  getExpenseCategories,
+  downloadExpensesPdf,
+  getExpensesPdfBlob 
+} from "@/lib/services/inventory";
 import type { Expense, ExpenseCategory, ExpenseSummary } from "@/lib/types/inventory";
 import {
   Plus,
@@ -22,6 +30,8 @@ import {
   X,
   Filter,
   Wallet,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -41,6 +51,18 @@ export default function ExpensesPage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  
+  // PDF Export states
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState("");
+  const [exportEndDate, setExportEndDate] = useState("");
+  const [exportCategory, setExportCategory] = useState<string>("");
+  const [loadingPdf, setLoadingPdf] = useState(false);
+  
+  // PDF Preview state
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState("");
+  const [pdfFilename, setPdfFilename] = useState("");
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLTableSectionElement>(null);
@@ -389,11 +411,9 @@ export default function ExpensesPage() {
       <Card>
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold">Liste des dépenses</h3>
-          <Button variant="outline" size="sm" asChild>
-            <a href={`/api/inventory/expenses/export/?format=pdf`} target="_blank">
-              <Download className="mr-2 h-4 w-4" />
-              Exporter PDF
-            </a>
+          <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)}>
+            <Download className="mr-2 h-4 w-4" />
+            Exporter PDF
           </Button>
         </div>
         <div className="overflow-x-auto">
@@ -505,6 +525,144 @@ export default function ExpensesPage() {
       <p className="text-center text-xs text-muted-foreground">
         Appuyez sur <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">?</kbd> pour voir tous les raccourcis clavier
       </p>
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md p-6 m-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Exporter les dépenses
+              </h2>
+              <Button variant="ghost" size="sm" onClick={() => setShowExportModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Catégorie (optionnel)</label>
+                <select
+                  value={exportCategory}
+                  onChange={(e) => setExportCategory(e.target.value)}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="">Toutes les catégories</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date début</label>
+                  <Input
+                    type="date"
+                    value={exportStartDate}
+                    onChange={(e) => setExportStartDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date fin</label>
+                  <Input
+                    type="date"
+                    value={exportEndDate}
+                    onChange={(e) => setExportEndDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
+                <p>📊 Le PDF inclura :</p>
+                <ul className="mt-1 ml-4 list-disc">
+                  <li>Liste des dépenses filtrées</li>
+                  <li>Total par catégorie</li>
+                  <li>Montant global</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowExportModal(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled={loadingPdf}
+                onClick={async () => {
+                  try {
+                    setLoadingPdf(true);
+                    const params = {
+                      category: exportCategory || undefined,
+                      start_date: exportStartDate || undefined,
+                      end_date: exportEndDate || undefined,
+                    };
+                    
+                    const blobUrl = await getExpensesPdfBlob(params);
+                    
+                    const dateRange = exportStartDate && exportEndDate 
+                      ? `${exportStartDate}_${exportEndDate}` 
+                      : new Date().toISOString().split('T')[0];
+                    
+                    setPdfPreviewUrl(blobUrl);
+                    setPdfFilename(`depenses_${dateRange}.pdf`);
+                    setPdfPreviewOpen(true);
+                    setShowExportModal(false);
+                  } catch (err) {
+                    setError("Erreur lors du chargement du PDF");
+                  } finally {
+                    setLoadingPdf(false);
+                  }
+                }}
+              >
+                {loadingPdf ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                Prévisualiser
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={loadingPdf}
+                onClick={async () => {
+                  try {
+                    setLoadingPdf(true);
+                    await downloadExpensesPdf({
+                      category: exportCategory || undefined,
+                      start_date: exportStartDate || undefined,
+                      end_date: exportEndDate || undefined,
+                    });
+                    setShowExportModal(false);
+                  } catch (err) {
+                    setError("Erreur lors du téléchargement du PDF");
+                  } finally {
+                    setLoadingPdf(false);
+                  }
+                }}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* PDF Preview Modal */}
+      <PDFPreviewModal 
+        isOpen={pdfPreviewOpen}
+        onClose={() => {
+          if (pdfPreviewUrl) window.URL.revokeObjectURL(pdfPreviewUrl);
+          setPdfPreviewOpen(false);
+          setPdfPreviewUrl("");
+        }}
+        title="Rapport des dépenses"
+        pdfUrl={pdfPreviewUrl}
+        filename={pdfFilename}
+      />
     </div>
   );
 }

@@ -274,7 +274,7 @@ export interface Expense {
 }
 
 export interface ExpenseCreate {
-  category?: string | null;
+  category_id?: string | null;
   description: string;
   amount: number;
   expense_date: string;
@@ -517,7 +517,7 @@ export interface CreditPayment {
 export interface CreditPaymentCreate {
   payment_date?: string;
   amount: number;
-  payment_method?: PaymentMethod;
+  payment_method?: PaymentMethod | string;
   reference?: string;
   notes?: string;
 }

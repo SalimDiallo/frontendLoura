@@ -201,8 +201,8 @@ export default function SalesPage() {
     );
   }
 
-  const totalSales = filteredSales.reduce((acc, s) => acc + s.total_amount, 0);
-  const totalPaid = filteredSales.reduce((acc, s) => acc + s.paid_amount, 0);
+  const totalSales = filteredSales.reduce((acc, s) => acc + (Number(s.total_amount) || 0), 0);
+  const totalPaid = filteredSales.reduce((acc, s) => acc + (Number(s.paid_amount) || 0), 0);
   const totalRemaining = totalSales - totalPaid;
 
   return (
@@ -456,14 +456,14 @@ export default function SalesPage() {
                       {sale.warehouse_name || "-"}
                     </td>
                     <td className="p-4 text-right font-bold">
-                      {formatCurrency(sale.total_amount)}
+                      {formatCurrency(Number(sale.total_amount) || 0)}
                     </td>
                     <td className="p-4 text-right">
                       <span className={cn(
-                        sale.paid_amount >= sale.total_amount && "text-green-600",
-                        sale.paid_amount > 0 && sale.paid_amount < sale.total_amount && "text-orange-600"
+                        (Number(sale.paid_amount) || 0) >= (Number(sale.total_amount) || 0) && "text-green-600",
+                        (Number(sale.paid_amount) || 0) > 0 && (Number(sale.paid_amount) || 0) < (Number(sale.total_amount) || 0) && "text-orange-600"
                       )}>
-                        {formatCurrency(sale.paid_amount)}
+                        {formatCurrency(Number(sale.paid_amount) || 0)}
                       </span>
                     </td>
                     <td className="p-4 text-center">

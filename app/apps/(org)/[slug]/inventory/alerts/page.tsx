@@ -1,85 +1,72 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert as AlertUI, Badge, Card, Input } from "@/components/ui";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { Button, Badge, Card, Input } from "@/components/ui";
 import { getAlerts, resolveAlert, generateAlerts } from "@/lib/services/inventory";
-import type { Alert, AlertSeverity, AlertType } from "@/lib/types/inventory";
+import type { Alert } from "@/lib/types/inventory";
 import {
   Search,
   AlertTriangle,
-  AlertCircle,
-  Info,
   CheckCircle,
   RefreshCw,
-  Calendar,
   Package,
-  TrendingDown,
-  Clock,
   XCircle,
-  Keyboard,
+  TrendingDown,
+  Filter,
+  Bell,
+  BellOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { ShortcutsHelpModal, KeyboardHint } from "@/components/ui/shortcuts-help";
+import Link from "next/link";
 
 export default function AlertsPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params.slug as string;
 
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterSeverity, setFilterSeverity] = useState<string | undefined>(undefined);
-  const [filterType, setFilterType] = useState<string | undefined>(undefined);
   const [showResolved, setShowResolved] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadAlerts();
-  }, [slug, filterSeverity, filterType, showResolved]);
+  }, [showResolved]);
 
   const loadAlerts = async () => {
     try {
       setLoading(true);
-      setError(null);
-      const params: any = { is_resolved: showResolved };
-      if (filterSeverity) params.severity = filterSeverity;
-      if (filterType) params.type = filterType;
-      const data = await getAlerts(params);
+      const data = await getAlerts({ is_resolved: showResolved });
       setAlerts(data);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement des alertes");
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleResolve = async (id: string) => {
-    if (!confirm("Marquer cette alerte comme résolue ?")) return;
     try {
       await resolveAlert(id);
-      await loadAlerts();
-    } catch (err: any) {
-      alert(err.message || "Erreur lors de la résolution");
+      setSuccessMessage("Alerte résolue !");
+      setTimeout(() => setSuccessMessage(null), 2000);
+      loadAlerts();
+    } catch (err) {
+      console.error(err);
     }
   };
 
   const handleGenerate = async () => {
-    if (!confirm("Générer automatiquement les alertes de stock ?")) return;
     try {
       setGenerating(true);
       const result = await generateAlerts();
-      alert(`${result.count} alerte(s) générée(s)`);
-      await loadAlerts();
-    } catch (err: any) {
-      alert(err.message || "Erreur lors de la génération");
+      setSuccessMessage(`${result.created} créée(s), ${result.resolved} résolue(s)`);
+      setTimeout(() => setSuccessMessage(null), 3000);
+      loadAlerts();
+    } catch (err) {
+      console.error(err);
     } finally {
       setGenerating(false);
     }
@@ -92,321 +79,205 @@ export default function AlertsPage() {
         alert.message.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Définir les raccourcis clavier
-  const shortcuts: KeyboardShortcut[] = useMemo(() => [
-    commonShortcuts.search(() => searchInputRef.current?.focus()),
-    commonShortcuts.help(() => setShowShortcuts(true)),
-    commonShortcuts.escape(() => {
-      if (showShortcuts) {
-        setShowShortcuts(false);
-      } else if (document.activeElement === searchInputRef.current) {
-        searchInputRef.current?.blur();
-        setSearchTerm("");
-      } else {
-        setSelectedIndex(-1);
-      }
-    }),
-    commonShortcuts.arrowDown(() => {
-      setSelectedIndex((prev) => Math.min(prev + 1, filteredAlerts.length - 1));
-    }),
-    commonShortcuts.arrowUp(() => {
-      setSelectedIndex((prev) => Math.max(prev - 1, 0));
-    }),
-    { key: "g", action: handleGenerate, description: "Générer les alertes" },
-    { key: "r", action: () => {
-      if (selectedIndex >= 0 && filteredAlerts[selectedIndex] && !filteredAlerts[selectedIndex].is_resolved) {
-        handleResolve(filteredAlerts[selectedIndex].id);
-      }
-    }, description: "Résoudre l'alerte sélectionnée" },
-    { key: "t", action: () => setShowResolved(!showResolved), description: "Basculer actives/résolues" },
-    commonShortcuts.filter("1", () => setFilterSeverity(undefined), "Toutes les sévérités"),
-    commonShortcuts.filter("2", () => setFilterSeverity(filterSeverity === "critical" ? undefined : "critical"), "Critiques"),
-    commonShortcuts.filter("3", () => setFilterSeverity(filterSeverity === "high" ? undefined : "high"), "Élevées"),
-    commonShortcuts.filter("4", () => setFilterType(filterType === "low_stock" ? undefined : "low_stock"), "Stock faible"),
-    commonShortcuts.filter("5", () => setFilterType(filterType === "out_of_stock" ? undefined : "out_of_stock"), "Rupture"),
-  ], [slug, router, showShortcuts, selectedIndex, filteredAlerts, filterSeverity, filterType, showResolved]);
+  const criticalCount = alerts.filter(a => a.severity === "critical" && !a.is_resolved).length;
+  const highCount = alerts.filter(a => a.severity === "high" && !a.is_resolved).length;
 
-  useKeyboardShortcuts({ shortcuts });
-
-  const getSeverityBadge = (severity: AlertSeverity) => {
-    const config: Record<AlertSeverity, { variant: "default" | "destructive" | "secondary"; icon: any; label: string }> = {
-      low: { variant: "secondary", icon: <Info className="h-3 w-3" />, label: "Faible" },
-      medium: { variant: "default", icon: <AlertCircle className="h-3 w-3" />, label: "Moyenne" },
-      high: { variant: "destructive", icon: <AlertTriangle className="h-3 w-3" />, label: "Élevée" },
-      critical: { variant: "destructive", icon: <AlertTriangle className="h-3 w-3" />, label: "Critique" },
-    };
-
-    const { variant, icon, label } = config[severity] || config.low;
-
-    return (
-      <Badge variant={variant} className="flex items-center gap-1 w-fit">
-        {icon}
-        {label}
-      </Badge>
-    );
+  const getAlertStyle = (alert: Alert) => {
+    if (alert.is_resolved) return "bg-muted/30 border-muted";
+    if (alert.alert_type === "out_of_stock") return "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900";
+    if (alert.severity === "critical") return "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900";
+    if (alert.severity === "high") return "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-900";
+    return "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-900";
   };
 
-  const getAlertIcon = (type: AlertType) => {
-    switch (type) {
-      case "low_stock":
-        return <TrendingDown className="h-5 w-5 text-orange-600" />;
-      case "out_of_stock":
-        return <XCircle className="h-5 w-5 text-red-600" />;
-      case "expiring_soon":
-        return <Clock className="h-5 w-5 text-yellow-600" />;
-      case "expired":
-        return <AlertTriangle className="h-5 w-5 text-red-600" />;
-      default:
-        return <AlertCircle className="h-5 w-5 text-blue-600" />;
+  const getAlertIcon = (alert: Alert) => {
+    if (alert.alert_type === "out_of_stock") {
+      return <XCircle className="h-5 w-5 text-red-500" />;
     }
-  };
-
-  const getAlertTypeLabel = (type: AlertType) => {
-    const labels: Record<AlertType, string> = {
-      low_stock: "Stock faible",
-      out_of_stock: "Rupture de stock",
-      expiring_soon: "Expire bientôt",
-      expired: "Expiré",
-      other: "Autre",
-    };
-    return labels[type] || type;
+    return <TrendingDown className="h-5 w-5 text-orange-500" />;
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96" role="status" aria-label="Chargement">
+      <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent mx-auto"></div>
+          <p className="mt-3 text-muted-foreground text-sm">Chargement...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Modal des raccourcis */}
-      <ShortcutsHelpModal
-        isOpen={showShortcuts}
-        onClose={() => setShowShortcuts(false)}
-        shortcuts={shortcuts}
-        title="Raccourcis clavier - Alertes"
-      />
+    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+      {/* Success Toast */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top">
+          <div className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            <span className="text-sm font-medium">{successMessage}</span>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Alertes de stock</h1>
-          <p className="text-muted-foreground mt-1">
-            Surveillez et gérez les alertes de votre inventaire
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Bell className="h-6 w-6" />
+            Alertes de stock
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            {showResolved ? "Alertes résolues" : `${alerts.length} alerte(s) active(s)`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowShortcuts(true)}
-            aria-label="Afficher les raccourcis clavier"
-            title="Raccourcis clavier (?)"
-          >
-            <Keyboard className="h-4 w-4" />
-          </Button>
-          <Button onClick={handleGenerate} disabled={generating}>
-            <RefreshCw className={cn("mr-2 h-4 w-4", generating && "animate-spin")} />
-            Générer les alertes
-            <kbd className="ml-2 hidden sm:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">G</kbd>
-          </Button>
-        </div>
+        <Button onClick={handleGenerate} disabled={generating} size="sm">
+          <RefreshCw className={cn("h-4 w-4 mr-2", generating && "animate-spin")} />
+          Actualiser
+        </Button>
       </div>
 
-      {/* Filters */}
-      <Card className="p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                placeholder="Rechercher par produit ou message..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-20"
-                aria-label="Rechercher des alertes"
-              />
-              <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs text-muted-foreground">
-                Ctrl+K
-              </kbd>
+      {/* Stats */}
+      {!showResolved && (
+        <div className="flex gap-3">
+          {criticalCount > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm font-medium">
+              <XCircle className="h-4 w-4" />
+              {criticalCount} rupture(s)
             </div>
-          </div>
-          <div className="flex gap-2 flex-wrap" role="group" aria-label="Filtrer les alertes">
-            <Button
-              variant={showResolved ? "outline" : "default"}
-              size="sm"
-              onClick={() => setShowResolved(!showResolved)}
-              aria-pressed={!showResolved}
-            >
-              {showResolved ? "Résolues" : "Actives"}
-              <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">T</kbd>
-            </Button>
-            <Button
-              variant={filterSeverity === "critical" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilterSeverity(filterSeverity === "critical" ? undefined : "critical")}
-              aria-pressed={filterSeverity === "critical"}
-            >
-              Critiques
-              <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">2</kbd>
-            </Button>
-            <Button
-              variant={filterSeverity === "high" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilterSeverity(filterSeverity === "high" ? undefined : "high")}
-              aria-pressed={filterSeverity === "high"}
-            >
-              Élevées
-              <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">3</kbd>
-            </Button>
-            <Button
-              variant={filterType === "low_stock" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilterType(filterType === "low_stock" ? undefined : "low_stock")}
-              aria-pressed={filterType === "low_stock"}
-            >
-              Stock faible
-              <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">4</kbd>
-            </Button>
-            <Button
-              variant={filterType === "out_of_stock" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilterType(filterType === "out_of_stock" ? undefined : "out_of_stock")}
-              aria-pressed={filterType === "out_of_stock"}
-            >
-              Rupture
-              <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">5</kbd>
-            </Button>
-          </div>
+          )}
+          {highCount > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-sm font-medium">
+              <TrendingDown className="h-4 w-4" />
+              {highCount} stock(s) faible(s)
+            </div>
+          )}
+          {criticalCount === 0 && highCount === 0 && alerts.length === 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-sm font-medium">
+              <CheckCircle className="h-4 w-4" />
+              Aucune alerte
+            </div>
+          )}
         </div>
-      </Card>
-
-      {/* Error */}
-      {error && (
-        <AlertUI variant="error" title="Erreur" role="alert">
-          {error}
-        </AlertUI>
       )}
 
+      {/* Filters */}
+      <div className="flex gap-3 items-center">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        <Button
+          variant={showResolved ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowResolved(!showResolved)}
+          className="gap-2"
+        >
+          {showResolved ? <BellOff className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+          {showResolved ? "Résolues" : "Actives"}
+        </Button>
+      </div>
+
       {/* Alerts List */}
-      <div className="space-y-4" role="list" aria-label="Liste des alertes">
-        {filteredAlerts.length === 0 ? (
-          <Card className="p-12 text-center">
-            <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-500 opacity-50" aria-hidden="true" />
-            <p className="text-muted-foreground">
+      {filteredAlerts.length === 0 ? (
+        <Card className="p-12 text-center">
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <h3 className="font-semibold text-lg mb-1">Tout est en ordre !</h3>
+            <p className="text-muted-foreground text-sm">
               {showResolved ? "Aucune alerte résolue" : "Aucune alerte active"}
             </p>
-          </Card>
-        ) : (
-          filteredAlerts.map((alert, index) => (
-            <Card
+          </div>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {filteredAlerts.map((alert) => (
+            <div
               key={alert.id}
               className={cn(
-                "p-6 transition-all cursor-pointer",
-                alert.is_resolved && "opacity-60 bg-muted/30",
-                alert.severity === "critical" && !alert.is_resolved && "border-red-500 border-2",
-                selectedIndex === index && "ring-2 ring-primary"
+                "p-4 rounded-lg border transition-all",
+                getAlertStyle(alert),
+                alert.is_resolved && "opacity-60"
               )}
-              onClick={() => setSelectedIndex(index)}
-              tabIndex={0}
-              role="listitem"
-              aria-selected={selectedIndex === index}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4 flex-1">
-                  <div className={cn(
-                    "p-3 rounded-lg",
-                    alert.severity === "critical" && "bg-red-100",
-                    alert.severity === "high" && "bg-orange-100",
-                    alert.severity === "medium" && "bg-yellow-100",
-                    alert.severity === "low" && "bg-blue-100"
-                  )}>
-                    {getAlertIcon(alert.alert_type)}
+              <div className="flex items-center gap-4">
+                {/* Icon */}
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
+                  alert.is_resolved ? "bg-muted" : 
+                  alert.alert_type === "out_of_stock" ? "bg-red-100 dark:bg-red-900/50" :
+                  "bg-orange-100 dark:bg-orange-900/50"
+                )}>
+                  {alert.is_resolved ? (
+                    <CheckCircle className="h-5 w-5 text-muted-foreground" />
+                  ) : (
+                    getAlertIcon(alert)
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className={cn(
+                      "text-xs font-medium px-2 py-0.5 rounded-full",
+                      alert.alert_type === "out_of_stock" 
+                        ? "bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-200"
+                        : "bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-200"
+                    )}>
+                      {alert.alert_type === "out_of_stock" ? "Rupture" : "Stock faible"}
+                    </span>
+                    {alert.is_resolved && (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-200 dark:bg-green-800 text-green-700 dark:text-green-200">
+                        Résolue
+                      </span>
+                    )}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      {getSeverityBadge(alert.severity)}
-                      <Badge variant="outline">{getAlertTypeLabel(alert.alert_type)}</Badge>
-                      {alert.is_resolved && (
-                        <Badge variant="secondary" className="flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3" />
-                          Résolue
-                        </Badge>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-lg mb-1">{alert.message}</h3>
+                  <p className="font-medium truncate">{alert.message}</p>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                     {alert.product_name && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                        <Package className="h-4 w-4" />
-                        <span>{alert.product_name}</span>
-                        {alert.product_sku && (
-                          <code className="bg-muted px-1.5 py-0.5 rounded text-xs">
-                            {alert.product_sku}
-                          </code>
-                        )}
-                      </div>
+                      <Link 
+                        href={`/apps/${slug}/inventory/products/${alert.product}`}
+                        className="flex items-center gap-1 hover:text-primary transition-colors"
+                      >
+                        <Package className="h-3 w-3" />
+                        {alert.product_name}
+                      </Link>
                     )}
-                    {alert.warehouse_name && (
-                      <p className="text-sm text-muted-foreground">
-                        Entrepôt: {alert.warehouse_name}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>
-                          Créée: {new Date(alert.created_at).toLocaleDateString('fr-FR')}
-                        </span>
-                      </div>
-                      {alert.resolved_at && (
-                        <div className="flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3" />
-                          <span>
-                            Résolue: {new Date(alert.resolved_at).toLocaleDateString('fr-FR')}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    <span>
+                      {new Date(alert.created_at).toLocaleDateString("fr-FR")}
+                    </span>
                   </div>
                 </div>
+
+                {/* Action */}
                 {!alert.is_resolved && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleResolve(alert.id);
-                    }}
+                    onClick={() => handleResolve(alert.id)}
+                    className="flex-shrink-0"
                   >
                     <CheckCircle className="h-4 w-4 mr-1" />
                     Résoudre
                   </Button>
                 )}
               </div>
-            </Card>
-          ))
-        )}
-      </div>
-
-      {/* Summary */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <p>Total: {filteredAlerts.length} alerte(s)</p>
-        <div className="flex gap-4">
-          <span>{alerts.filter(a => !a.is_resolved && a.severity === 'critical').length} critiques</span>
-          <span>{alerts.filter(a => !a.is_resolved && a.severity === 'high').length} élevées</span>
-          <span>{alerts.filter(a => a.is_resolved).length} résolues</span>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
 
-      {/* Hint */}
-      <KeyboardHint />
+      {/* Footer */}
+      <div className="text-center text-xs text-muted-foreground pt-4">
+        Les alertes sont générées automatiquement quand le stock descend en dessous du seuil défini
+      </div>
     </div>
   );
 }

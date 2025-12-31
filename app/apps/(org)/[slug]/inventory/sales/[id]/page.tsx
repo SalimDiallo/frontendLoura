@@ -236,7 +236,7 @@ export default function SaleDetailPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total brut</p>
-              <p className="text-xl font-bold">{formatCurrency(sale.subtotal_amount)}</p>
+              <p className="text-xl font-bold">{formatCurrency(sale.subtotal || 0)}</p>
             </div>
           </div>
         </Card>
@@ -248,7 +248,7 @@ export default function SaleDetailPage() {
             <div>
               <p className="text-sm text-muted-foreground">Remises</p>
               <p className="text-xl font-bold text-red-600">
-                -{formatCurrency(sale.discount_amount)}
+                -{formatCurrency(sale.discount_amount || 0)}
               </p>
             </div>
           </div>
@@ -261,7 +261,7 @@ export default function SaleDetailPage() {
             <div>
               <p className="text-sm text-muted-foreground">Payé</p>
               <p className="text-xl font-bold text-green-600">
-                {formatCurrency(sale.paid_amount)}
+                {formatCurrency(sale.paid_amount || 0)}
               </p>
             </div>
           </div>
@@ -318,7 +318,7 @@ export default function SaleDetailPage() {
                         )}
                       </td>
                       <td className="p-4 text-right font-bold">
-                        {formatCurrency(item.total_price)}
+                        {formatCurrency(item.total)}
                       </td>
                     </tr>
                   ))}
@@ -328,7 +328,7 @@ export default function SaleDetailPage() {
                     <td colSpan={4} className="p-4 text-right font-medium">
                       Sous-total
                     </td>
-                    <td className="p-4 text-right font-bold">{formatCurrency(sale.subtotal_amount)}</td>
+                    <td className="p-4 text-right font-bold">{formatCurrency(sale.subtotal)}</td>
                   </tr>
                   {sale.discount_amount > 0 && (
                     <tr>

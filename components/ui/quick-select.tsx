@@ -115,8 +115,10 @@ export function QuickSelect({
         }
       }
       setCreating(false);
+      setIsOpen(false);
       setNewName("");
       setNewExtra("");
+      setSearch("");
     } catch (e) {
       console.error(e);
     } finally {

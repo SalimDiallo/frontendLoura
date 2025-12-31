@@ -17,6 +17,8 @@ import {
   HiOutlineCpuChip,
   HiOutlineBolt,
 } from "react-icons/hi2";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -448,7 +450,15 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
                           : "bg-primary text-primary-foreground rounded-tr-sm"
                       )}
                     >
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                      {msg.role === "assistant" ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground prose-strong:text-foreground prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-p:my-1 prose-headings:my-2">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {msg.content}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                      )}
                     </div>
 
                     {/* Actions et timestamp */}

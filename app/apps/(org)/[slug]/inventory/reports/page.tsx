@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, Alert } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import {
   getInventoryOverview,
   getTopProducts,
@@ -14,7 +14,6 @@ import {
   getStockCountsSummary,
   downloadStockListExport,
   downloadMovementsExport,
-  downloadAlertsExport,
   downloadProductsCatalogPdf,
   downloadStockReportPdf,
 } from "@/lib/services/inventory";
@@ -32,48 +31,56 @@ import {
   TrendingUp,
   TrendingDown,
   Download,
-  FileText,
-  FileDown,
   Package,
   AlertTriangle,
-  ShoppingCart,
-  Archive,
   Warehouse,
   Tags,
   RotateCw,
   ClipboardList,
   Calendar,
   DollarSign,
+  RefreshCw,
+  CheckCircle,
+  Clock,
   ArrowUpRight,
   ArrowDownRight,
-  RefreshCcw,
-  Clock,
-  Loader2,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { ShortcutsHelpModal, KeyboardHint } from "@/components/ui/shortcuts-help";
-import { Keyboard } from "lucide-react";
 import {
-  MovementsChart,
-  CategoriesChart,
-  WarehousesChart,
-  StockCountsChart,
-} from "@/components/inventory/ReportsCharts";
-import { 
-  PDFPreviewModal, 
-  usePDFPreview 
-} from '@/components/ui';
-import { API_ENDPOINTS } from "@/lib/api/config";
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Legend,
+  AreaChart,
+  Area,
+} from "recharts";
 
-// Tabs pour navigation dans les rapports
 type ReportTab = "overview" | "warehouses" | "categories" | "movements" | "rotation" | "counts";
+
+// Fonction sécurisée pour les nombres
+const safeNumber = (value: any): number => {
+  const num = Number(value);
+  return isNaN(num) ? 0 : num;
+};
+
+// Couleurs pour les graphiques
+const COLORS = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#84cc16"];
 
 export default function ReportsPage() {
   const params = useParams();
   const slug = params.slug as string;
 
-  // États pour chaque type de données
   const [stats, setStats] = useState<InventoryStats | null>(null);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [warehouseStock, setWarehouseStock] = useState<WarehouseStockReport[]>([]);
@@ -82,60 +89,20 @@ export default function ReportsPage() {
   const [lowRotation, setLowRotation] = useState<LowRotationProductsResponse | null>(null);
   const [stockCountsSummary, setStockCountsSummary] = useState<StockCountsSummaryResponse | null>(null);
 
-  // États UI
   const [activeTab, setActiveTab] = useState<ReportTab>("overview");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
-  const [exportSuccess, setExportSuccess] = useState<string | null>(null);
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  
-  // Paramètres de filtre
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [movementDays, setMovementDays] = useState(30);
   const [rotationDays, setRotationDays] = useState(90);
 
-  // PDF Preview
-  const { previewState, openPreview, closePreview } = usePDFPreview();
-
-  // Fonction pour gérer les exports
-  const handleExport = async (
-    exportFn: () => Promise<void>,
-    type: string
-  ) => {
-    try {
-      setExporting(type);
-      setExportSuccess(null);
-      await exportFn();
-      setExportSuccess(`Export ${type} téléchargé avec succès`);
-      setTimeout(() => setExportSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || `Erreur lors de l'export ${type}`);
-    } finally {
-      setExporting(null);
-    }
-  };
-
-  // Charger toutes les données
   const loadAllData = useCallback(async (isRefresh = false) => {
     try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-      setError(null);
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
 
-      // Charger toutes les données en parallèle
-      const [
-        statsData,
-        topProductsData,
-        warehouseData,
-        categoryData,
-        movementData,
-        rotationData,
-        countsData,
-      ] = await Promise.all([
+      const [statsData, topData, whData, catData, movData, rotData, countData] = await Promise.all([
         getInventoryOverview(),
         getTopProducts(),
         getStockByWarehouse(),
@@ -146,14 +113,14 @@ export default function ReportsPage() {
       ]);
 
       setStats(statsData);
-      setTopProducts(topProductsData);
-      setWarehouseStock(warehouseData);
-      setCategoryStock(categoryData);
-      setMovementHistory(movementData);
-      setLowRotation(rotationData);
-      setStockCountsSummary(countsData);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement des rapports");
+      setTopProducts(topData || []);
+      setWarehouseStock(whData || []);
+      setCategoryStock(catData || []);
+      setMovementHistory(movData);
+      setLowRotation(rotData);
+      setStockCountsSummary(countData);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -164,492 +131,257 @@ export default function ReportsPage() {
     loadAllData();
   }, [loadAllData]);
 
-  // Définir les raccourcis clavier
-  const shortcuts: KeyboardShortcut[] = useMemo(() => [
-    commonShortcuts.help(() => setShowShortcuts(true)),
-    commonShortcuts.escape(() => {
-      if (showShortcuts) {
-        setShowShortcuts(false);
-      }
-    }),
-    { key: "r", action: () => loadAllData(true), description: "Actualiser les données" },
-    { key: "1", action: () => setActiveTab("overview"), description: "Vue d'ensemble" },
-    { key: "2", action: () => setActiveTab("warehouses"), description: "Par entrepôt" },
-    { key: "3", action: () => setActiveTab("categories"), description: "Par catégorie" },
-    { key: "4", action: () => setActiveTab("movements"), description: "Mouvements" },
-    { key: "5", action: () => setActiveTab("rotation"), description: "Rotation" },
-    { key: "6", action: () => setActiveTab("counts"), description: "Inventaires" },
-  ], [showShortcuts, loadAllData]);
+  const handleExport = async (exportFn: () => Promise<void>, type: string) => {
+    try {
+      setExporting(type);
+      await exportFn();
+      setSuccessMessage(`Export ${type} téléchargé`);
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setExporting(null);
+    }
+  };
 
-  useKeyboardShortcuts({ shortcuts });
+  const formatCurrency = (value: any) => {
+    const num = safeNumber(value);
+    return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(num) + " GNF";
+  };
 
-  // Formatage monétaire
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "GNF",
-      maximumFractionDigits: 0,
-    }).format(value);
+  const formatNumber = (value: any) => {
+    const num = safeNumber(value);
+    return new Intl.NumberFormat("fr-FR").format(num);
+  };
 
-  // Formatage nombre
-  const formatNumber = (value: number) =>
-    new Intl.NumberFormat("fr-FR").format(value);
+  const formatShortCurrency = (value: any) => {
+    const num = safeNumber(value);
+    if (num >= 1000000000) return (num / 1000000000).toFixed(1) + "B";
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toString();
+  };
 
-  // Calcul du pourcentage pour les barres de progression
-  const getPercentage = (value: number, max: number) =>
-    max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  const tabs = [
+    { id: "overview" as ReportTab, label: "Vue d'ensemble", icon: BarChart3 },
+    { id: "warehouses" as ReportTab, label: "Entrepôts", icon: Warehouse },
+    { id: "categories" as ReportTab, label: "Catégories", icon: Tags },
+    { id: "movements" as ReportTab, label: "Mouvements", icon: TrendingUp },
+    { id: "rotation" as ReportTab, label: "Rotation", icon: RotateCw },
+    { id: "counts" as ReportTab, label: "Inventaires", icon: ClipboardList },
+  ];
 
-  // Rendu du chargement
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Chargement des rapports...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent mx-auto" />
+          <p className="mt-3 text-muted-foreground text-sm">Chargement...</p>
         </div>
       </div>
     );
   }
 
-  // Tabs de navigation
-  const tabs: { id: ReportTab; label: string; icon: React.ReactNode }[] = [
-    { id: "overview", label: "Vue d'ensemble", icon: <BarChart3 className="h-4 w-4" /> },
-    { id: "warehouses", label: "Par entrepôt", icon: <Warehouse className="h-4 w-4" /> },
-    { id: "categories", label: "Par catégorie", icon: <Tags className="h-4 w-4" /> },
-    { id: "movements", label: "Mouvements", icon: <TrendingUp className="h-4 w-4" /> },
-    { id: "rotation", label: "Rotation", icon: <RotateCw className="h-4 w-4" /> },
-    { id: "counts", label: "Inventaires", icon: <ClipboardList className="h-4 w-4" /> },
-  ];
-
   return (
-    <div className="space-y-6 p-6">
-      {/* Modal des raccourcis */}
-      <ShortcutsHelpModal
-        isOpen={showShortcuts}
-        onClose={() => setShowShortcuts(false)}
-        shortcuts={shortcuts}
-        title="Raccourcis clavier - Rapports"
-      />
+    <div className="p-6 space-y-6">
+      {/* Success Toast */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top">
+          <div className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            <span className="text-sm font-medium">{successMessage}</span>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Rapports et analyses</h1>
-          <p className="text-muted-foreground mt-1">
-            Statistiques détaillées et exports de données
-          </p>
+          <h1 className="text-2xl font-bold">Rapports & Analyses</h1>
+          <p className="text-muted-foreground text-sm">Statistiques de votre inventaire</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex flex-wrap gap-2">
           <Link href={`/apps/${slug}/inventory/reports/calendar`}>
-            <Button className="bg-primary hover:bg-primary/90">
-              <Calendar className="mr-2 h-4 w-4" />
-              Calendrier des activités
+            <Button variant="outline" size="sm">
+              <Calendar className="h-4 w-4 mr-2" />
+              Calendrier
             </Button>
           </Link>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowShortcuts(true)}
-            aria-label="Afficher les raccourcis clavier"
-            title="Raccourcis clavier (?)"
-          >
-            <Keyboard className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => loadAllData(true)}
-            disabled={refreshing}
-          >
-            {refreshing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCcw className="mr-2 h-4 w-4" />
-            )}
+          <Button variant="outline" size="sm" onClick={() => loadAllData(true)} disabled={refreshing}>
+            <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
             Actualiser
-            <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">R</kbd>
           </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => handleExport(downloadStockListExport, "stocks")}
-            disabled={exporting === "stocks"}
-          >
-            {exporting === "stocks" ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Package className="mr-2 h-4 w-4" />
-            )}
-            Export stocks
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => handleExport(() => downloadMovementsExport(movementDays), "mouvements")}
-            disabled={exporting === "mouvements"}
-          >
-            {exporting === "mouvements" ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <TrendingUp className="mr-2 h-4 w-4" />
-            )}
-            Export mouvements
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => handleExport(downloadAlertsExport, "alertes")}
-            disabled={exporting === "alertes"}
-          >
-            {exporting === "alertes" ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <AlertTriangle className="mr-2 h-4 w-4" />
-            )}
-            Export alertes
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={async () => {
-              const date = new Date().toISOString().split('T')[0];
-              try {
-                await openPreview(
-                  API_ENDPOINTS.INVENTORY.STATS.EXPORT_PRODUCTS_PDF,
-                  "Catalogue des produits",
-                  `catalogue_produits_${date}.pdf`
-                );
-              } catch (error) {
-                setError("Erreur lors du chargement du catalogue PDF");
-              }
-            }}
-            disabled={previewState.loading}
-          >
-            {previewState.loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <FileDown className="mr-2 h-4 w-4" />
-            )}
-            Catalogue PDF
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={async () => {
-              const date = new Date().toISOString().split('T')[0];
-              try {
-                await openPreview(
-                  API_ENDPOINTS.INVENTORY.STATS.EXPORT_STOCK_PDF,
-                  "Rapport de stock",
-                  `rapport_stock_${date}.pdf`
-                );
-              } catch (error) {
-                setError("Erreur lors du chargement du rapport PDF");
-              }
-            }}
-            disabled={previewState.loading}
-          >
-            {previewState.loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <FileDown className="mr-2 h-4 w-4" />
-            )}
-            Rapport stock PDF
-          </Button>
+          <div className="relative group">
+            <Button variant="default" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Exporter ▼
+            </Button>
+            <div className="absolute right-0 top-full mt-1 bg-popover border rounded-lg shadow-lg p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[200px]">
+              <p className="text-xs text-muted-foreground px-2 pb-2 border-b mb-2">Format PDF</p>
+              <button onClick={() => handleExport(downloadProductsCatalogPdf, "catalogue PDF")} disabled={exporting === "catalogue PDF"} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted flex items-center gap-2 disabled:opacity-50">
+                <FileText className="h-4 w-4 text-red-500" />
+                Catalogue produits
+              </button>
+              <button onClick={() => handleExport(downloadStockReportPdf, "stock PDF")} disabled={exporting === "stock PDF"} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted flex items-center gap-2 disabled:opacity-50">
+                <FileText className="h-4 w-4 text-red-500" />
+                Rapport de stock
+              </button>
+              <p className="text-xs text-muted-foreground px-2 pt-2 pb-2 border-t border-b my-2">Format Excel</p>
+              <button onClick={() => handleExport(downloadStockListExport, "stocks Excel")} disabled={exporting === "stocks Excel"} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted flex items-center gap-2 disabled:opacity-50">
+                <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                Liste des stocks
+              </button>
+              <button onClick={() => handleExport(() => downloadMovementsExport(movementDays), "mouvements Excel")} disabled={exporting === "mouvements Excel"} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted flex items-center gap-2 disabled:opacity-50">
+                <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                Mouvements ({movementDays}j)
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Success Message */}
-      {exportSuccess && (
-        <Alert variant="success" title="Succès">
-          {exportSuccess}
-        </Alert>
-      )}
-
-      {/* Error */}
-      {error && (
-        <Alert variant="error" title="Erreur" onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Navigation Tabs */}
-      <div className="border-b">
-        <nav className="flex gap-4 -mb-px overflow-x-auto">
-          {tabs.map((tab) => (
+      {/* Tabs */}
+      <div className="flex gap-1 p-1 bg-muted rounded-lg overflow-x-auto">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
-                activeTab === tab.id
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap",
+                activeTab === tab.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {tab.icon}
+              <Icon className="h-4 w-4" />
               {tab.label}
             </button>
-          ))}
-        </nav>
+          );
+        })}
       </div>
 
-      {/* Contenu par tab */}
+      {/* Tab Content */}
       {activeTab === "overview" && stats && (
-        <OverviewTab
-          stats={stats}
-          topProducts={topProducts}
-          formatCurrency={formatCurrency}
-          formatNumber={formatNumber}
-        />
+        <OverviewTab stats={stats} topProducts={topProducts} categoryStock={categoryStock} formatCurrency={formatCurrency} formatNumber={formatNumber} formatShortCurrency={formatShortCurrency} slug={slug} />
       )}
-
       {activeTab === "warehouses" && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold">Stock par entrepôt</h2>
-            <p className="text-sm text-muted-foreground">
-              Analyse détaillée de la répartition du stock entre les entrepôts
-            </p>
-          </div>
-          <WarehousesChart
-            data={warehouseStock}
-            formatCurrency={formatCurrency}
-            formatNumber={formatNumber}
-          />
-        </div>
+        <WarehousesTab data={warehouseStock} formatCurrency={formatCurrency} formatNumber={formatNumber} formatShortCurrency={formatShortCurrency} />
       )}
-
       {activeTab === "categories" && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold">Stock par catégorie</h2>
-            <p className="text-sm text-muted-foreground">
-              Analyse de la répartition du stock par catégorie de produits
-            </p>
-          </div>
-          <CategoriesChart
-            data={categoryStock}
-            formatCurrency={formatCurrency}
-            formatNumber={formatNumber}
-          />
-        </div>
+        <CategoriesTab data={categoryStock} formatCurrency={formatCurrency} formatNumber={formatNumber} />
       )}
-
       {activeTab === "movements" && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold">Historique des mouvements</h2>
-              <p className="text-sm text-muted-foreground">
-                Analyse des mouvements sur les {movementDays} derniers jours
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {[7, 14, 30, 60, 90].map((d) => (
-                <Button
-                  key={d}
-                  variant={movementDays === d ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setMovementDays(d)}
-                >
-                  {d}j
-                </Button>
-              ))}
-            </div>
-          </div>
-          <MovementsChart data={movementHistory} formatNumber={formatNumber} />
-        </div>
+        <MovementsTab data={movementHistory} days={movementDays} setDays={setMovementDays} formatNumber={formatNumber} />
       )}
-
       {activeTab === "rotation" && (
-        <RotationTab
-          data={lowRotation}
-          days={rotationDays}
-          setDays={setRotationDays}
-          formatCurrency={formatCurrency}
-          formatNumber={formatNumber}
-        />
+        <RotationTab data={lowRotation} days={rotationDays} setDays={setRotationDays} formatCurrency={formatCurrency} formatNumber={formatNumber} slug={slug} />
       )}
-
       {activeTab === "counts" && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold">Résumé des inventaires</h2>
-            <p className="text-sm text-muted-foreground">
-              Historique et statistiques des inventaires physiques
-            </p>
-          </div>
-          <StockCountsChart data={stockCountsSummary} formatNumber={formatNumber} />
-          <StockCountsTab data={stockCountsSummary} formatNumber={formatNumber} />
-        </div>
+        <CountsTab data={stockCountsSummary} formatNumber={formatNumber} slug={slug} />
       )}
-
-      {/* PDF Preview Modal */}
-      <PDFPreviewModal
-        isOpen={previewState.isOpen}
-        onClose={closePreview}
-        title={previewState.title}
-        pdfUrl={previewState.pdfUrl}
-        filename={previewState.filename}
-      />
     </div>
   );
 }
 
 // ==========================================
-// Overview Tab Component
+// Overview Tab avec graphiques
 // ==========================================
-function OverviewTab({
-  stats,
-  topProducts,
-  formatCurrency,
-  formatNumber,
-}: {
-  stats: InventoryStats;
-  topProducts: TopProduct[];
-  formatCurrency: (v: number) => string;
-  formatNumber: (v: number) => string;
-}) {
+function OverviewTab({ stats, topProducts, categoryStock, formatCurrency, formatNumber, formatShortCurrency, slug }: any) {
+  const totalProducts = safeNumber(stats.total_products);
+  const lowStockCount = safeNumber(stats.low_stock_count);
+  const stockHealthPercent = totalProducts > 0 ? Math.round(((totalProducts - lowStockCount) / totalProducts) * 100) : 100;
+
+  // Données pour le graphique top produits
+  const topProductsData = topProducts.slice(0, 5).map((p: any) => ({
+    name: p.name?.substring(0, 15) + (p.name?.length > 15 ? "..." : ""),
+    value: safeNumber(p.stock_value),
+    stock: safeNumber(p.total_stock),
+  }));
+
+  // Données pour le pie chart catégories
+  const categoryData = categoryStock.slice(0, 6).map((c: any, i: number) => ({
+    name: c.name || "Sans catégorie",
+    value: safeNumber(c.total_value),
+  }));
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Produits actifs</p>
-              <p className="text-3xl font-bold mt-2">{stats.total_products}</p>
-            </div>
-            <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Package className="h-6 w-6 text-blue-600" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Entrepôts</p>
-              <p className="text-3xl font-bold mt-2">{stats.warehouse_count}</p>
-            </div>
-            <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Archive className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Alertes actives</p>
-              <p className="text-3xl font-bold mt-2">{stats.active_alerts}</p>
-            </div>
-            <div className="h-12 w-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-orange-600" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Commandes en cours</p>
-              <p className="text-3xl font-bold mt-2">{stats.pending_orders}</p>
-            </div>
-            <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <ShoppingCart className="h-6 w-6 text-purple-600" />
-            </div>
-          </div>
-        </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatCard label="Produits" value={formatNumber(stats.total_products)} icon={Package} color="blue" />
+        <StatCard label="Valeur stock" value={formatCurrency(stats.total_stock_value)} icon={DollarSign} color="green" />
+        <StatCard label="Stock faible" value={formatNumber(stats.low_stock_count)} icon={TrendingDown} color="orange" />
+        <StatCard label="Alertes" value={formatNumber(stats.active_alerts)} icon={AlertTriangle} color="red" />
+        <StatCard label="Santé" value={`${stockHealthPercent}%`} icon={CheckCircle} color={stockHealthPercent >= 80 ? "green" : "orange"} />
       </div>
 
-      {/* Value Card */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
-            <DollarSign className="h-5 w-5 text-green-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold">Valeur totale du stock</h3>
-            <p className="text-sm text-muted-foreground">Basée sur le prix d'achat</p>
-          </div>
-        </div>
-        <p className="text-4xl font-bold">{formatCurrency(stats.total_stock_value)}</p>
-      </Card>
-
-      {/* Alerts Breakdown & Top Products */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Alerts */}
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-10 bg-orange-100 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-orange-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">État du stock</h3>
-              <p className="text-sm text-muted-foreground">Situation actuelle</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="p-4 border rounded-lg bg-red-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingDown className="h-4 w-4 text-red-600" />
-                  <span className="text-sm font-medium">Stock bas</span>
-                </div>
-                <span className="text-2xl font-bold text-red-600">{stats.low_stock_count}</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Produits sous le seuil minimum</p>
-            </div>
-
-            <div className="p-4 border rounded-lg bg-blue-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium">Stock sain</span>
-                </div>
-                <span className="text-2xl font-bold text-blue-600">
-                  {stats.total_products - stats.low_stock_count}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Produits avec stock suffisant</p>
-            </div>
-          </div>
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Graphique Top Produits */}
+        <Card className="p-5">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-blue-600" />
+            Top 5 produits par valeur
+          </h3>
+          {topProductsData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={topProductsData} layout="vertical" margin={{ left: 0, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis type="number" tickFormatter={formatShortCurrency} fontSize={12} />
+                <YAxis type="category" dataKey="name" width={100} fontSize={11} />
+                <Tooltip
+                  formatter={(value: any) => formatCurrency(value)}
+                  labelStyle={{ fontWeight: "bold" }}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                />
+                <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">Aucune donnée</p>
+          )}
+          <Link href={`/apps/${slug}/inventory/products`} className="block text-center text-sm text-primary hover:underline mt-2">
+            Voir tous les produits →
+          </Link>
         </Card>
 
-        {/* Top Products */}
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <BarChart3 className="h-5 w-5 text-purple-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">Top produits par valeur</h3>
-              <p className="text-sm text-muted-foreground">Les 10 plus grandes valeurs de stock</p>
-            </div>
-          </div>
-
-          <div className="space-y-3 max-h-[300px] overflow-y-auto">
-            {topProducts.length > 0 ? (
-              topProducts.map((product, index) => (
-                <div key={product.id} className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded">
-                  <span className="text-xs font-medium text-muted-foreground w-5">
-                    #{index + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">{product.sku}</p>
+        {/* Pie Chart Catégories */}
+        <Card className="p-5">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <Tags className="h-5 w-5 text-purple-600" />
+            Répartition par catégorie
+          </h3>
+          {categoryData.length > 0 ? (
+            <div className="flex items-center">
+              <ResponsiveContainer width="50%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    dataKey="value"
+                    label={false}
+                  >
+                    {categoryData.map((entry: any, index: number) => (
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: any) => formatCurrency(value)} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex-1 space-y-2">
+                {categoryData.map((cat: any, i: number) => (
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                    <span className="truncate flex-1">{cat.name}</span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">{formatCurrency(product.stock_value)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatNumber(product.total_stock)} unités
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Aucun produit trouvé
-              </p>
-            )}
-          </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">Aucune donnée</p>
+          )}
         </Card>
       </div>
     </div>
@@ -657,188 +389,141 @@ function OverviewTab({
 }
 
 // ==========================================
-// Warehouses Tab Component
+// Warehouses Tab avec graphique
 // ==========================================
-function WarehousesTab({
-  data,
-  formatCurrency,
-  formatNumber,
-  getPercentage,
-}: {
-  data: WarehouseStockReport[];
-  formatCurrency: (v: number) => string;
-  formatNumber: (v: number) => string;
-  getPercentage: (v: number, max: number) => number;
-}) {
-  const maxValue = Math.max(...data.map((w) => w.total_value), 1);
-  const maxQuantity = Math.max(...data.map((w) => w.total_quantity), 1);
+function WarehousesTab({ data, formatCurrency, formatNumber, formatShortCurrency }: any) {
+  const chartData = data.map((wh: any) => ({
+    name: wh.name?.substring(0, 12) + (wh.name?.length > 12 ? "..." : ""),
+    value: safeNumber(wh.total_value),
+    quantity: safeNumber(wh.total_quantity),
+  }));
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Stock par entrepôt</h2>
-          <p className="text-sm text-muted-foreground">
-            Répartition du stock entre les différents entrepôts
-          </p>
-        </div>
-      </div>
+      <p className="text-muted-foreground text-sm">Répartition du stock par entrepôt</p>
 
       {data.length === 0 ? (
-        <Card className="p-8 text-center">
-          <Warehouse className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Aucun entrepôt trouvé</p>
-        </Card>
+        <Card className="p-8 text-center text-muted-foreground">Aucun entrepôt</Card>
       ) : (
-        <div className="grid gap-4">
-          {data.map((warehouse) => (
-            <Card key={warehouse.id} className="p-6">
-              <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                {/* Info */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Warehouse className="h-5 w-5 text-blue-600" />
-                    <h3 className="font-semibold text-lg">{warehouse.name}</h3>
-                    <span className="text-xs bg-muted px-2 py-0.5 rounded">{warehouse.code}</span>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Produits</p>
-                      <p className="font-semibold">{warehouse.product_count}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Quantité totale</p>
-                      <p className="font-semibold">{formatNumber(warehouse.total_quantity)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Stock bas</p>
-                      <p className="font-semibold text-orange-600">{warehouse.low_stock_count}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Rupture</p>
-                      <p className="font-semibold text-red-600">{warehouse.out_of_stock_count}</p>
-                    </div>
-                  </div>
+        <>
+          {/* Graphique */}
+          <Card className="p-5">
+            <h3 className="font-semibold mb-4">Valeur par entrepôt</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" fontSize={12} />
+                <YAxis tickFormatter={formatShortCurrency} fontSize={12} />
+                <Tooltip formatter={(value: any, name: string) => [formatCurrency(value), name === "value" ? "Valeur" : "Quantité"]} />
+                <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Valeur" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+
+          {/* Cartes détails */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data.map((wh: any) => (
+              <Card key={wh.id} className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Warehouse className="h-5 w-5 text-purple-600" />
+                  <h4 className="font-semibold truncate">{wh.name}</h4>
                 </div>
-
-                {/* Value */}
-                <div className="lg:w-64">
-                  <p className="text-sm text-muted-foreground mb-1">Valeur du stock</p>
-                  <p className="text-2xl font-bold text-green-600 mb-2">
-                    {formatCurrency(warehouse.total_value)}
-                  </p>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 transition-all"
-                      style={{ width: `${getPercentage(warehouse.total_value, maxValue)}%` }}
-                    />
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Valeur</span>
+                    <span className="font-semibold">{formatCurrency(wh.total_value)}</span>
                   </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ==========================================
-// Categories Tab Component
-// ==========================================
-function CategoriesTab({
-  data,
-  formatCurrency,
-  formatNumber,
-  getPercentage,
-}: {
-  data: CategoryStockReport[];
-  formatCurrency: (v: number) => string;
-  formatNumber: (v: number) => string;
-  getPercentage: (v: number, max: number) => number;
-}) {
-  const maxValue = Math.max(...data.map((c) => c.total_value), 1);
-  const totalValue = data.reduce((acc, c) => acc + c.total_value, 0);
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Stock par catégorie</h2>
-          <p className="text-sm text-muted-foreground">
-            Répartition du stock par catégorie de produits
-          </p>
-        </div>
-        <Card className="px-4 py-2">
-          <p className="text-xs text-muted-foreground">Valeur totale</p>
-          <p className="font-bold text-green-600">{formatCurrency(totalValue)}</p>
-        </Card>
-      </div>
-
-      {data.length === 0 ? (
-        <Card className="p-8 text-center">
-          <Tags className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Aucune catégorie trouvée</p>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {data.map((category, index) => {
-            const percentage = totalValue > 0 ? (category.total_value / totalValue) * 100 : 0;
-            const colors = [
-              "bg-blue-500",
-              "bg-green-500",
-              "bg-purple-500",
-              "bg-orange-500",
-              "bg-pink-500",
-              "bg-cyan-500",
-              "bg-yellow-500",
-              "bg-red-500",
-            ];
-            const color = colors[index % colors.length];
-
-            return (
-              <Card key={category.id || "uncategorized"} className="p-5">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("w-3 h-3 rounded-full", color)} />
-                    <div>
-                      <h3 className="font-semibold">{category.name}</h3>
-                      <p className="text-xs text-muted-foreground">
-                        {category.product_count} produits
-                      </p>
-                    </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Produits</span>
+                    <span>{safeNumber(wh.product_count)}</span>
                   </div>
-                  <span className="text-sm font-medium">{percentage.toFixed(1)}%</span>
-                </div>
-
-                <div className="h-2 bg-muted rounded-full overflow-hidden mb-4">
-                  <div
-                    className={cn("h-full transition-all", color)}
-                    style={{ width: `${getPercentage(category.total_value, maxValue)}%` }}
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Quantité</p>
-                    <p className="font-semibold text-sm">{formatNumber(category.total_quantity)}</p>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Quantité</span>
+                    <span>{formatNumber(wh.total_quantity)}</span>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Valeur</p>
-                    <p className="font-semibold text-sm text-green-600">
-                      {formatCurrency(category.total_value)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Stock bas</p>
-                    <p className="font-semibold text-sm text-orange-600">
-                      {category.low_stock_count}
-                    </p>
+                  <div className="flex justify-between text-orange-600">
+                    <span>Stock bas</span>
+                    <span className="font-semibold">{safeNumber(wh.low_stock_count)}</span>
                   </div>
                 </div>
               </Card>
-            );
-          })}
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ==========================================
+// Categories Tab avec pie chart
+// ==========================================
+function CategoriesTab({ data, formatCurrency, formatNumber }: any) {
+  const totalValue = data.reduce((acc: number, c: any) => acc + safeNumber(c.total_value), 0);
+
+  const chartData = data.map((c: any) => ({
+    name: c.name || "Sans catégorie",
+    value: safeNumber(c.total_value),
+    products: safeNumber(c.product_count),
+    quantity: safeNumber(c.total_quantity),
+  }));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="text-muted-foreground text-sm">Répartition par catégorie</p>
+        <p className="font-semibold">Total: {formatCurrency(totalValue)}</p>
+      </div>
+
+      {data.length === 0 ? (
+        <Card className="p-8 text-center text-muted-foreground">Aucune catégorie</Card>
+      ) : (
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Pie Chart */}
+          <Card className="p-5">
+            <h3 className="font-semibold mb-4">Répartition de la valeur</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name.substring(0, 10)}${name.length > 10 ? "..." : ""} (${(percent * 100).toFixed(0)}%)`}
+                  labelLine={false}
+                >
+                  {chartData.map((entry: any, index: number) => (
+                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: any) => formatCurrency(value)} />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
+
+          {/* Liste détaillée */}
+          <Card className="p-5">
+            <h3 className="font-semibold mb-4">Détails</h3>
+            <div className="space-y-3 max-h-[300px] overflow-y-auto">
+              {chartData.map((cat: any, i: number) => {
+                const percent = totalValue > 0 ? (cat.value / totalValue) * 100 : 0;
+                return (
+                  <div key={i} className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                      <span className="font-medium flex-1">{cat.name}</span>
+                      <span className="text-sm font-semibold">{percent.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>{cat.products} produits • {formatNumber(cat.quantity)} unités</span>
+                      <span>{formatCurrency(cat.value)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
         </div>
       )}
     </div>
@@ -846,462 +531,249 @@ function CategoriesTab({
 }
 
 // ==========================================
-// Movements Tab Component
+// Movements Tab avec line chart
 // ==========================================
-function MovementsTab({
-  data,
-  days,
-  setDays,
-  formatNumber,
-  formatCurrency,
-}: {
-  data: MovementHistoryResponse | null;
-  days: number;
-  setDays: (d: number) => void;
-  formatNumber: (v: number) => string;
-  formatCurrency: (v: number) => string;
-}) {
-  const periodOptions = [7, 14, 30, 60, 90];
+function MovementsTab({ data, days, setDays, formatNumber }: any) {
+  // Le backend retourne summary.total_in, summary.total_out, etc.
+  const summary = data?.summary || {};
+  const totalIn = safeNumber(summary.total_in);
+  const totalOut = safeNumber(summary.total_out);
+  const totalAdj = safeNumber(summary.total_adjustments);
+  const totalTrans = safeNumber(summary.total_transfers);
 
-  if (!data) {
-    return (
-      <Card className="p-8 text-center">
-        <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-muted-foreground">Aucun mouvement trouvé</p>
-      </Card>
-    );
-  }
+  // Préparer les données pour le graphique à partir de history
+  const historyData = data?.history || [];
+  const dailyData = historyData.slice(-30).map((d: any) => {
+    // Calculer le total de mouvements pour ce jour
+    const inCount = safeNumber(d.in?.count);
+    const outCount = safeNumber(d.out?.count);
+    const adjCount = safeNumber(d.adjustment?.count);
+    const transCount = safeNumber(d.transfer?.count);
+    return {
+      date: new Date(d.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
+      count: inCount + outCount + adjCount + transCount,
+      in: inCount,
+      out: outCount,
+    };
+  });
 
   return (
     <div className="space-y-6">
-      {/* Header avec filtre */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">Historique des mouvements</h2>
-          <p className="text-sm text-muted-foreground">
-            Analyse des mouvements sur les {data.period_days} derniers jours
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {periodOptions.map((d) => (
-            <Button
+      <div className="flex items-center justify-between">
+        <p className="text-muted-foreground text-sm">Historique sur {days} jours</p>
+        <div className="flex gap-1 bg-muted p-1 rounded-lg">
+          {[7, 14, 30, 60, 90].map((d) => (
+            <button
               key={d}
-              variant={days === d ? "default" : "outline"}
-              size="sm"
               onClick={() => setDays(d)}
+              className={cn("px-3 py-1 text-sm rounded-md transition-colors", days === d ? "bg-background shadow-sm" : "hover:bg-background/50")}
             >
               {d}j
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Résumé */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <ArrowUpRight className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Entrées</p>
-              <p className="text-xl font-bold text-green-600">{data.summary.total_in}</p>
-            </div>
-          </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-4 border-l-4 border-green-500">
+          <ArrowDownRight className="h-6 w-6 text-green-500 mb-2" />
+          <p className="text-2xl font-bold text-green-600">{formatNumber(totalIn)}</p>
+          <p className="text-xs text-muted-foreground">Entrées</p>
         </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <ArrowDownRight className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Sorties</p>
-              <p className="text-xl font-bold text-red-600">{data.summary.total_out}</p>
-            </div>
-          </div>
+        <Card className="p-4 border-l-4 border-red-500">
+          <ArrowUpRight className="h-6 w-6 text-red-500 mb-2" />
+          <p className="text-2xl font-bold text-red-600">{formatNumber(totalOut)}</p>
+          <p className="text-xs text-muted-foreground">Sorties</p>
         </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <RefreshCcw className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Transferts</p>
-              <p className="text-xl font-bold text-blue-600">{data.summary.total_transfers}</p>
-            </div>
-          </div>
+        <Card className="p-4 border-l-4 border-blue-500">
+          <RotateCw className="h-6 w-6 text-blue-500 mb-2" />
+          <p className="text-2xl font-bold text-blue-600">{formatNumber(totalAdj)}</p>
+          <p className="text-xs text-muted-foreground">Ajustements</p>
         </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <BarChart3 className="h-5 w-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Ajustements</p>
-              <p className="text-xl font-bold text-purple-600">{data.summary.total_adjustments}</p>
-            </div>
-          </div>
+        <Card className="p-4 border-l-4 border-purple-500">
+          <TrendingUp className="h-6 w-6 text-purple-500 mb-2" />
+          <p className="text-2xl font-bold text-purple-600">{formatNumber(totalTrans)}</p>
+          <p className="text-xs text-muted-foreground">Transferts</p>
         </Card>
       </div>
 
-      {/* Historique par jour */}
-      <Card className="p-6">
-        <h3 className="font-semibold mb-4">Détail par jour</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-2 px-3">Date</th>
-                <th className="text-center py-2 px-3 text-green-600">Entrées</th>
-                <th className="text-center py-2 px-3 text-red-600">Sorties</th>
-                <th className="text-center py-2 px-3 text-blue-600">Transferts</th>
-                <th className="text-center py-2 px-3 text-purple-600">Ajustements</th>
-                <th className="text-right py-2 px-3">Total mouvements</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.history.length > 0 ? (
-                data.history.slice(-15).reverse().map((day) => {
-                  const total = day.in.count + day.out.count + day.transfer.count + day.adjustment.count;
-                  return (
-                    <tr key={day.date} className="border-b hover:bg-muted/50">
-                      <td className="py-2 px-3 font-medium">
-                        {new Date(day.date).toLocaleDateString("fr-FR", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                        })}
-                      </td>
-                      <td className="text-center py-2 px-3">
-                        {day.in.count > 0 && (
-                          <span className="text-green-600">{day.in.count}</span>
-                        )}
-                      </td>
-                      <td className="text-center py-2 px-3">
-                        {day.out.count > 0 && (
-                          <span className="text-red-600">{day.out.count}</span>
-                        )}
-                      </td>
-                      <td className="text-center py-2 px-3">
-                        {day.transfer.count > 0 && (
-                          <span className="text-blue-600">{day.transfer.count}</span>
-                        )}
-                      </td>
-                      <td className="text-center py-2 px-3">
-                        {day.adjustment.count > 0 && (
-                          <span className="text-purple-600">{day.adjustment.count}</span>
-                        )}
-                      </td>
-                      <td className="text-right py-2 px-3 font-semibold">{total}</td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={6} className="text-center py-8 text-muted-foreground">
-                    Aucun mouvement sur cette période
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      {/* Line Chart */}
+      {dailyData.length > 0 && (
+        <Card className="p-5">
+          <h3 className="font-semibold mb-4">Évolution des mouvements</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={dailyData}>
+              <defs>
+                <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="date" fontSize={11} tickMargin={10} />
+              <YAxis fontSize={12} />
+              <Tooltip />
+              <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} fill="url(#colorCount)" name="Mouvements" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </Card>
+      )}
     </div>
   );
 }
 
 // ==========================================
-// Rotation Tab Component
+// Rotation Tab
 // ==========================================
-function RotationTab({
-  data,
-  days,
-  setDays,
-  formatCurrency,
-  formatNumber,
-}: {
-  data: LowRotationProductsResponse | null;
-  days: number;
-  setDays: (d: number) => void;
-  formatCurrency: (v: number) => string;
-  formatNumber: (v: number) => string;
-}) {
-  const periodOptions = [30, 60, 90, 180];
-
-  if (!data) {
-    return (
-      <Card className="p-8 text-center">
-        <RotateCw className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-muted-foreground">Données non disponibles</p>
-      </Card>
-    );
-  }
-
-  const totalValue = data.products.reduce((acc, p) => acc + p.stock_value, 0);
+function RotationTab({ data, days, setDays, formatCurrency, formatNumber, slug }: any) {
+  const products = data?.products || [];
+  // Calculer le nombre et la valeur totale depuis la liste
+  const count = products.length;
+  const totalValue = products.reduce((acc: number, p: any) => acc + safeNumber(p.stock_value), 0);
 
   return (
     <div className="space-y-6">
-      {/* Header avec filtre */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold">Produits à faible rotation</h2>
-          <p className="text-sm text-muted-foreground">
-            Stock dormant sur les {data.period_days} derniers jours
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {periodOptions.map((d) => (
-            <Button
-              key={d}
-              variant={days === d ? "default" : "outline"}
-              size="sm"
-              onClick={() => setDays(d)}
-            >
+      <div className="flex items-center justify-between">
+        <p className="text-muted-foreground text-sm">Produits sans mouvement depuis</p>
+        <div className="flex gap-1 bg-muted p-1 rounded-lg">
+          {[30, 60, 90, 180].map((d) => (
+            <button key={d} onClick={() => setDays(d)} className={cn("px-3 py-1 text-sm rounded-md transition-colors", days === d ? "bg-background shadow-sm" : "hover:bg-background/50")}>
               {d}j
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Alert Value */}
-      <Alert variant="warning" title="Valeur du stock dormant">
-        <div className="flex items-center justify-between">
-          <span>
-            {data.products.length} produits représentent une valeur de stock dormant de
-          </span>
-          <span className="font-bold text-lg">{formatCurrency(totalValue)}</span>
-        </div>
-      </Alert>
+      {products.length === 0 ? (
+        <Card className="p-8 text-center">
+          <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
+          <p className="font-semibold">Excellent !</p>
+          <p className="text-muted-foreground text-sm">Tous vos produits ont eu des mouvements récents</p>
+        </Card>
+      ) : (
+        <>
+          <Card className="p-4 bg-orange-50 dark:bg-orange-950/30 border-orange-200">
+            <div className="flex items-center gap-3">
+              <Clock className="h-8 w-8 text-orange-600" />
+              <div>
+                <p className="font-semibold">{count} produit(s) dormant(s)</p>
+                <p className="text-sm text-muted-foreground">Valeur immobilisée: {formatCurrency(totalValue)}</p>
+              </div>
+            </div>
+          </Card>
 
-      {/* Products List */}
-      <Card className="p-6">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-2 px-3">Produit</th>
-                <th className="text-left py-2 px-3">Catégorie</th>
-                <th className="text-right py-2 px-3">Stock</th>
-                <th className="text-right py-2 px-3">Valeur</th>
-                <th className="text-center py-2 px-3">Sorties récentes</th>
-                <th className="text-right py-2 px-3">Dernier mouvement</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.products.length > 0 ? (
-                data.products.map((product) => (
-                  <tr key={product.id} className="border-b hover:bg-muted/50">
-                    <td className="py-3 px-3">
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">{product.sku}</p>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-muted-foreground">
-                      {product.category_name || "-"}
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      {formatNumber(product.total_stock)}
-                    </td>
-                    <td className="py-3 px-3 text-right font-medium text-green-600">
-                      {formatCurrency(product.stock_value)}
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <span
-                        className={cn(
-                          "px-2 py-0.5 rounded-full text-xs font-medium",
-                          product.recent_out_movements === 0
-                            ? "bg-red-100 text-red-700"
-                            : product.recent_out_movements < 3
-                            ? "bg-orange-100 text-orange-700"
-                            : "bg-green-100 text-green-700"
-                        )}
-                      >
-                        {product.recent_out_movements}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      {product.days_since_last_movement !== null ? (
-                        <div className="flex items-center justify-end gap-1">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-muted-foreground">
-                            {product.days_since_last_movement} jours
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="text-center py-8 text-muted-foreground">
-                    Aucun produit à faible rotation trouvé
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+          <div className="grid md:grid-cols-2 gap-3">
+            {products.slice(0, 10).map((product: any) => (
+              <Link key={product.id} href={`/apps/${slug}/inventory/products/${product.id}`}>
+                <Card className="p-4 hover:bg-muted/50 transition-colors h-full">
+                  <p className="font-medium truncate mb-1">{product.name}</p>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Dernier mvt: {product.last_movement_date ? new Date(product.last_movement_date).toLocaleDateString("fr-FR") : "Jamais"}
+                    </span>
+                    <span className="font-semibold">{formatNumber(safeNumber(product.total_stock))} unités</span>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 // ==========================================
-// Stock Counts Tab Component
+// Counts Tab
 // ==========================================
-function StockCountsTab({
-  data,
-  formatNumber,
-}: {
-  data: StockCountsSummaryResponse | null;
-  formatNumber: (v: number) => string;
-}) {
-  if (!data) {
-    return (
-      <Card className="p-8 text-center">
-        <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <p className="text-muted-foreground">Données non disponibles</p>
-      </Card>
-    );
-  }
+function CountsTab({ data, formatNumber, slug }: any) {
+  // Le backend retourne stock_counts et summary
+  const recentCounts = data?.stock_counts || [];
+  const summary = data?.summary || {};
+  
+  // Calculer le total des articles comptés
+  const totalItemsCounted = recentCounts.reduce((acc: number, c: any) => acc + safeNumber(c.item_count), 0);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold">Résumé des inventaires</h2>
-        <p className="text-sm text-muted-foreground">
-          Historique et statistiques des inventaires physiques
-        </p>
+      <div className="flex items-center justify-between">
+        <p className="text-muted-foreground text-sm">Historique des inventaires</p>
+        <Link href={`/apps/${slug}/inventory/stock-counts/new`}>
+          <Button size="sm"><ClipboardList className="h-4 w-4 mr-2" />Nouvel inventaire</Button>
+        </Link>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <ClipboardList className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total inventaires</p>
-              <p className="text-xl font-bold">{data.summary.total_counts}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Validés</p>
-              <p className="text-xl font-bold text-green-600">{data.summary.validated_counts}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Clock className="h-5 w-5 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">En attente</p>
-              <p className="text-xl font-bold text-orange-600">{data.summary.pending_counts}</p>
-            </div>
-          </div>
-        </Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Total" value={formatNumber(summary.total_counts)} icon={ClipboardList} color="blue" />
+        <StatCard label="Validés" value={formatNumber(summary.validated_counts)} icon={CheckCircle} color="green" />
+        <StatCard label="En cours" value={formatNumber(summary.pending_counts)} icon={Clock} color="orange" />
+        <StatCard label="Articles" value={formatNumber(totalItemsCounted)} icon={Package} color="purple" />
       </div>
 
-      {/* Recent Stock Counts */}
-      <Card className="p-6">
-        <h3 className="font-semibold mb-4">Inventaires récents</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-2 px-3">N° Inventaire</th>
-                <th className="text-left py-2 px-3">Entrepôt</th>
-                <th className="text-left py-2 px-3">Date</th>
-                <th className="text-center py-2 px-3">Statut</th>
-                <th className="text-right py-2 px-3">Articles</th>
-                <th className="text-right py-2 px-3">Écarts</th>
-                <th className="text-right py-2 px-3">Précision</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.stock_counts.length > 0 ? (
-                data.stock_counts.map((count) => (
-                  <tr key={count.id} className="border-b hover:bg-muted/50">
-                    <td className="py-3 px-3 font-medium">{count.count_number}</td>
-                    <td className="py-3 px-3">{count.warehouse_name || "-"}</td>
-                    <td className="py-3 px-3">
-                      {count.count_date
-                        ? new Date(count.count_date).toLocaleDateString("fr-FR")
-                        : "-"}
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <span
-                        className={cn(
-                          "px-2 py-0.5 rounded-full text-xs font-medium",
-                          count.status === "validated"
-                            ? "bg-green-100 text-green-700"
-                            : count.status === "completed"
-                            ? "bg-blue-100 text-blue-700"
-                            : count.status === "in_progress"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : count.status === "cancelled"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-gray-100 text-gray-700"
-                        )}
-                      >
-                        {count.status_display}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right">{count.item_count}</td>
-                    <td className="py-3 px-3 text-right">
-                      <span
-                        className={cn(
-                          count.items_with_discrepancy > 0 ? "text-red-600" : "text-green-600"
-                        )}
-                      >
-                        {count.items_with_discrepancy}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 text-right">
-                      <span
-                        className={cn(
-                          "font-medium",
-                          count.accuracy_rate >= 95
-                            ? "text-green-600"
-                            : count.accuracy_rate >= 80
-                            ? "text-orange-600"
-                            : "text-red-600"
-                        )}
-                      >
-                        {count.accuracy_rate.toFixed(1)}%
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Aucun inventaire trouvé
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      {recentCounts.length > 0 && (
+        <Card className="p-5">
+          <h3 className="font-semibold mb-4">Derniers inventaires</h3>
+          <div className="space-y-2">
+            {recentCounts.map((count: any) => (
+              <Link key={count.id} href={`/apps/${slug}/inventory/stock-counts/${count.id}`}>
+                <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div>
+                    <p className="font-medium">{count.count_number}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {count.count_date ? new Date(count.count_date).toLocaleDateString("fr-FR") : "Non planifié"}
+                      {count.warehouse_name && ` • ${count.warehouse_name}`}
+                    </p>
+                  </div>
+                  <span className={cn(
+                    "px-2 py-1 text-xs rounded-full font-medium",
+                    count.status === "validated" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                    count.status === "completed" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                    count.status === "in_progress" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" :
+                    "bg-muted"
+                  )}>
+                    {count.status_display || count.status}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
+  );
+}
+
+// ==========================================
+// Stat Card Component
+// ==========================================
+function StatCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color: string }) {
+  const bgColors: Record<string, string> = {
+    blue: "bg-blue-100 dark:bg-blue-900/30",
+    green: "bg-green-100 dark:bg-green-900/30",
+    orange: "bg-orange-100 dark:bg-orange-900/30",
+    red: "bg-red-100 dark:bg-red-900/30",
+    purple: "bg-purple-100 dark:bg-purple-900/30",
+  };
+  const textColors: Record<string, string> = {
+    blue: "text-blue-600",
+    green: "text-green-600",
+    orange: "text-orange-600",
+    red: "text-red-600",
+    purple: "text-purple-600",
+  };
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-3">
+        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", bgColors[color])}>
+          <Icon className={cn("h-5 w-5", textColors[color])} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-lg font-bold truncate">{value}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
+        </div>
+      </div>
+    </Card>
   );
 }

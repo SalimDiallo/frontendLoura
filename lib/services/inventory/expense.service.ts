@@ -132,3 +132,96 @@ export async function getExpenseSummary(): Promise<ExpenseSummary> {
 export function getExpensesExportUrl(format: 'pdf' | 'excel' = 'pdf'): string {
   return `${API_ENDPOINTS.INVENTORY.EXPENSES.EXPORT}?format=${format}`;
 }
+
+/**
+ * Download expenses PDF with filters
+ */
+export async function downloadExpensesPdf(params?: {
+  category?: string;
+  start_date?: string;
+  end_date?: string;
+}): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  const token = localStorage.getItem('access_token');
+  const orgSlug = localStorage.getItem('current_organization_slug');
+  
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  let url = `${baseUrl}${API_ENDPOINTS.INVENTORY.EXPENSES.EXPORT}`;
+  
+  // Build query params
+  const queryParams = new URLSearchParams();
+  if (orgSlug) queryParams.append('organization_subdomain', orgSlug);
+  if (params?.category) queryParams.append('category', params.category);
+  if (params?.start_date) queryParams.append('start_date', params.start_date);
+  if (params?.end_date) queryParams.append('end_date', params.end_date);
+  
+  const queryString = queryParams.toString();
+  if (queryString) url += `?${queryString}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+      'X-Organization-Slug': orgSlug || '',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erreur lors du téléchargement: ${response.statusText}`);
+  }
+
+  const blob = await response.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  const dateStr = new Date().toISOString().split('T')[0];
+  link.download = `depenses_${dateStr}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
+/**
+ * Get expenses PDF blob for preview
+ */
+export async function getExpensesPdfBlob(params?: {
+  category?: string;
+  start_date?: string;
+  end_date?: string;
+}): Promise<string> {
+  if (typeof window === 'undefined') return '';
+
+  const token = localStorage.getItem('access_token');
+  const orgSlug = localStorage.getItem('current_organization_slug');
+  
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  let url = `${baseUrl}${API_ENDPOINTS.INVENTORY.EXPENSES.EXPORT}`;
+  
+  // Build query params
+  const queryParams = new URLSearchParams();
+  if (orgSlug) queryParams.append('organization_subdomain', orgSlug);
+  if (params?.category) queryParams.append('category', params.category);
+  if (params?.start_date) queryParams.append('start_date', params.start_date);
+  if (params?.end_date) queryParams.append('end_date', params.end_date);
+  
+  const queryString = queryParams.toString();
+  if (queryString) url += `?${queryString}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
+      'X-Organization-Slug': orgSlug || '',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Erreur lors du chargement du PDF: ${response.statusText}`);
+  }
+
+  const blob = await response.blob();
+  return window.URL.createObjectURL(blob);
+}

@@ -31,7 +31,7 @@ export default function NewExpensePage() {
   const [formData, setFormData] = useState<ExpenseCreate>({
     description: "",
     amount: 0,
-    category: "",
+    category_id: "",
     expense_date: new Date().toISOString().split("T")[0],
     payment_method: "cash",
     beneficiary: "",
@@ -78,7 +78,14 @@ export default function NewExpensePage() {
     try {
       setLoading(true);
       setError(null);
-      await createExpense(formData);
+      
+      // Convertir category_id vide en null pour le backend
+      const dataToSend = {
+        ...formData,
+        category_id: formData.category_id || null,
+      };
+      
+      await createExpense(dataToSend);
       router.push(`/apps/${slug}/inventory/expenses`);
     } catch (err: any) {
       setError(err.message || "Erreur lors de la création de la dépense");
@@ -160,8 +167,8 @@ export default function NewExpensePage() {
                 <QuickSelect
                   label="Catégorie"
                   items={categories.map(c => ({ id: c.id, name: c.name }))}
-                  selectedId={formData.category || ""}
-                  onSelect={(id) => setFormData(prev => ({ ...prev, category: id }))}
+                  selectedId={formData.category_id || ""}
+                  onSelect={(id) => setFormData(prev => ({ ...prev, category_id: id }))}
                   onCreate={async (name) => {
                     const newCat = await createExpenseCategory({ name, is_active: true });
                     setCategories(prev => [...prev, newCat]);

@@ -253,7 +253,7 @@ export default function NewProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="min_stock_level">Stock minimum</Label>
+                <Label htmlFor="min_stock_level">Seuil d'alerte stock</Label>
                 <Input
                   id="min_stock_level"
                   type="number"
@@ -262,6 +262,9 @@ export default function NewProductPage() {
                   value={formData.min_stock_level}
                   onChange={(e) => handleChange("min_stock_level", parseFloat(e.target.value) || 0)}
                 />
+                <p className="text-xs text-muted-foreground">
+                  ⚠️ Une alerte sera générée quand le stock descend en dessous de cette quantité
+                </p>
               </div>
 
               <div className="space-y-2">

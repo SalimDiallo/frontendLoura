@@ -67,6 +67,6 @@ export async function resolveAlert(id: string): Promise<Alert> {
 /**
  * Génère automatiquement les alertes
  */
-export async function generateAlerts(): Promise<{ message: string; count: number }> {
-  return apiClient.post<{ message: string; count: number }>(API_ENDPOINTS.INVENTORY.ALERTS.GENERATE);
+export async function generateAlerts(): Promise<{ message: string; created: number; resolved: number }> {
+  return apiClient.post<{ message: string; created: number; resolved: number }>(API_ENDPOINTS.INVENTORY.ALERTS.GENERATE);
 }

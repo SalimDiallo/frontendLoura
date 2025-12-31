@@ -259,7 +259,7 @@ export default function EditProductPage() {
             <h2 className="text-lg font-semibold mb-4">Gestion du stock</h2>
             <div className="grid gap-4 md:grid-cols-3">
               <div>
-                <label className="block text-sm font-medium mb-2">Stock minimum</label>
+                <label className="block text-sm font-medium mb-2">Seuil d'alerte stock</label>
                 <Input
                   type="number"
                   name="min_stock_level"
@@ -268,6 +268,9 @@ export default function EditProductPage() {
                   min="0"
                   step="0.01"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  ⚠️ Une alerte sera générée quand le stock descend en dessous de cette quantité
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Stock maximum</label>
