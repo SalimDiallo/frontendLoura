@@ -111,12 +111,13 @@ class ApiClient {
         // Récupérer le slug depuis localStorage directement
         const orgSlug = localStorage.getItem('current_organization_slug');
 
-        if (orgSlug) {
+        // Only append if not already present in queryString
+        if (orgSlug && !url.includes('organization_subdomain=')) {
           const separator = url.includes('?') ? '&' : '?';
           url = `${url}${separator}organization_subdomain=${orgSlug}`;
           console.log('[API Client] Added organization_subdomain to URL:', url);
-        } else {
-          console.warn('[API Client] No organization slug found in localStorage');
+        } else if (!orgSlug) {
+          // console.warn('[API Client] No organization slug found in localStorage');
         }
       }
 

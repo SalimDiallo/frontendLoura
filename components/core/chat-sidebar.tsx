@@ -16,6 +16,8 @@ import {
   HiOutlineArrowPath,
   HiOutlineCpuChip,
   HiOutlineBolt,
+  HiOutlineArrowsPointingOut,
+  HiOutlineArrowsPointingIn,
 } from "react-icons/hi2";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -37,8 +39,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { aiService } from "@/lib/services/ai";
+import { aiService, ToolCall, ToolResult } from "@/lib/services/ai";
 import { useParams } from "next/navigation";
+import { ChatDataDisplay } from "./chat-data-display";
 
 interface Message {
   id: string;
@@ -46,6 +49,7 @@ interface Message {
   content: string;
   timestamp: Date;
   feedback?: "like" | "dislike" | null;
+  toolResults?: ToolResult[];
 }
 
 interface Conversation {
@@ -103,6 +107,8 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [agentMode, setAgentMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [streamingContent, setStreamingContent] = useState("");
 
   const [conversations, setConversations] = useState<Conversation[]>([
     {
@@ -176,30 +182,81 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
     const currentMessage = message;
     setMessage("");
     setIsTyping(true);
+    setStreamingContent("");
+
+    // Créer un message placeholder pour le streaming
+    const aiMessageId = (Date.now() + 1).toString();
+    const placeholderMessage: Message = {
+      id: aiMessageId,
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+      feedback: null,
+    };
+    updateMessages([...newMessages, placeholderMessage]);
 
     try {
-      // Appel à l'API IA backend
-      const response = await aiService.chat(slug as string, {
-        message: currentMessage,
-        conversation_id: activeConversationId !== "current" ? activeConversationId : undefined,
-        agent_mode: agentMode,
-      });
+      let accumulatedContent = "";
+      let currentToolResults: ToolResult[] = [];
 
-      const aiMessage: Message = {
-        id: response.message_id || (Date.now() + 1).toString(),
-        role: "assistant",
-        content: response.content,
-        timestamp: new Date(),
-        feedback: null,
-      };
-      updateMessages([...newMessages, aiMessage]);
+      await aiService.chatStream(
+        slug as string,
+        {
+          message: currentMessage,
+          conversation_id: activeConversationId !== "current" ? activeConversationId : undefined,
+          agent_mode: agentMode,
+        },
+        // onToken
+        (token) => {
+          accumulatedContent += token;
+          setStreamingContent(accumulatedContent);
+          // Mettre à jour le message en temps réel
+          updateMessages([
+            ...newMessages,
+            { ...placeholderMessage, content: accumulatedContent, toolResults: currentToolResults },
+          ]);
+        },
+        // onToolResults
+        (toolCalls, toolResults) => {
+          console.log("Tools executed:", toolCalls, toolResults);
+          currentToolResults = toolResults;
+          // Mettre à jour immédiatement avec les résultats des outils
+          updateMessages([
+            ...newMessages,
+            { ...placeholderMessage, content: accumulatedContent || "Traitement des données...", toolResults: toolResults },
+          ]);
+        },
+        // onClear
+        () => {
+          accumulatedContent = "";
+          setStreamingContent("");
+        },
+        // onError
+        (error) => {
+          console.error("Streaming error:", error);
+          updateMessages([
+            ...newMessages,
+            { ...placeholderMessage, content: `⚠️ Erreur: ${error}` },
+          ]);
+        },
+        // onDone
+        () => {
+          setStreamingContent("");
+          // S'assurer que les toolResults sont conservés à la fin
+          if (currentToolResults.length > 0) {
+            updateMessages([
+              ...newMessages,
+              { ...placeholderMessage, content: accumulatedContent, toolResults: currentToolResults },
+            ]);
+          }
+        }
+      );
     } catch (error) {
       console.error("Erreur chat IA:", error);
-      // Fallback en cas d'erreur
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: aiMessageId,
         role: "assistant",
-        content: "⚠️ Désolé, une erreur s'est produite lors de la communication avec l'assistant IA.\n\n**Pour activer l'IA locale:**\n1. Installez Ollama: `curl -fsSL https://ollama.com/install.sh | sh`\n2. Démarrez: `ollama serve`\n3. Téléchargez un modèle: `ollama pull llama3.2`\n\nEn attendant, l'application reste pleinement fonctionnelle ! 🚀",
+        content: "⚠️ Désolé, une erreur s'est produite. Vérifiez que Ollama est en cours d'exécution.",
         timestamp: new Date(),
         feedback: null,
       };
@@ -274,9 +331,13 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
     <TooltipProvider>
       <aside
         className={cn(
-          "fixed top-16 right-0 z-40 border-l bg-gradient-to-b from-background via-background to-muted/20 flex flex-col transition-all duration-300 ease-in-out overflow-hidden backdrop-blur-sm shadow-xl",
-          open ? "w-96" : "w-0",
-          "h-[calc(100vh-4rem)]",
+          "fixed z-50 border-l bg-gradient-to-b from-background via-background to-muted/20 flex flex-col transition-all duration-300 ease-in-out overflow-hidden backdrop-blur-sm shadow-xl",
+          isFullscreen 
+            ? "inset-0 w-full h-full top-0" 
+            : cn(
+                "top-16 right-0 h-[calc(100vh-4rem)]",
+                open ? "w-96" : "w-0"
+              ),
           className
         )}
       >
@@ -295,6 +356,23 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 hover:bg-primary/10"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                >
+                  {isFullscreen ? (
+                    <HiOutlineArrowsPointingIn className="size-4" />
+                  ) : (
+                    <HiOutlineArrowsPointingOut className="size-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isFullscreen ? "Réduire" : "Plein écran"}</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

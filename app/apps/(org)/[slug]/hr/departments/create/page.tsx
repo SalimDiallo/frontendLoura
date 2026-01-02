@@ -19,6 +19,7 @@ import {
   HiOutlineBriefcase,
   HiOutlineArrowLeft,
   HiOutlineCheckCircle,
+  HiOutlineSparkles,
 } from "react-icons/hi2";
 
 // Schema de validation
@@ -28,10 +29,15 @@ const departmentSchema = z.object({
   description: z.string().optional(),
   manager: z.string().optional(),
   parent_department: z.string().optional(),
-  is_active: z.boolean().default(true),
+  is_active: z.boolean(),
 });
 
 type DepartmentFormData = z.infer<typeof departmentSchema>;
+
+interface EmployeeOption extends Employee {
+  // Adding flexible properties to satisfy type checks if needed,
+  // but casting is better
+}
 
 export default function CreateDepartmentPage() {
   const params = useParams();
@@ -47,6 +53,8 @@ export default function CreateDepartmentPage() {
   const form = useForm<DepartmentFormData>({
     resolver: zodResolver(departmentSchema),
     defaultValues: {
+      name: "",
+      code:"",
       is_active: true,
     },
   });
@@ -59,10 +67,11 @@ export default function CreateDepartmentPage() {
     try {
       setLoadingData(true);
       const [employeesData, depts] = await Promise.all([
-        getEmployees({ employment_status: 'active' }),
+        getEmployees(slug, { employment_status: 'active' }),
         getDepartments({ is_active: true, organization_subdomain: slug }),
       ]);
-      setEmployees(employeesData.results);
+      // Type assertion or mapping if structures differ slightly
+      setEmployees(employeesData.results as unknown as Employee[]);
       setDepartments(depts);
     } catch (err) {
       console.error("Erreur lors du chargement des données:", err);
@@ -123,7 +132,7 @@ export default function CreateDepartmentPage() {
       {error && <Alert variant="error">{error}</Alert>}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-6">
           {/* Informations générales */}
           <Card className="p-6 border-0 shadow-sm">
             <h2 className="text-lg font-semibold mb-4">Informations générales</h2>
@@ -134,12 +143,36 @@ export default function CreateDepartmentPage() {
                 placeholder="Ex: Ressources Humaines"
                 required
               />
-              <FormInputField
-                name="code"
-                label="Code"
-                placeholder="Ex: RH"
-                required
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Code *</label>
+                <div className="flex gap-2">
+                  <input
+                    {...form.register('code')}
+                    placeholder="DEP-241224-ABCD"
+                    className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const now = new Date();
+                      const prefix = 'DEP';
+                      const date = now.toISOString().slice(2, 10).replace(/-/g, '');
+                      // Heure: HHMMSS - prendre juste HHMM pour raccourcir un peu par rapport à l'employé
+                      const time = now.toTimeString().slice(0, 5).replace(/:/g, ''); 
+                      const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+                      const code = `${prefix}-${date}-${time}-${random}`;
+                      form.setValue('code', code);
+                    }}
+                    className="h-10 gap-1"
+                  >
+                    <HiOutlineSparkles className="size-4" />
+                    Auto
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">Cliquez sur Auto pour générer automatiquement</p>
+              </div>
               <FormTextareaField
                 className="md:col-span-2"
                 name="description"
@@ -160,7 +193,9 @@ export default function CreateDepartmentPage() {
                 placeholder="Sélectionner un manager"
                 options={employees.map((emp) => ({
                   value: emp.id,
-                  label: `${emp.first_name} ${emp.last_name}`,
+                  label: emp.first_name && emp.last_name 
+                    ? `${emp.first_name} ${emp.last_name}` 
+                    : (emp as any).full_name || emp.email || "Utilisateur sans nom",
                 }))}
               />
               <FormSelectField

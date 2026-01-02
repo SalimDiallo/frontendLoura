@@ -7,11 +7,16 @@ import { organizationService, categoryService } from '@/lib/services/core';
 import type { Category, Organization } from '@/lib/types/core';
 import { ApiError } from '@/lib/api/client';
 import { siteConfig } from '@/lib/config';
-import { Alert } from '@/components/ui/alert';
 import { useZodForm } from '@/lib/hooks';
-import { Form } from '@/components/ui';
-import { FormInputField, FormSelectField } from '@/components/ui/form-fields';
+import { Form, Alert, FormInputField } from '@/components/ui';
+import { FormSelectField } from '@/components/ui/form-fields';
+import { QuickSelect } from '@/components/ui/quick-select';
+import { COUNTRIES, CURRENCIES } from '@/lib/data/geo';
 import { z } from 'zod';
+import { 
+  Building2, Globe, Settings, ArrowRight,
+  Monitor, CheckCircle, Save, Loader2, ArrowLeft
+} from 'lucide-react';
 
 const organizationSchema = z.object({
   name: z
@@ -78,14 +83,15 @@ export default function EditOrganizationPage() {
           categoryService.getAll(),
         ]);
         setOrganization(org);
-        // Defensive: Ensure categories is always an array
-        if (Array.isArray(catsData)) {
-          setCategories(catsData);
-        } else if (catsData && Array.isArray(catsData?.results)) {
-          setCategories(catsData?.results);
+        
+        // Handle categories data
+        const cats = 'results' in catsData ? (catsData as any).results : catsData;
+        if (Array.isArray(cats)) {
+          setCategories(cats);
         } else {
           setCategories([]);
         }
+
         form.reset({
           name: org.name,
           subdomain: org.subdomain,
@@ -139,7 +145,10 @@ export default function EditOrganizationPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-xl text-foreground">Chargement...</div>
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Chargement des données...</p>
+        </div>
       </div>
     );
   }
@@ -155,141 +164,202 @@ export default function EditOrganizationPage() {
     );
   }
 
+  const categoryOptions = Array.isArray(categories) 
+    ? categories.map((cat) => ({ value: cat.id, label: cat.name })) 
+    : [];
+
   return (
-    <div className="min-h-screen bg-background py-8">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-card border rounded-lg">
-          <div className="px-6 py-4 border-b">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold text-foreground">
-                  Modifier l'Organisation
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {organization.subdomain}.loura.app
-                </p>
-              </div>
-              <Link
-                href={dashboardHref}
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                ← Retour au dashboard
-              </Link>
-            </div>
+    <div className="min-h-screen bg-background dark:bg-slate-950 py-8 transition-colors">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Header */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground dark:text-white">
+              Configurer l'organisation
+            </h1>
+            <p className="text-muted-foreground dark:text-slate-400 mt-1">
+              Modifiez les informations et préférences de {organization.name}
+            </p>
           </div>
-          <Form {...form}>
-            <form onSubmit={onSubmit} className="px-6 py-6 space-y-6">
-              {error && <Alert variant="error">{error}</Alert>}
+          <Link
+            href={dashboardHref}
+            className="group flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Retour
+          </Link>
+        </div>
 
-              {/* Informations de base */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-medium text-foreground">
-                  Informations de base
-                </h2>
-                <FormInputField
-                  name="name"
-                  label="Nom de l'organisation"
-                  placeholder="Ma Super Entreprise"
-                  required
-                />
-                <FormInputField
-                  name="subdomain"
-                  label="Sous-domaine"
-                  required
-                  disabled
-                  className="flex-1 block w-full px-3 py-2 border border-input rounded-md bg-muted text-muted-foreground sm:text-sm font-mono cursor-not-allowed"
-                   />
-                <FormSelectField
-                  name="category"
-                  label="Catégorie"
-                  placeholder="Sélectionner une catégorie"
-                  options={Array.isArray(categories) ? categories.map((cat) => ({
-                    value: cat.id,
-                    label: cat.name,
-                  })) : []}
-                  required
-                />
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          
+          {/* Main Content */}
+          <div className="md:col-span-2 space-y-6">
+            <Form {...form}>
+              <form onSubmit={onSubmit} className="space-y-6">
+                {error && <Alert variant="error">{error}</Alert>}
 
-              {/* Paramètres */}
-              <div className="space-y-4 pt-6 border-t">
-                <h2 className="text-lg font-medium text-foreground">Paramètres</h2>
+                {/* Section: Identité */}
+                <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-6 border-b border-border dark:border-slate-800 pb-4">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Building2 className="w-5 h-5 text-primary" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground dark:text-white">
+                      Identité
+                    </h2>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <FormInputField
+                      name="name"
+                      label="Nom de l'organisation"
+                      placeholder="Ma Super Entreprise"
+                      required
+                    />
+                    
+                    <FormSelectField
+                      name="category"
+                      label="Secteur d'activité"
+                      placeholder="Sélectionner une catégorie"
+                      options={categoryOptions}
+                      required
+                    />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormInputField
-                    name="settings.country"
-                    label="Pays"
-                    maxLength={2}
-                    placeholder="GN"
-                    onChange={e => form.setValue('settings.country', e.target.value.toUpperCase())}
-                    description="Code ISO (2 lettres)"
-                  />
-                  <FormInputField
-                    name="settings.currency"
-                    label="Devise"
-                    maxLength={3}
-                    placeholder="GNF"
-                    onChange={e => form.setValue('settings.currency', e.target.value.toUpperCase())}
-                    description="Code ISO (3 lettres)"
-                  />
+                    <div>
+                      <label className="text-sm font-medium mb-2 block text-muted-foreground">Sous-domaine (Lecture seule)</label>
+                      <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border border-border rounded-md text-sm font-mono text-muted-foreground cursor-not-allowed">
+                        <Monitor className="w-4 h-4" />
+                        <span>{organization.subdomain}.loura.app</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        Le sous-domaine ne peut pas être modifié après la création.
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-              
-                <FormInputField
-                  type="email"
-                  name="settings.contact_email"
-                  label="Email de contact"
-                  placeholder="contact@exemple.com"
-                />
-              </div>
-
-              {/* Statut de l'organisation */}
-              <div className="pt-6 border-t">
-                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                  <div>
-                    <h3 className="text-sm font-medium text-foreground">Statut</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Cette organisation est actuellement{' '}
-                      <span className={organization.is_active ? 'text-foreground font-medium' : 'text-muted-foreground font-medium'}>
-                        {organization.is_active ? 'active' : 'inactive'}
-                      </span>
-                    </p>
+                {/* Section: Paramètres Régionaux */}
+                <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-6 border-b border-border dark:border-slate-800 pb-4">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <Globe className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground dark:text-white">
+                      Régionalisation
+                    </h2>
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <label className="text-sm font-medium">Pays <span className="text-destructive">*</span></label>
+                       <QuickSelect
+                            label="Pays"
+                            items={COUNTRIES.map(c => ({ id: c.id, name: c.name, subtitle: c.id }))}
+                            selectedId={form.watch('settings.country')}
+                            onSelect={(id) => form.setValue('settings.country', id)}
+                            placeholder="Rechercher..."
+                            icon={Globe}
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                       <label className="text-sm font-medium">Devise <span className="text-destructive">*</span></label>
+                       <QuickSelect
+                            label="Devise"
+                            items={CURRENCIES}
+                            selectedId={form.watch('settings.currency')}
+                            onSelect={(id) => form.setValue('settings.currency', id)}
+                            placeholder="Rechercher..."
+                            icon={Settings}
+                        />
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <FormInputField
+                      type="email"
+                      name="settings.contact_email"
+                      label="Email de contact"
+                      placeholder="contact@exemple.com"
+                      description="Utilisé pour les communications administratives."
+                    />
+                  </div>
+                </div>
+
+                {/* Actions Bar */}
+                <div className="flex items-center justify-end gap-3 pt-4">
+                   <Link
+                    href={dashboardHref}
+                    className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Annuler
+                  </Link>
+                  <button
+                    type="submit"
+                    disabled={form.formState.isSubmitting}
+                    className="flex items-center gap-2 px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  >
+                    {form.formState.isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Enregistrement...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        Enregistrer
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </Form>
+          </div>
+
+          {/* Sidebar Status */}
+          <div className="md:col-span-1 space-y-6">
+             <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl p-6 shadow-sm sticky top-8">
+                <h3 className="font-semibold text-foreground mb-4">État du compte</h3>
+                
+                <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg border border-border/50 mb-4">
+                  <span className="text-sm font-medium">Statut</span>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                       organization.is_active
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted-foreground/20 text-muted-foreground'
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                        : 'bg-muted text-muted-foreground border border-border'
                     }`}
                   >
-                    {organization.is_active ? 'Active' : 'Inactive'}
+                    {organization.is_active ? <CheckCircle className="w-3 h-3"/> : null}
+                    {organization.is_active ? 'Actif' : 'Inactif'}
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Pour activer ou désactiver l'organisation, utilisez les actions du dashboard
-                </p>
-              </div>
 
-              {/* Actions */}
-              <div className="pt-6 border-t flex justify-end space-x-3">
-                <Link
-                  href={dashboardHref}
-                  className="px-4 py-2 border border-input rounded-md text-sm font-medium text-foreground hover:bg-accent"
-                >
-                  Annuler
-                </Link>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-primary border border-transparent rounded-md text-sm font-medium text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={form.formState.isSubmitting}
-                >
-                  {form.formState.isSubmitting
-                    ? 'Enregistrement...'
-                    : 'Enregistrer les modifications'}
-                </button>
-              </div>
-            </form>
-          </Form>
+                <div className="text-xs text-muted-foreground space-y-2">
+                  <p>
+                    Créé le: {new Date(organization.created_at).toLocaleDateString()}
+                  </p>
+                  <p>
+                    Dernière modification: {new Date(organization.updated_at).toLocaleDateString()}
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-6 border-t border-border/50">
+                   <h4 className="text-sm font-medium text-destructive mb-2">Zone de danger</h4>
+                   <p className="text-xs text-muted-foreground mb-3">
+                     Désactiver l'organisation suspendra l'accès à tous les membres.
+                   </p>
+                   <button 
+                     type="button"
+                     className="w-full px-3 py-2 text-xs font-medium text-destructive bg-destructive/5 hover:bg-destructive/10 border border-destructive/20 rounded-md transition-colors"
+                   >
+                     Désactiver l'organisation
+                   </button>
+                </div>
+             </div>
+          </div>
+
         </div>
       </div>
     </div>

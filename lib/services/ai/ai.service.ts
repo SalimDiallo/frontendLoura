@@ -109,6 +109,79 @@ export const aiService = {
   },
 
   /**
+   * Chat avec streaming (Server-Sent Events)
+   */
+  async chatStream(
+    orgSubdomain: string,
+    request: ChatRequest,
+    onToken: (token: string) => void,
+    onToolResults?: (toolCalls: ToolCall[], toolResults: ToolResult[]) => void,
+    onClear?: () => void,
+    onError?: (error: string) => void,
+    onDone?: () => void
+  ): Promise<void> {
+    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    
+    const response = await fetch(`${baseUrl}${API_ENDPOINTS.AI.CHAT_STREAM}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+        'X-Organization-Subdomain': orgSubdomain,
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+
+    if (!reader) {
+      throw new Error('No response body');
+    }
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const text = decoder.decode(value);
+      const lines = text.split('\n');
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            
+            switch (data.type) {
+              case 'token':
+                onToken(data.content);
+                break;
+              case 'tools':
+                onToolResults?.(data.tool_calls, data.tool_results);
+                break;
+              case 'clear':
+                onClear?.();
+                break;
+              case 'error':
+                onError?.(data.error);
+                break;
+              case 'done':
+                onDone?.();
+                break;
+            }
+          } catch (e) {
+            // Ignore parsing errors
+          }
+        }
+      }
+    }
+  },
+
+  /**
    * Liste les conversations
    */
   async getConversations(

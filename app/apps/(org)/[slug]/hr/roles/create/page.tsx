@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,10 +12,15 @@ import {
   FormTextareaField,
 } from "@/components/ui/form-fields";
 import { createRole } from "@/lib/services/hr/role.service";
+import { AVAILABLE_PERMISSIONS, type PermissionItem } from "@/lib/constants/hr";
 import {
   HiOutlineShieldCheck,
   HiOutlineArrowLeft,
   HiOutlineCheckCircle,
+  HiMagnifyingGlass,
+  HiOutlineCheck,
+  HiOutlineChevronDown,
+  HiOutlineChevronRight,
 } from "react-icons/hi2";
 
 // Schema de validation
@@ -23,65 +28,10 @@ const roleSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   code: z.string().min(2, "Le code doit contenir au moins 2 caractères"),
   description: z.string().optional(),
-  is_active: z.boolean().optional().default(true),
+  is_active: z.boolean(),
 });
 
 type RoleFormData = z.infer<typeof roleSchema>;
-
-// Liste des permissions disponibles (codes du backend)
-const AVAILABLE_PERMISSIONS = [
-  { code: "can_view_employee", label: "Voir les employés", category: "Employés" },
-  { code: "can_create_employee", label: "Créer des employés", category: "Employés" },
-  { code: "can_update_employee", label: "Modifier des employés", category: "Employés" },
-  { code: "can_delete_employee", label: "Supprimer des employés", category: "Employés" },
-  { code: "can_activate_employee", label: "Activer/Désactiver des employés", category: "Employés" },
-
-  { code: "can_view_department", label: "Voir les départements", category: "Départements" },
-  { code: "can_create_department", label: "Créer des départements", category: "Départements" },
-  { code: "can_update_department", label: "Modifier des départements", category: "Départements" },
-  { code: "can_delete_department", label: "Supprimer des départements", category: "Départements" },
-
-  { code: "can_view_position", label: "Voir les postes", category: "Postes" },
-  { code: "can_create_position", label: "Créer des postes", category: "Postes" },
-  { code: "can_update_position", label: "Modifier des postes", category: "Postes" },
-  { code: "can_delete_position", label: "Supprimer des postes", category: "Postes" },
-
-  { code: "can_view_role", label: "Voir les rôles", category: "Rôles" },
-  { code: "can_create_role", label: "Créer des rôles", category: "Rôles" },
-  { code: "can_update_role", label: "Modifier des rôles", category: "Rôles" },
-  { code: "can_assign_role", label: "Assigner des rôles", category: "Rôles" },
-
-  { code: "can_view_contract", label: "Voir les contrats", category: "Contrats" },
-  { code: "can_create_contract", label: "Créer des contrats", category: "Contrats" },
-  { code: "can_update_contract", label: "Modifier des contrats", category: "Contrats" },
-  { code: "can_delete_contract", label: "Supprimer des contrats", category: "Contrats" },
-
-  { code: "can_view_leave", label: "Voir les congés", category: "Congés" },
-  { code: "can_create_leave", label: "Créer des demandes de congés", category: "Congés" },
-  { code: "can_update_leave", label: "Modifier des congés", category: "Congés" },
-  { code: "can_delete_leave", label: "Supprimer des congés", category: "Congés" },
-  { code: "can_approve_leave", label: "Approuver des congés", category: "Congés" },
-  { code: "can_manage_leave_types", label: "Gérer les types de congés", category: "Congés" },
-  { code: "can_manage_leave_balances", label: "Gérer les soldes de congés", category: "Congés" },
-
-  { code: "can_view_payroll", label: "Voir la paie", category: "Paie" },
-  { code: "can_create_payroll", label: "Créer des bulletins de paie", category: "Paie" },
-  { code: "can_update_payroll", label: "Modifier la paie", category: "Paie" },
-  { code: "can_delete_payroll", label: "Supprimer des bulletins de paie", category: "Paie" },
-  { code: "can_process_payroll", label: "Traiter la paie", category: "Paie" },
-
-  { code: "can_view_reports", label: "Voir les rapports", category: "Rapports" },
-  { code: "can_export_reports", label: "Exporter les rapports", category: "Rapports" },
-
-  { code: "can_view_attendance", label: "Voir les pointages", category: "Pointages" },
-  { code: "can_view_all_attendance", label: "Voir tous les pointages", category: "Pointages" },
-  { code: "can_create_attendance", label: "Créer des pointages", category: "Pointages" },
-  { code: "can_update_attendance", label: "Modifier des pointages", category: "Pointages" },
-  { code: "can_delete_attendance", label: "Supprimer des pointages", category: "Pointages" },
-  { code: "can_approve_attendance", label: "Approuver des pointages", category: "Pointages" },
-  { code: "can_manual_checkin", label: "Pointage manuel (sans QR)", category: "Pointages" },
-  { code: "can_create_qr_session", label: "Générer des QR codes", category: "Pointages" },
-];
 
 export default function CreateRolePage() {
   const params = useParams();
@@ -91,8 +41,10 @@ export default function CreateRolePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
-  const form = useForm({
+  const form = useForm<RoleFormData>({
     resolver: zodResolver(roleSchema),
     defaultValues: {
       name: "",
@@ -105,7 +57,7 @@ export default function CreateRolePage() {
   // Generate code from name automatically
   const nameValue = form.watch("name");
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (nameValue) {
       const generatedCode = nameValue
         .toUpperCase()
@@ -141,35 +93,86 @@ export default function CreateRolePage() {
     );
   };
 
-  const toggleCategory = (category: string) => {
-    const categoryPermissions = AVAILABLE_PERMISSIONS
-      .filter((p) => p.category === category)
-      .map((p) => p.code);
-
-    const allSelected = categoryPermissions.every((p) =>
-      selectedPermissions.includes(p)
+  // Filter permissions based on search
+  const filteredPermissions = useMemo(() => {
+    if (!searchTerm) return AVAILABLE_PERMISSIONS;
+    const lowerTerm = searchTerm.toLowerCase();
+    return AVAILABLE_PERMISSIONS.filter(
+      (p) =>
+        p.label.toLowerCase().includes(lowerTerm) ||
+        p.category.toLowerCase().includes(lowerTerm) ||
+        p.code.toLowerCase().includes(lowerTerm)
     );
+  }, [searchTerm]);
 
+  const permissionsByCategory = useMemo(() => {
+    return filteredPermissions.reduce((acc: Record<string, PermissionItem[]>, permission: PermissionItem) => {
+      if (!acc[permission.category]) {
+        acc[permission.category] = [];
+      }
+      acc[permission.category].push(permission);
+      return acc;
+    }, {} as Record<string, PermissionItem[]>);
+  }, [filteredPermissions]);
+
+  // Expand all categories by default or when search changes
+  useEffect(() => {
+    const initialExpanded: Record<string, boolean> = {};
+    Object.keys(permissionsByCategory).forEach(cat => {
+      if (expandedCategories[cat] === undefined || searchTerm) {
+        initialExpanded[cat] = true;
+      } else {
+        initialExpanded[cat] = expandedCategories[cat];
+      }
+    });
+    setExpandedCategories(initialExpanded);
+  }, [permissionsByCategory]);
+
+  const toggleCategoryExpand = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+
+  const toggleCategorySelection = (category: string) => {
+    const categoryPermissions = permissionsByCategory[category] || [];
+    const categoryCodes = categoryPermissions.map(p => p.code);
+    
+    const allSelected = categoryCodes.every(code => selectedPermissions.includes(code));
+    
     if (allSelected) {
-      setSelectedPermissions((prev) =>
-        prev.filter((p) => !categoryPermissions.includes(p))
-      );
+      setSelectedPermissions(prev => prev.filter(code => !categoryCodes.includes(code)));
     } else {
-      setSelectedPermissions((prev) => [
-        ...prev,
-        ...categoryPermissions.filter((p) => !prev.includes(p)),
-      ]);
+      setSelectedPermissions(prev => {
+        const newSelected = [...prev];
+        categoryCodes.forEach(code => {
+          if (!newSelected.includes(code)) {
+            newSelected.push(code);
+          }
+        });
+        return newSelected;
+      });
     }
   };
 
-  // Grouper les permissions par catégorie
-  const permissionsByCategory = AVAILABLE_PERMISSIONS.reduce((acc, permission) => {
-    if (!acc[permission.category]) {
-      acc[permission.category] = [];
-    }
-    acc[permission.category].push(permission);
-    return acc;
-  }, {} as Record<string, typeof AVAILABLE_PERMISSIONS>);
+  const selectAll = () => {
+    const allCodes = filteredPermissions.map(p => p.code);
+    setSelectedPermissions(prev => {
+      const newSelected = [...prev];
+      allCodes.forEach(code => {
+        if (!newSelected.includes(code)) {
+          newSelected.push(code);
+        }
+      });
+      return newSelected;
+    });
+  };
+
+  const deselectAll = () => {
+    const allCodes = filteredPermissions.map(p => p.code);
+    setSelectedPermissions(prev => prev.filter(code => !allCodes.includes(code)));
+  };
 
   return (
     <div className="space-y-6">
@@ -227,69 +230,127 @@ export default function CreateRolePage() {
 
           {/* Permissions */}
           <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">
-              Permissions ({selectedPermissions.length})
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Sélectionnez les permissions à attribuer à ce rôle
-            </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Permissions ({selectedPermissions.length})
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Sélectionnez les permissions à attribuer à ce rôle
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
+                  <input 
+                    type="text" 
+                    placeholder="Rechercher..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </div>
+                <div className="flex bg-muted p-1 rounded-md">
+                  <button
+                    type="button"
+                    onClick={selectAll}
+                    className="px-3 py-1 text-xs font-medium rounded hover:bg-background hover:shadow-sm transition-all"
+                  >
+                    Tout cocher
+                  </button>
+                  <button
+                    type="button"
+                    onClick={deselectAll}
+                    className="px-3 py-1 text-xs font-medium rounded hover:bg-background hover:shadow-sm transition-all text-destructive"
+                  >
+                    Tout décocher
+                  </button>
+                </div>
+              </div>
+            </div>
 
-            <div className="space-y-6">
-              {Object.entries(permissionsByCategory).map(([category, permissions]) => {
-                const categoryPermissionCodes = permissions.map((p) => p.code);
-                const allSelected = categoryPermissionCodes.every((p) =>
-                  selectedPermissions.includes(p)
-                );
-                const someSelected = categoryPermissionCodes.some((p) =>
-                  selectedPermissions.includes(p)
-                );
+            <div className="space-y-4">
+              {Object.entries(permissionsByCategory).length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Aucune permission trouvée pour "{searchTerm}"
+                </p>
+              ) : (
+                Object.entries(permissionsByCategory).map(([category, permissions]) => {
+                  const categoryPermissionCodes = permissions.map((p) => p.code);
+                  const allSelected = categoryPermissionCodes.every((p) =>
+                    selectedPermissions.includes(p)
+                  );
+                  const someSelected = categoryPermissionCodes.some((p) =>
+                    selectedPermissions.includes(p)
+                  );
+                  const isExpanded = expandedCategories[category] !== false;
 
-                return (
-                  <div key={category} className="space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <input
-                        type="checkbox"
-                        id={`category-${category}`}
-                        checked={allSelected}
-                        onChange={() => toggleCategory(category)}
-                        className="size-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        style={{
-                          opacity: someSelected && !allSelected ? 0.5 : 1,
-                        }}
-                      />
-                      <label
-                        htmlFor={`category-${category}`}
-                        className="text-sm font-semibold cursor-pointer"
-                      >
-                        {category}
-                      </label>
-                      <span className="text-xs text-muted-foreground">
-                        ({permissions.filter((p) => selectedPermissions.includes(p.code)).length}/{permissions.length})
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-6">
-                      {permissions.map((permission) => (
-                        <div key={permission.code} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id={permission.code}
-                            checked={selectedPermissions.includes(permission.code)}
-                            onChange={() => togglePermission(permission.code)}
-                            className="size-4 rounded border-gray-300 text-primary focus:ring-primary"
-                          />
-                          <label
-                            htmlFor={permission.code}
-                            className="text-sm cursor-pointer"
+                  return (
+                    <div key={category} className="border rounded-md overflow-hidden">
+                      <div className="bg-muted/30 px-4 py-2 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <button 
+                            type="button" 
+                            onClick={() => toggleCategoryExpand(category)}
+                            className="text-muted-foreground hover:text-foreground"
                           >
-                            {permission.label}
-                          </label>
+                             {isExpanded ? <HiOutlineChevronDown className="size-4" /> : <HiOutlineChevronRight className="size-4" />}
+                          </button>
+                          
+                          <div className="flex items-center gap-2">
+                             <div 
+                               className={`size-4 rounded border flex items-center justify-center cursor-pointer transition-colors ${
+                                 allSelected ? "bg-primary border-primary text-primary-foreground" : 
+                                 someSelected ? "bg-primary/20 border-primary" : "border-gray-300 bg-background"
+                               }`}
+                               onClick={() => toggleCategorySelection(category)}
+                             >
+                               {allSelected && <HiOutlineCheck className="size-3" />}
+                               {someSelected && !allSelected && <div className="size-2 bg-primary rounded-sm" />}
+                             </div>
+                             <span 
+                               className="font-medium text-sm cursor-pointer select-none"
+                               onClick={() => toggleCategoryExpand(category)}
+                             >
+                               {category}
+                             </span>
+                             <span className="text-xs text-muted-foreground ml-2 px-2 py-0.5 bg-background rounded-full border">
+                               {permissions.filter((p) => selectedPermissions.includes(p.code)).length}/{permissions.length}
+                             </span>
+                          </div>
                         </div>
-                      ))}
+                      </div>
+
+                      {isExpanded && (
+                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-card">
+                          {permissions.map((permission) => (
+                            <div 
+                              key={permission.code} 
+                              className={`flex items-start gap-2 p-2 rounded-md transition-colors cursor-pointer hover:bg-muted/50 ${
+                                selectedPermissions.includes(permission.code) ? "bg-primary/5 border border-primary/20" : ""
+                              }`}
+                              onClick={() => togglePermission(permission.code)}
+                            >
+                              <div className={`mt-0.5 size-4 min-w-4 rounded border flex items-center justify-center transition-colors ${
+                                selectedPermissions.includes(permission.code) ? "bg-primary border-primary text-primary-foreground" : "border-gray-300"
+                              }`}>
+                                {selectedPermissions.includes(permission.code) && <HiOutlineCheck className="size-3" />}
+                              </div>
+                              <div className="text-sm select-none">
+                                <p className="font-medium leading-none mb-0.5">{permission.label}</p>
+                                {permission.code.includes(searchTerm) && searchTerm && (
+                                  <p className="text-xs text-muted-foreground font-mono mt-1">{permission.code}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </Card>
 

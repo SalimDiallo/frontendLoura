@@ -79,6 +79,7 @@ export function OrgAccessGuard({ children, organizationSlug }: OrgAccessGuardPro
         }
 
         // ✅ Accès validé pour l'employé - RETURN ICI
+        localStorage.setItem('current_organization_slug', slug);
         setHasAccess(true);
         setIsLoading(false);
         return; // Important : ne pas continuer vers le code admin
@@ -112,6 +113,7 @@ export function OrgAccessGuard({ children, organizationSlug }: OrgAccessGuardPro
         return;
       }
 
+      localStorage.setItem('current_organization_slug', slug);
       setHasAccess(true);
       setIsLoading(false);
     } catch (err) {

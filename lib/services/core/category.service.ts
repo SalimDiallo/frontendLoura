@@ -10,8 +10,8 @@ export const categoryService = {
   /**
    * Récupérer toutes les catégories
    */
-  async getAll(): Promise<Category[]> {
-    return apiClient.get<Category[]>(API_ENDPOINTS.CORE.CATEGORIES.LIST);
+  async getAll(): Promise<any> {
+    return apiClient.get<any>(API_ENDPOINTS.CORE.CATEGORIES.LIST);
   },
 
   /**
