@@ -1,24 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Link from "next/link";
-import { createEmployee } from "@/lib/services/hr/employee.service";
+import { createEmployee, getEmployees } from "@/lib/services/hr/employee.service";
 import { getDepartments } from "@/lib/services/hr/department.service";
 import { getPositions, createPosition } from "@/lib/services/hr/position.service";
 import { getRoles } from "@/lib/services/hr/role.service";
-import { getEmployees } from "@/lib/services/hr/employee.service";
-import { getPermissions } from "@/lib/services/hr/permission.service";
 import { organizationService } from "@/lib/services/core";
-import type { Department, Position, Role, Permission, EmployeeListItem } from "@/lib/types/hr";
+import type { Department, Position, Role, EmployeeListItem, EmployeeCreate } from "@/lib/types/hr";
 import type { Organization } from "@/lib/types/core";
-import {
-  EmploymentStatus,
-  Gender,
-} from "@/lib/types/hr";
+import { AVAILABLE_PERMISSIONS } from "@/lib/constants/hr";
+import { PermissionSelector } from "@/components/apps/hr/permission-selector";
+import { EmploymentStatus, Gender } from "@/lib/types/hr";
 import {
   HiOutlineUserCircle,
   HiOutlineArrowLeft,
@@ -26,18 +23,16 @@ import {
   HiOutlineSparkles,
   HiOutlinePlusCircle,
   HiOutlineXMark,
+  HiOutlineShieldCheck,
 } from "react-icons/hi2";
-import { Alert, Button, Card, Form } from "@/components/ui";
-import {
-  FormInputField,
-  FormSelectField,
-} from "@/components/ui/form-fields";
+import { Alert, Button, Card, Form, Badge } from "@/components/ui";
+import { FormInputField, FormSelectField } from "@/components/ui/form-fields";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { cn } from "@/lib/utils";
 
 // Schema de validation
 const employeeSchema = z.object({
-  // Informations personnelles
   first_name: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
   last_name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Email invalide"),
@@ -49,22 +44,16 @@ const employeeSchema = z.object({
   address: z.string().optional(),
   city: z.string().optional(),
   country: z.string().optional(),
-
-  // Informations d'emploi
   employee_id: z.string().optional(),
   department: z.string().optional(),
   position: z.string().optional(),
   manager: z.string().optional(),
   employment_status: z.nativeEnum(EmploymentStatus).optional(),
   hire_date: z.string().min(1, "La date d'embauche est requise"),
-
-  // Contact d'urgence
   emergency_contact_name: z.string().optional(),
   emergency_contact_phone: z.string().optional(),
   emergency_contact_relationship: z.string().optional(),
-
-  // Rôle
-  role: z.string().min(1, "Le rôle est requis"),
+  role: z.string().optional(),
 }).refine((data) => data.password === data.password_confirm, {
   message: "Les mots de passe ne correspondent pas",
   path: ["password_confirm"],
@@ -84,7 +73,6 @@ export default function CreateEmployeePage() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [managers, setManagers] = useState<EmployeeListItem[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [showPositionModal, setShowPositionModal] = useState(false);
@@ -99,38 +87,35 @@ export default function CreateEmployeePage() {
     },
   });
 
-  // Générer un matricule automatique unique
+  const selectedRoleId = form.watch('role');
+
+  // Get role permission codes for the selected role
+  const rolePermissionCodes = useMemo(() => {
+    if (!selectedRoleId) return [];
+    const role = roles.find(r => r.id === selectedRoleId);
+    return role?.permissions?.map(p => p.code) || [];
+  }, [selectedRoleId, roles]);
+
   const generateEmployeeId = () => {
     const now = new Date();
     const prefix = 'EMP';
-    // Date: YYMMDD
     const date = now.toISOString().slice(2, 10).replace(/-/g, '');
-    // Heure: HHMMSS
     const time = now.toTimeString().slice(0, 8).replace(/:/g, '');
-    // Millisecondes pour plus d'unicité
     const ms = now.getMilliseconds().toString().padStart(3, '0');
-    // Partie aléatoire: 4 caractères
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-    // Format: EMP-YYMMDD-HHMMSS-XXX-RAND
     const matricule = `${prefix}-${date}-${time.slice(0, 4)}-${ms}${random}`;
     form.setValue('employee_id', matricule);
   };
 
-  useEffect(() => {
-    loadFormData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadFormData = async () => {
+  const loadFormData = useCallback(async () => {
     try {
       setLoadingData(true);
-      const [org, depts, positionsData, rolesData, employeesData, permsData] = await Promise.all([
+      const [org, depts, positionsData, rolesData, employeesData] = await Promise.all([
         organizationService.getBySlug(slug),
         getDepartments({ is_active: true, organization_subdomain: slug }),
         getPositions({ is_active: true }),
         getRoles({ is_active: true, organization_subdomain: slug }),
         getEmployees(slug),
-        getPermissions(),
       ]);
 
       if (!org) {
@@ -143,14 +128,17 @@ export default function CreateEmployeePage() {
       setPositions(positionsData);
       setRoles(rolesData);
       setManagers(employeesData?.results || []);
-      setPermissions(permsData);
     } catch (err) {
       console.error("Erreur lors du chargement des données:", err);
       setError("Erreur lors du chargement des données du formulaire");
     } finally {
       setLoadingData(false);
     }
-  };
+  }, [slug]);
+
+  useEffect(() => {
+    loadFormData();
+  }, [loadFormData]);
 
   const onSubmit = async (data: EmployeeFormData) => {
     try {
@@ -161,8 +149,7 @@ export default function CreateEmployeePage() {
         throw new Error("Organisation non trouvée");
       }
 
-      // Préparer les données pour l'API
-      const employeeData: any = {
+      const employeeData: EmployeeCreate & { organization: string } = {
         organization: currentOrganization.id,
         first_name: data.first_name,
         last_name: data.last_name,
@@ -176,14 +163,13 @@ export default function CreateEmployeePage() {
         address: data.address,
         city: data.city,
         country: data.country,
-        department: data.department,
-        position: data.position,
-        manager: data.manager,
+        department: data.department || undefined,
+        position: data.position || undefined,
+        manager: data.manager || undefined,
         employment_status: data.employment_status,
         hire_date: data.hire_date,
       };
 
-      // Ajouter le contact d'urgence si renseigné
       if (data.emergency_contact_name && data.emergency_contact_phone) {
         employeeData.emergency_contact = {
           name: data.emergency_contact_name,
@@ -192,22 +178,17 @@ export default function CreateEmployeePage() {
         };
       }
 
-      // Ajouter le rôle sélectionné
-      const selectedRoleValue = form.getValues('role');
-      if (selectedRoleValue) {
-        employeeData.role_id = selectedRoleValue;
+      if (data.role) {
+        employeeData.role_id = data.role;
       }
 
-      // Ajouter les permissions personnalisées supplémentaires
       if (selectedPermissions.length > 0) {
-        employeeData.custom_permission_codes = selectedPermissions.map(id => {
-          const perm = permissions.find(p => p.id === id);
-          return perm?.code || '';
-        }).filter(Boolean);
+        employeeData.custom_permission_codes = selectedPermissions;
       }
 
       await createEmployee(employeeData);
       router.push(`/apps/${slug}/hr/employees`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Erreur lors de la création de l'employé");
@@ -257,50 +238,13 @@ export default function CreateEmployeePage() {
           <Card className="p-6 border-0 shadow-sm">
             <h2 className="text-lg font-semibold mb-4">Informations personnelles</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormInputField
-                name="first_name"
-                label="Prénom *"
-                placeholder="Jean"
-                required
-              />
-              <FormInputField
-                name="last_name"
-                label="Nom *"
-                placeholder="Dupont"
-                required
-              />
-              <FormInputField
-                name="email"
-                label="Email *"
-                placeholder="jean.dupont@example.com"
-                type="email"
-                required
-              />
-              <FormInputField
-                name="phone"
-                label="Téléphone"
-                placeholder="+224 XXX XXX XXX"
-                type="tel"
-              />
-              <FormInputField
-                name="password"
-                label="Mot de passe *"
-                placeholder="••••••••"
-                type="password"
-                required
-              />
-              <FormInputField
-                name="password_confirm"
-                label="Confirmer le mot de passe *"
-                placeholder="••••••••"
-                type="password"
-                required
-              />
-              <FormInputField
-                name="date_of_birth"
-                label="Date de naissance"
-                type="date"
-              />
+              <FormInputField name="first_name" label="Prénom *" placeholder="Jean" required />
+              <FormInputField name="last_name" label="Nom *" placeholder="Dupont" required />
+              <FormInputField name="email" label="Email *" placeholder="jean.dupont@example.com" type="email" required />
+              <FormInputField name="phone" label="Téléphone" placeholder="+224 XXX XXX XXX" type="tel" />
+              <FormInputField name="password" label="Mot de passe *" placeholder="••••••••" type="password" required />
+              <FormInputField name="password_confirm" label="Confirmer le mot de passe *" placeholder="••••••••" type="password" required />
+              <FormInputField name="date_of_birth" label="Date de naissance" type="date" />
               <FormSelectField
                 name="gender"
                 label="Genre"
@@ -311,28 +255,15 @@ export default function CreateEmployeePage() {
                   { value: Gender.OTHER, label: "Autre" },
                 ]}
               />
-              <FormInputField
-                className="md:col-span-2"
-                name="address"
-                label="Adresse"
-                placeholder="123 Rue Example"
-              />
-              <FormInputField
-                name="city"
-                label="Ville"
-                placeholder="Conakry"
-              />
-              <FormInputField
-                name="country"
-                label="Pays"
-                placeholder="Guinée"
-              />
+              <FormInputField className="md:col-span-2" name="address" label="Adresse" placeholder="123 Rue Example" />
+              <FormInputField name="city" label="Ville" placeholder="Conakry" />
+              <FormInputField name="country" label="Pays" placeholder="Guinée" />
             </div>
           </Card>
 
           {/* Informations d'emploi */}
           <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Informations d'emploi</h2>
+            <h2 className="text-lg font-semibold mb-4">Informations d&apos;emploi</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Matricule</label>
@@ -342,13 +273,7 @@ export default function CreateEmployeePage() {
                     placeholder="EMP-241224-ABCD"
                     className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={generateEmployeeId}
-                    className="h-10 gap-1"
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={generateEmployeeId} className="h-10 gap-1">
                     <HiOutlineSparkles className="size-4" />
                     Auto
                   </Button>
@@ -359,10 +284,7 @@ export default function CreateEmployeePage() {
                 name="department"
                 label="Département"
                 placeholder="Sélectionner un département"
-                options={departments?.map((dept) => ({
-                  value: dept.id,
-                  label: dept.name,
-                })) || []}
+                options={departments?.map((dept) => ({ value: dept.id, label: dept.name })) || []}
               />
               <div className="space-y-2">
                 <label className="text-sm font-medium">Poste</label>
@@ -376,13 +298,7 @@ export default function CreateEmployeePage() {
                       <option key={pos.id} value={pos.id}>{pos.title}</option>
                     ))}
                   </select>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowPositionModal(true)}
-                    className="h-10 gap-1"
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowPositionModal(true)} className="h-10 gap-1">
                     <HiOutlinePlusCircle className="size-4" />
                     Créer
                   </Button>
@@ -392,10 +308,7 @@ export default function CreateEmployeePage() {
                 name="manager"
                 label="Manager"
                 placeholder="Sélectionner un manager"
-                options={managers?.map((manager) => ({
-                  value: manager.id,
-                  label: `${manager.full_name}`,
-                })) || []}
+                options={managers?.map((manager) => ({ value: manager.id, label: manager.full_name })) || []}
               />
               <FormSelectField
                 name="employment_status"
@@ -408,231 +321,155 @@ export default function CreateEmployeePage() {
                   { value: EmploymentStatus.TERMINATED, label: "Terminé" },
                 ]}
               />
-              <FormInputField
-                name="hire_date"
-                label="Date d'embauche *"
-                type="date"
-                required
-              />
+              <FormInputField name="hire_date" label="Date d'embauche *" type="date" required />
             </div>
           </Card>
 
           {/* Contact d'urgence */}
           <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Contact d'urgence</h2>
+            <h2 className="text-lg font-semibold mb-4">Contact d&apos;urgence</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormInputField
-                name="emergency_contact_name"
-                label="Nom"
-                placeholder="Nom du contact"
-              />
-              <FormInputField
-                name="emergency_contact_phone"
-                label="Téléphone"
-                placeholder="+224 XXX XXX XXX"
-                type="tel"
-              />
-              <FormInputField
-                name="emergency_contact_relationship"
-                label="Relation"
-                placeholder="Ex: Conjoint, Parent..."
-              />
+              <FormInputField name="emergency_contact_name" label="Nom" placeholder="Nom du contact" />
+              <FormInputField name="emergency_contact_phone" label="Téléphone" placeholder="+224 XXX XXX XXX" type="tel" />
+              <FormInputField name="emergency_contact_relationship" label="Relation" placeholder="Ex: Conjoint, Parent..." />
             </div>
           </Card>
 
-          {/* Sélection du rôle */}
+          {/* Rôle et Permissions */}
           <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Rôle et Permissions</h2>
-            <div className="space-y-4">
-              <FormSelectField
-                name="role"
-                label="Rôle"
-                placeholder="Sélectionner un rôle"
-                required
-                description="Le rôle définit l'ensemble de permissions de base de l'employé"
-                options={Array.isArray(roles) ? roles.map((role) => ({
-                  value: role.id,
-                  label: `${role.name}${role.is_system_role ? ' (Système)' : ''} - ${role.permission_count} permission(s)`,
-                })) : []}
-              />
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <HiOutlineShieldCheck className="size-5 text-primary" />
+                  Rôle et Permissions
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Sélectionnez un rôle et ajoutez des permissions personnalisées si nécessaire
+                </p>
+              </div>
+            </div>
 
-              {form.watch('role') && Array.isArray(roles) && (
-                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
-                  <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                    Permissions du rôle sélectionné:
-                  </h4>
-                  <div className="text-sm text-blue-800 dark:text-blue-200">
-                    {roles.find(r => r.id === form.watch('role'))?.permissions?.map(p => p.name).join(', ') || 'Aucune permission'}
+            {/* Sélection du rôle */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+              {/* Option sans rôle */}
+              <button
+                type="button"
+                onClick={() => form.setValue('role', '')}
+                className={cn(
+                  "p-4 rounded-xl border-2 text-left transition-all",
+                  !selectedRoleId
+                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                    : "border-border hover:border-primary/50 hover:bg-muted/30"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "size-10 rounded-full flex items-center justify-center",
+                    !selectedRoleId ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                  )}>
+                    <HiOutlineShieldCheck className="size-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Sans rôle</p>
+                    <p className="text-xs text-muted-foreground">Permissions personnalisées</p>
                   </div>
                 </div>
-              )}
-            </div>
-          </Card>
+              </button>
 
-          {/* Permissions personnalisées supplémentaires */}
-          <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">
-              Permissions
-              {form.watch('role') && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({roles.find(r => r.id === form.watch('role'))?.permission_count || 0} du rôle + {selectedPermissions.length} supplémentaires)
-                </span>
-              )}
-              {!form.watch('role') && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
+              {/* Rôles disponibles */}
+              {roles.map((role) => (
+                <button
+                  key={role.id}
+                  type="button"
+                  onClick={() => form.setValue('role', role.id)}
+                  className={cn(
+                    "p-4 rounded-xl border-2 text-left transition-all",
+                    selectedRoleId === role.id
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                      : "border-border hover:border-primary/50 hover:bg-muted/30"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "size-10 rounded-full flex items-center justify-center",
+                      selectedRoleId === role.id ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                    )}>
+                      <HiOutlineShieldCheck className="size-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{role.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {role.permissions?.length || role.permission_count || 0} permissions
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Afficher les permissions du rôle sélectionné */}
+            {selectedRoleId && (
+              <div className="mb-6 p-4 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+                <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+                  Permissions du rôle sélectionné
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {rolePermissionCodes.slice(0, 8).map((code) => {
+                    const perm = AVAILABLE_PERMISSIONS.find(p => p.code === code);
+                    return (
+                      <Badge key={code} variant="outline" className="text-xs bg-white dark:bg-background">
+                        {perm?.label || code}
+                      </Badge>
+                    );
+                  })}
+                  {rolePermissionCodes.length > 8 && (
+                    <Badge variant="secondary" className="text-xs">
+                      +{rolePermissionCodes.length - 8} autres
+                    </Badge>
+                  )}
+                  {rolePermissionCodes.length === 0 && (
+                    <span className="text-sm text-muted-foreground">Aucune permission</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Permissions personnalisées */}
+            <div>
+              <h3 className="text-sm font-medium mb-3">
+                Permissions supplémentaires
+                <span className="ml-2 text-muted-foreground font-normal">
                   ({selectedPermissions.length} sélectionnées)
                 </span>
-              )}
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              {form.watch('role')
-                ? "Les permissions du rôle sont automatiquement incluses (grisées). Vous pouvez ajouter des permissions supplémentaires."
-                : "Sélectionnez un rôle pour voir ses permissions, puis ajoutez des permissions supplémentaires si nécessaire."
-              }
-            </p>
-
-            <div className="space-y-6">
-              {permissions && Array.isArray(permissions) && permissions.length > 0 ? (
-                Object.entries(
-                  permissions.reduce((acc, perm) => {
-                    if (!acc[perm.category]) {
-                      acc[perm.category] = [];
-                    }
-                    acc[perm.category].push(perm);
-                    return acc;
-                  }, {} as Record<string, Permission[]>)
-                ).map(([category, categoryPermissions]) => {
-                // Get permissions from selected role
-                const selectedRoleObj = roles.find(r => r.id === form.watch('role'));
-                const rolePermissionIds = selectedRoleObj?.permissions?.map(p => p.id) || [];
-
-                const categoryPermissionIds = categoryPermissions.map((p) => p.id);
-
-                // Count how many permissions are selected (from role + custom)
-                const selectedInCategory = categoryPermissions.filter(p =>
-                  rolePermissionIds.includes(p.id) || selectedPermissions.includes(p.id)
-                ).length;
-
-                // Check if all non-role permissions are selected
-                const nonRolePerms = categoryPermissionIds.filter(id => !rolePermissionIds.includes(id));
-                const allNonRoleSelected = nonRolePerms.length > 0 && nonRolePerms.every((p) =>
-                  selectedPermissions.includes(p)
-                );
-                const someSelected = categoryPermissions.some((p) =>
-                  selectedPermissions.includes(p.id)
-                );
-
-                const toggleCategory = () => {
-                  // Only toggle non-role permissions
-                  if (allNonRoleSelected) {
-                    setSelectedPermissions((prev) =>
-                      prev.filter((p) => !nonRolePerms.includes(p))
-                    );
-                  } else {
-                    setSelectedPermissions((prev) => [
-                      ...prev,
-                      ...nonRolePerms.filter((p) => !prev.includes(p)),
-                    ]);
-                  }
-                };
-
-                return (
-                  <div key={category} className="space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <input
-                        type="checkbox"
-                        id={`category-${category}`}
-                        checked={allNonRoleSelected}
-                        onChange={toggleCategory}
-                        disabled={nonRolePerms.length === 0}
-                        className="size-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        style={{
-                          opacity: someSelected && !allNonRoleSelected ? 0.5 : 1,
-                        }}
-                      />
-                      <label
-                        htmlFor={`category-${category}`}
-                        className="text-sm font-semibold cursor-pointer"
-                      >
-                        {category}
-                      </label>
-                      <span className="text-xs text-muted-foreground">
-                        ({selectedInCategory}/{categoryPermissions.length})
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-6">
-                      {categoryPermissions.map((permission) => {
-                        // Check if this permission is from the selected role
-                        const selectedRoleObj2 = roles.find(r => r.id === form.watch('role'));
-                        const isFromRole = selectedRoleObj2?.permissions?.some(p => p.id === permission.id) || false;
-                        const isChecked = isFromRole || selectedPermissions.includes(permission.id);
-
-                        return (
-                          <div key={permission.id} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id={permission.id}
-                              checked={isChecked}
-                              disabled={isFromRole}
-                              onChange={() => {
-                                if (!isFromRole) {
-                                  setSelectedPermissions((prev) =>
-                                    prev.includes(permission.id)
-                                      ? prev.filter((p) => p !== permission.id)
-                                      : [...prev, permission.id]
-                                  );
-                                }
-                              }}
-                              className={`size-4 rounded border-gray-300 text-primary focus:ring-primary ${
-                                isFromRole ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                            />
-                            <label
-                              htmlFor={permission.id}
-                              className={`text-sm ${isFromRole ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
-                            >
-                              {permission.name}
-                              {isFromRole && (
-                                <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
-                                  (du rôle)
-                                </span>
-                              )}
-                            </label>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Aucune permission disponible
-                </div>
-              )}
+              </h3>
+              <PermissionSelector
+                permissions={AVAILABLE_PERMISSIONS}
+                selectedPermissions={selectedPermissions}
+                onSelectionChange={setSelectedPermissions}
+                rolePermissionCodes={rolePermissionCodes}
+                maxHeight="350px"
+                compact
+              />
             </div>
           </Card>
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-4">
             <Button type="button" variant="outline" asChild>
-              <Link href={`/apps/${slug}/hr/employees`}>
-                Annuler
-              </Link>
+              <Link href={`/apps/${slug}/hr/employees`}>Annuler</Link>
             </Button>
-          <Can permission={COMMON_PERMISSIONS.HR.CREATE_EMPLOYEES}>
+            <Can permission={COMMON_PERMISSIONS.HR.CREATE_EMPLOYEES}>
               <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>Création en cours...</>
-              ) : (
-                <>
-                  <HiOutlineCheckCircle className="size-4 mr-2" />
-                  Créer l'employé
-                </>
-              )}
-            </Button>
-          </Can>
+                {loading ? (
+                  <>Création en cours...</>
+                ) : (
+                  <>
+                    <HiOutlineCheckCircle className="size-4 mr-2" />
+                    Créer l&apos;employé
+                  </>
+                )}
+              </Button>
+            </Can>
           </div>
         </form>
       </Form>
@@ -689,10 +526,8 @@ export default function CreateEmployeePage() {
                         title: newPositionTitle.trim(),
                         is_active: true,
                       });
-                      // Refresh positions list
                       const positionsData = await getPositions({ is_active: true });
                       setPositions(positionsData);
-                      // Select the new position
                       form.setValue('position', newPos.id);
                       setShowPositionModal(false);
                       setNewPositionTitle("");

@@ -6,63 +6,13 @@
 
 import React, { PropsWithChildren } from 'react';
 import { useRouter } from 'next/navigation';
-import { usePermissionContext } from './permission-provider';
+import { usePermissionContext, convertBackendPermissionToFrontend } from './permission-provider';
 import type { RouteProtectionConfig } from '@/lib/types/shared';
 import { Alert } from '@/components/ui/alert';
 import { HiOutlineShieldExclamation } from 'react-icons/hi2';
 import { Button } from '@/components/ui/button';
 
-/**
- * Convertit une permission backend (can_view_employee) vers format frontend (employee.view)
- * Si déjà au format frontend, retourne tel quel
- */
-function normalizePermission(code: string): string {
-  if (!code.startsWith('can_')) return code;
 
-  const mapping: Record<string, string> = {
-    'can_view_employee': 'employee.view',
-    'can_create_employee': 'employee.create',
-    'can_update_employee': 'employee.update',
-    'can_delete_employee': 'employee.delete',
-    'can_activate_employee': 'employee.activate',
-    'can_view_department': 'department.view',
-    'can_create_department': 'department.create',
-    'can_update_department': 'department.update',
-    'can_delete_department': 'department.delete',
-    'can_view_position': 'position.view',
-    'can_create_position': 'position.create',
-    'can_update_position': 'position.update',
-    'can_delete_position': 'position.delete',
-    'can_view_role': 'role.view',
-    'can_create_role': 'role.create',
-    'can_update_role': 'role.update',
-    'can_assign_role': 'role.assign',
-    'can_view_contract': 'contract.view',
-    'can_create_contract': 'contract.create',
-    'can_update_contract': 'contract.update',
-    'can_delete_contract': 'contract.delete',
-    'can_view_leave': 'leave_request.view',
-    'can_create_leave': 'leave_request.create',
-    'can_update_leave': 'leave_request.update',
-    'can_delete_leave': 'leave_request.delete',
-    'can_approve_leave': 'leave_request.approve',
-    'can_view_payroll': 'payroll.view',
-    'can_create_payroll': 'payroll.create',
-    'can_update_payroll': 'payroll.update',
-    'can_delete_payroll': 'payroll.delete',
-    'can_process_payroll': 'payroll.process',
-    'can_view_attendance': 'attendance.view',
-    'can_view_all_attendance': 'attendance.view_all',
-    'can_create_attendance': 'attendance.create',
-    'can_update_attendance': 'attendance.update',
-    'can_delete_attendance': 'attendance.delete',
-    'can_approve_attendance': 'attendance.approve',
-    'can_manual_checkin': 'attendance.manual_checkin',
-    'can_create_qr_session': 'attendance.create_qr_session',
-  };
-
-  return mapping[code] || code;
-}
 
 interface ProtectedRouteProps extends PropsWithChildren {
   config: RouteProtectionConfig;
@@ -252,17 +202,17 @@ export function Can({
   }
   // Vérifier une permission unique
   else if (permission) {
-    const normalizedPerm = normalizePermission(permission);
+    const normalizedPerm = convertBackendPermissionToFrontend(permission);
     hasAccess = hasPermission(normalizedPerm);
   }
   // Vérifier au moins une permission (OR)
   else if (anyPermissions && anyPermissions.length > 0) {
-    const normalizedPerms = anyPermissions.map(normalizePermission);
+    const normalizedPerms = anyPermissions.map(convertBackendPermissionToFrontend);
     hasAccess = normalizedPerms.some((perm) => hasPermission(perm));
   }
   // Vérifier toutes les permissions (AND)
   else if (allPermissions && allPermissions.length > 0) {
-    const normalizedPerms = allPermissions.map(normalizePermission);
+    const normalizedPerms = allPermissions.map(convertBackendPermissionToFrontend);
     hasAccess = normalizedPerms.every((perm) => hasPermission(perm));
   }
 

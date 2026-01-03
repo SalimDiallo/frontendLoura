@@ -39,7 +39,7 @@ import { API_CONFIG } from "@/lib/api/config";
 import { Alert, Button, Card, Input, Badge } from "@/components/ui";
 import { ProtectedRoute, Can } from "@/components/apps/common";
 import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
-import { ResourceType, PermissionAction } from "@/lib/types/shared";
+import { ResourceType, PermissionAction, COMMON_PERMISSIONS } from "@/lib/types/shared";
 import { PDFPreviewModal } from '@/components/ui';
 import { cn } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
@@ -292,7 +292,7 @@ export default function ContractsPage() {
             >
               <HiOutlineQuestionMarkCircle className="size-4" />
             </Button>
-            <Can permission={`${ResourceType.CONTRACT}.${PermissionAction.CREATE}`}>
+            <Can permission={COMMON_PERMISSIONS.HR.CREATE_CONTRACTS}>
               <Button asChild>
                 <Link href={`/apps/${slug}/hr/contracts/create`}>
                   <HiOutlinePlusCircle className="size-4 mr-2" />
@@ -303,6 +303,7 @@ export default function ContractsPage() {
             </Can>
           </div>
         </div>
+
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -389,12 +390,14 @@ export default function ContractsPage() {
                   </p>
                 </div>
                 {!searchQuery && (
-                  <Button asChild>
-                    <Link href={`/apps/${slug}/hr/contracts/create`}>
-                      <HiOutlinePlusCircle className="size-4 mr-2" />
-                      Ajouter un contrat
-                    </Link>
-                  </Button>
+                  <Can permission={COMMON_PERMISSIONS.HR.CREATE_CONTRACTS}>
+                    <Button asChild>
+                      <Link href={`/apps/${slug}/hr/contracts/create`}>
+                        <HiOutlinePlusCircle className="size-4 mr-2" />
+                        Ajouter un contrat
+                      </Link>
+                    </Button>
+                  </Can>
                 )}
               </div>
             </div>
@@ -477,17 +480,20 @@ export default function ContractsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
+
                           <DropdownMenuItem asChild>
                             <Link href={`/apps/${slug}/hr/contracts/${contract.id}`}>
                               <HiOutlineEye className="size-4 mr-2" />
                               Voir le détail
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handlePreviewPDF(contract.id, contract.employee_name || 'contrat')}>
-                            <HiOutlineEye className="size-4 mr-2" />
-                            Aperçu PDF
-                          </DropdownMenuItem>
-                          <Can permission={`${ResourceType.CONTRACT}.${PermissionAction.UPDATE}`}>
+                          <Can permission={COMMON_PERMISSIONS.HR.VIEW_CONTRACTS}>
+                            <DropdownMenuItem onClick={() => handlePreviewPDF(contract.id, contract.employee_name || 'contrat')}>
+                              <HiOutlineArrowDownTray className="size-4 mr-2" /> {/* Changed icon to more appropriate or keep Eye? ArrowDownTray is better for export/preview */}
+                              Aperçu PDF
+                            </DropdownMenuItem>
+                          </Can>
+                          <Can permission={COMMON_PERMISSIONS.HR.UPDATE_CONTRACTS}>
                             <DropdownMenuItem asChild>
                               <Link href={`/apps/${slug}/hr/contracts/${contract.id}/edit`}>
                                 <HiOutlinePencil className="size-4 mr-2" />
@@ -508,7 +514,7 @@ export default function ContractsPage() {
                               )}
                             </DropdownMenuItem>
                           </Can>
-                          <Can permission={`${ResourceType.CONTRACT}.${PermissionAction.DELETE}`}>
+                          <Can permission={COMMON_PERMISSIONS.HR.DELETE_CONTRACTS}>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive"

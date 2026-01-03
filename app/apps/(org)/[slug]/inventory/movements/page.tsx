@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Can } from "@/components/apps/common/protected-route";
+import { COMMON_PERMISSIONS } from "@/lib/types/shared";
 
 export default function MovementsPage() {
   const params = useParams();
@@ -83,29 +85,34 @@ export default function MovementsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+      <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK} showMessage={true}>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+            <p className="mt-4 text-muted-foreground">Chargement...</p>
+          </div>
         </div>
-      </div>
+      </Can>
     );
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK} showMessage={true}>
+      <div className="p-6 space-y-4">
       {/* Header simple */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Mouvements</h1>
           <p className="text-sm text-muted-foreground">Entrées, sorties et transferts de stock</p>
         </div>
-        <Button asChild>
-          <Link href={`/apps/${slug}/inventory/movements/new`}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nouveau
-          </Link>
-        </Button>
+        <Can permission={COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK}>
+          <Button asChild>
+            <Link href={`/apps/${slug}/inventory/movements/new`}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nouveau
+            </Link>
+          </Button>
+        </Can>
       </div>
 
       {/* Stats rapides */}
@@ -263,5 +270,6 @@ export default function MovementsPage() {
         {filteredMovements.length} mouvement(s) • {filterType ? `Filtre: ${filterType}` : 'Tous les types'}
       </p>
     </div>
+    </Can>
   );
 }

@@ -19,6 +19,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
+import { Can } from "@/components/apps/common/protected-route";
+import { COMMON_PERMISSIONS } from "@/lib/types/shared";
 
 export default function CategoriesPage() {
   const params = useParams();
@@ -188,22 +190,26 @@ export default function CategoriesPage() {
               </div>
             </Link>
             <div className="flex items-center gap-2">
-              <Link href={`/apps/${slug}/inventory/categories/${category.id}/edit`}>
-                <Button variant="outline" size="sm" aria-label={`Éditer ${category.name}`}>
-                  <Edit className="h-4 w-4" />
+              <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_CATEGORIES}>
+                <Link href={`/apps/${slug}/inventory/categories/${category.id}/edit`}>
+                  <Button variant="outline" size="sm" aria-label={`Éditer ${category.name}`}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </Can>
+              <Can permission={COMMON_PERMISSIONS.INVENTORY.DELETE_CATEGORIES}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(category.id, category.name);
+                  }}
+                  aria-label={`Supprimer ${category.name}`}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
-              </Link>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(category.id, category.name);
-                }}
-                aria-label={`Supprimer ${category.name}`}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              </Can>
             </div>
           </div>
         </Card>
@@ -218,17 +224,20 @@ export default function CategoriesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96" role="status" aria-label="Chargement">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+      <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES} showMessage={true}>
+        <div className="flex items-center justify-center h-96" role="status" aria-label="Chargement">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Chargement...</p>
+          </div>
         </div>
-      </div>
+      </Can>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES} showMessage={true}>
+      <div className="space-y-6 p-6">
       {/* Modal des raccourcis */}
       <ShortcutsHelpModal
         isOpen={showShortcuts}
@@ -255,13 +264,15 @@ export default function CategoriesPage() {
           >
             <Keyboard className="h-4 w-4" />
           </Button>
-          <Button asChild>
-            <Link href={`/apps/${slug}/inventory/categories/new`}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nouvelle catégorie
-              <ShortcutBadge shortcut={shortcuts.find(s => s.key === "n")!} />
-            </Link>
-          </Button>
+          <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_CATEGORIES}>
+            <Button asChild>
+              <Link href={`/apps/${slug}/inventory/categories/new`}>
+                <Plus className="mr-2 h-4 w-4" />
+                Nouvelle catégorie
+                <ShortcutBadge shortcut={shortcuts.find(s => s.key === "n")!} />
+              </Link>
+            </Button>
+          </Can>
         </div>
       </div>
 
@@ -296,9 +307,11 @@ export default function CategoriesPage() {
           <Card className="p-12 text-center">
             <Tag className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
             <p className="text-muted-foreground">Aucune catégorie trouvée</p>
-            <p className="text-sm mt-2 text-muted-foreground">
-              Appuyez sur <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">N</kbd> pour créer une nouvelle catégorie
-            </p>
+            <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_CATEGORIES}>
+              <p className="text-sm mt-2 text-muted-foreground">
+                Appuyez sur <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">N</kbd> pour créer une nouvelle catégorie
+              </p>
+            </Can>
           </Card>
         ) : rootCategories.length === 0 ? (
           <Card className="p-12 text-center">
@@ -324,5 +337,6 @@ export default function CategoriesPage() {
       {/* Hint */}
       <KeyboardHint />
     </div>
+    </Can>
   );
 }

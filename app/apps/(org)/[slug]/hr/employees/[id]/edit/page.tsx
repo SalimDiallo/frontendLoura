@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,16 +11,21 @@ import { getDepartments } from "@/lib/services/hr/department.service";
 import { getPositions } from "@/lib/services/hr/position.service";
 import { getRoles } from "@/lib/services/hr/role.service";
 import { getEmployees } from "@/lib/services/hr/employee.service";
-import { getPermissions } from "@/lib/services/hr/permission.service";
-import type { Department, Position, Employee, EmployeeListItem, Role, Permission } from "@/lib/types/hr";
+
+import type { Department, Position, Employee, EmployeeListItem, Role } from "@/lib/types/hr";
 import {
   EmploymentStatus,
   Gender,
 } from "@/lib/types/hr";
+import { AVAILABLE_PERMISSIONS, type PermissionItem } from "@/lib/constants/hr";
 import {
   HiOutlineUserCircle,
   HiOutlineArrowLeft,
   HiOutlineCheckCircle,
+  HiMagnifyingGlass,
+  HiOutlineChevronDown,
+  HiOutlineChevronRight,
+  HiOutlineCheck,
 } from "react-icons/hi2";
 import { Alert, Button, Card, Form } from "@/components/ui";
 import {
@@ -68,10 +73,14 @@ export default function EditEmployeePage() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [managers, setManagers] = useState<EmployeeListItem[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
+
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [employee, setEmployee] = useState<Employee | null>(null);
+
+  // UX States for permissions
+  const [searchTerm, setSearchTerm] = useState("");
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
   const form = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
@@ -80,20 +89,15 @@ export default function EditEmployeePage() {
     },
   });
 
-  useEffect(() => {
-    loadFormData();
-  }, [id]);
-
-  const loadFormData = async () => {
+  const loadFormData = useCallback(async () => {
     try {
       setLoadingData(true);
-      const [employeeData, depts, positionsData, employeesData, rolesData, permsData] = await Promise.all([
+      const [employeeData, depts, positionsData, employeesData, rolesData] = await Promise.all([
         getEmployee(id),
         getDepartments({ is_active: true, organization_subdomain: slug }),
         getPositions({ is_active: true }),
         getEmployees(slug),
         getRoles({ is_active: true, organization_subdomain: slug }),
-        getPermissions(),
       ]);
 
       setEmployee(employeeData);
@@ -101,11 +105,11 @@ export default function EditEmployeePage() {
       setPositions(positionsData);
       setManagers(employeesData.results.filter(e => e.id !== id)); // Exclure l'employé actuel
       setRoles(rolesData);
-      setPermissions(permsData);
 
-      // Set existing custom permissions
+      // Set existing custom permissions (using codes)
       if (employeeData.custom_permissions && Array.isArray(employeeData.custom_permissions)) {
-        setSelectedPermissions(employeeData.custom_permissions.map((p: any) => p.id));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setSelectedPermissions(employeeData.custom_permissions.map((p: any) => p.code));
       }
 
       // Remplir le formulaire avec les données existantes
@@ -137,7 +141,11 @@ export default function EditEmployeePage() {
     } finally {
       setLoadingData(false);
     }
-  };
+  }, [id, slug, form]);
+
+  useEffect(() => {
+    loadFormData();
+  }, [id, loadFormData]);
 
   const onSubmit = async (data: EmployeeFormData) => {
     try {
@@ -145,6 +153,7 @@ export default function EditEmployeePage() {
       setError(null);
 
       // Build update payload - only include non-empty values
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const employeeData: any = {
         first_name: data.first_name,
         last_name: data.last_name,
@@ -183,14 +192,12 @@ export default function EditEmployeePage() {
 
       // Ajouter les permissions personnalisées supplémentaires
       if (selectedPermissions.length > 0) {
-        employeeData.custom_permission_codes = selectedPermissions.map(id => {
-          const perm = permissions.find(p => p.id === id);
-          return perm?.code || '';
-        }).filter(Boolean);
+        employeeData.custom_permission_codes = selectedPermissions;
       }
 
       await updateEmployee(id, employeeData);
       router.push(`/apps/${slug}/hr/employees/${id}`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Erreur lors de la mise à jour de l'employé");
@@ -316,7 +323,7 @@ export default function EditEmployeePage() {
 
           {/* Informations d'emploi */}
           <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Informations d'emploi</h2>
+            <h2 className="text-lg font-semibold mb-4">Informations d&apos;emploi</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormInputField
                 name="employee_id"
@@ -378,7 +385,7 @@ export default function EditEmployeePage() {
 
           {/* Contact d'urgence */}
           <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Contact d'urgence</h2>
+            <h2 className="text-lg font-semibold mb-4">Contact d&apos;urgence</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormInputField
                 name="emergency_contact_name"
@@ -429,145 +436,204 @@ export default function EditEmployeePage() {
 
           {/* Permissions personnalisées supplémentaires */}
           <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">
-              Permissions
-              {form.watch('role') && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({roles.find(r => r.id === form.watch('role'))?.permission_count || 0} du rôle + {selectedPermissions.length} supplémentaires)
-                </span>
-              )}
-              {!form.watch('role') && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({selectedPermissions.length} sélectionnées)
-                </span>
-              )}
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              {form.watch('role')
-                ? "Les permissions du rôle sont automatiquement incluses (grisées). Vous pouvez ajouter des permissions supplémentaires."
-                : "Sélectionnez un rôle pour voir ses permissions, puis ajoutez des permissions supplémentaires si nécessaire."
-              }
-            </p>
-
-            <div className="space-y-6">
-              {permissions && Array.isArray(permissions) && permissions.length > 0 ? (
-                Object.entries(
-                  permissions.reduce((acc, perm) => {
-                    if (!acc[perm.category]) {
-                      acc[perm.category] = [];
-                    }
-                    acc[perm.category].push(perm);
-                    return acc;
-                  }, {} as Record<string, Permission[]>)
-                ).map(([category, categoryPermissions]) => {
-                // Get permissions from selected role
-                const selectedRoleObj = roles.find(r => r.id === form.watch('role'));
-                const rolePermissionIds = selectedRoleObj?.permissions?.map(p => p.id) || [];
-
-                const categoryPermissionIds = categoryPermissions.map((p) => p.id);
-
-                // Count how many permissions are selected (from role + custom)
-                const selectedInCategory = categoryPermissions.filter(p =>
-                  rolePermissionIds.includes(p.id) || selectedPermissions.includes(p.id)
-                ).length;
-
-                // Check if all non-role permissions are selected
-                const nonRolePerms = categoryPermissionIds.filter(id => !rolePermissionIds.includes(id));
-                const allNonRoleSelected = nonRolePerms.length > 0 && nonRolePerms.every((p) =>
-                  selectedPermissions.includes(p)
-                );
-                const someSelected = categoryPermissions.some((p) =>
-                  selectedPermissions.includes(p.id)
-                );
-
-                const toggleCategory = () => {
-                  // Only toggle non-role permissions
-                  if (allNonRoleSelected) {
-                    setSelectedPermissions((prev) =>
-                      prev.filter((p) => !nonRolePerms.includes(p))
-                    );
-                  } else {
-                    setSelectedPermissions((prev) => [
-                      ...prev,
-                      ...nonRolePerms.filter((p) => !prev.includes(p)),
-                    ]);
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Permissions
+                  {form.watch('role') && (
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      ({roles.find(r => r.id === form.watch('role'))?.permission_count || 0} du rôle + {selectedPermissions.length} supplémentaires)
+                    </span>
+                  )}
+                  {!form.watch('role') && (
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      ({selectedPermissions.length} sélectionnées)
+                    </span>
+                  )}
+                </h2>
+                <p className="text-sm text-muted-foreground mb-1">
+                  {form.watch('role')
+                    ? "Les permissions du rôle sont automatiquement incluses (grisées). Vous pouvez ajouter des permissions supplémentaires."
+                    : "Sélectionnez un rôle pour voir ses permissions, puis ajoutez des permissions supplémentaires si nécessaire."
                   }
-                };
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4" />
+                  <input 
+                    type="text" 
+                    placeholder="Rechercher..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </div>
+              </div>
+            </div>
 
-                return (
-                  <div key={category} className="space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <input
-                        type="checkbox"
-                        id={`category-${category}`}
-                        checked={allNonRoleSelected}
-                        onChange={toggleCategory}
-                        disabled={nonRolePerms.length === 0}
-                        className="size-4 rounded border-gray-300 text-primary focus:ring-primary"
-                        style={{
-                          opacity: someSelected && !allNonRoleSelected ? 0.5 : 1,
-                        }}
-                      />
-                      <label
-                        htmlFor={`category-${category}`}
-                        className="text-sm font-semibold cursor-pointer"
-                      >
-                        {category}
-                      </label>
-                      <span className="text-xs text-muted-foreground">
-                        ({selectedInCategory}/{categoryPermissions.length})
-                      </span>
-                    </div>
+            <div className="space-y-4">
+              {Object.entries(
+                (() => {
+                  const filtered = searchTerm 
+                    ? AVAILABLE_PERMISSIONS.filter(p => 
+                        p.label.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        p.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        p.code.toLowerCase().includes(searchTerm.toLowerCase())
+                      )
+                    : AVAILABLE_PERMISSIONS;
+                  
+                  return filtered.reduce((acc: Record<string, PermissionItem[]>, permission) => {
+                    if (!acc[permission.category]) {
+                      acc[permission.category] = [];
+                    }
+                    acc[permission.category].push(permission);
+                    return acc;
+                  }, {} as Record<string, PermissionItem[]>);
+                })()
+              ).length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Aucune permission trouvée
+                </div>
+              ) : (
+                Object.entries(
+                  (() => {
+                    const filtered = searchTerm 
+                      ? AVAILABLE_PERMISSIONS.filter(p => 
+                          p.label.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          p.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          p.code.toLowerCase().includes(searchTerm.toLowerCase())
+                        )
+                      : AVAILABLE_PERMISSIONS;
+                    
+                    return filtered.reduce((acc: Record<string, PermissionItem[]>, permission) => {
+                      if (!acc[permission.category]) {
+                        acc[permission.category] = [];
+                      }
+                      acc[permission.category].push(permission);
+                      return acc;
+                    }, {} as Record<string, PermissionItem[]>);
+                  })()
+                ).map(([category, permissions]) => {
+                  // Get permissions from selected role
+                  const selectedRoleObj = roles.find(r => r.id === form.watch('role'));
+                  const rolePermissionCodes = selectedRoleObj?.permissions?.map(p => p.code) || [];
+                  const isExpanded = expandedCategories[category] !== false || !!searchTerm;
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-6">
-                      {categoryPermissions.map((permission) => {
-                        // Check if this permission is from the selected role
-                        const selectedRoleObj2 = roles.find(r => r.id === form.watch('role'));
-                        const isFromRole = selectedRoleObj2?.permissions?.some(p => p.id === permission.id) || false;
-                        const isChecked = isFromRole || selectedPermissions.includes(permission.id);
+                  const toggleCategoryExpand = () => {
+                     setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
+                  };
 
-                        return (
-                          <div key={permission.id} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id={permission.id}
-                              checked={isChecked}
-                              disabled={isFromRole}
-                              onChange={() => {
+                  const categoryCodes = permissions.map(p => p.code);
+                  // Check if all available non-role permissions in this category are selected
+                  const availableNonRoleCodes = categoryCodes.filter(c => !rolePermissionCodes.includes(c));
+                  const allSelected = availableNonRoleCodes.length > 0 && availableNonRoleCodes.every(c => selectedPermissions.includes(c));
+                  const someSelected = availableNonRoleCodes.some(c => selectedPermissions.includes(c));
+
+                  const toggleCategorySelection = () => {
+                    if (allSelected) {
+                      // Deselect all
+                      setSelectedPermissions(prev => prev.filter(c => !availableNonRoleCodes.includes(c)));
+                    } else {
+                      // Select all
+                      setSelectedPermissions(prev => {
+                        const newSelected = [...prev];
+                        availableNonRoleCodes.forEach(c => {
+                          if (!newSelected.includes(c)) newSelected.push(c);
+                        });
+                        return newSelected;
+                      });
+                    }
+                  };
+
+                  return (
+                    <div key={category} className="border rounded-md overflow-hidden">
+                      <div className="bg-muted/30 px-4 py-2 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <button 
+                            type="button" 
+                            onClick={toggleCategoryExpand}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                             {isExpanded ? <HiOutlineChevronDown className="size-4" /> : <HiOutlineChevronRight className="size-4" />}
+                          </button>
+                          
+                          <div className="flex items-center gap-2">
+                             <div 
+                               className={`size-4 rounded border flex items-center justify-center cursor-pointer transition-colors ${
+                                 availableNonRoleCodes.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+                               } ${
+                                 allSelected ? "bg-primary border-primary text-primary-foreground" : 
+                                 someSelected ? "bg-primary/20 border-primary" : "border-gray-300 bg-background"
+                               }`}
+                               onClick={availableNonRoleCodes.length > 0 ? toggleCategorySelection : undefined}
+                             >
+                               {allSelected && <HiOutlineCheck className="size-3" />}
+                               {someSelected && !allSelected && <div className="size-2 bg-primary rounded-sm" />}
+                             </div>
+                             <span 
+                               className="font-medium text-sm cursor-pointer select-none"
+                               onClick={toggleCategoryExpand}
+                             >
+                               {category}
+                             </span>
+                             <span className="text-xs text-muted-foreground ml-2 px-2 py-0.5 bg-background rounded-full border">
+                               {permissions.filter((p) => selectedPermissions.includes(p.code) || rolePermissionCodes.includes(p.code)).length}/{permissions.length}
+                             </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-card">
+                          {permissions.map((permission) => {
+                            const isFromRole = rolePermissionCodes.includes(permission.code);
+                            const isSelected = selectedPermissions.includes(permission.code);
+                            
+                            return (
+                            <div 
+                              key={permission.code} 
+                              className={`flex items-start gap-2 p-2 rounded-md transition-colors ${
+                                isFromRole ? "cursor-default opacity-80" : "cursor-pointer hover:bg-muted/50"
+                              } ${
+                                isSelected ? "bg-primary/5 border border-primary/20" : ""
+                              }`}
+                              onClick={() => {
                                 if (!isFromRole) {
                                   setSelectedPermissions((prev) =>
-                                    prev.includes(permission.id)
-                                      ? prev.filter((p) => p !== permission.id)
-                                      : [...prev, permission.id]
+                                    prev.includes(permission.code)
+                                      ? prev.filter((p) => p !== permission.code)
+                                      : [...prev, permission.code]
                                   );
                                 }
                               }}
-                              className={`size-4 rounded border-gray-300 text-primary focus:ring-primary ${
-                                isFromRole ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
-                            />
-                            <label
-                              htmlFor={permission.id}
-                              className={`text-sm ${isFromRole ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
                             >
-                              {permission.name}
-                              {isFromRole && (
-                                <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
-                                  (du rôle)
-                                </span>
-                              )}
-                            </label>
-                          </div>
-                        );
-                      })}
+                              <div className={`mt-0.5 size-4 min-w-4 rounded border flex items-center justify-center transition-colors ${
+                                isFromRole ? "border-primary/50 bg-primary/20 text-primary" : 
+                                isSelected ? "bg-primary border-primary text-primary-foreground" : "border-gray-300"
+                              }`}>
+                                {(isSelected || isFromRole) && <HiOutlineCheck className="size-3" />}
+                              </div>
+                              <div className="text-sm select-none">
+                                <p className="font-medium leading-none mb-0.5">{permission.label}</p>
+                                {permission.code.includes(searchTerm) && searchTerm && (
+                                  <p className="text-xs text-muted-foreground font-mono mt-1">{permission.code}</p>
+                                )}
+                                {isFromRole && (
+                                  <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                    (du rôle)
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  Aucune permission disponible
-                </div>
+                  );
+                })
               )}
             </div>
           </Card>

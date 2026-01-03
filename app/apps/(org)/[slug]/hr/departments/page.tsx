@@ -318,10 +318,12 @@ export default function DepartmentsPage() {
               </Button>
             </Can>
           ) : (
-            <Button onClick={() => openPositionModal()}>
-              <HiOutlinePlusCircle className="size-4 mr-2" />
-              Nouveau poste
-            </Button>
+            <Can permission={COMMON_PERMISSIONS.HR.CREATE_POSITIONS}>
+              <Button onClick={() => openPositionModal()}>
+                <HiOutlinePlusCircle className="size-4 mr-2" />
+                Nouveau poste
+              </Button>
+            </Can>
           )}
         </div>
 
@@ -448,12 +450,12 @@ export default function DepartmentsPage() {
                             <DropdownMenuSeparator />
                            <Can permission={COMMON_PERMISSIONS.HR.DELETE_DEPARTMENTS}>
                              <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleDeleteDepartment(department.id)}
-                            >
-                              <HiOutlineTrash className="size-4 mr-2" />
-                              Supprimer
-                            </DropdownMenuItem>
+                               className="text-destructive"
+                               onClick={() => handleDeleteDepartment(department.id)}
+                             >
+                               <HiOutlineTrash className="size-4 mr-2" />
+                               Supprimer
+                             </DropdownMenuItem>
                            </Can>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -484,10 +486,12 @@ export default function DepartmentsPage() {
                     </p>
                   </div>
                   {!searchQuery && (
-                    <Button onClick={() => openPositionModal()}>
-                      <HiOutlinePlusCircle className="size-4 mr-2" />
-                      Créer un poste
-                    </Button>
+                    <Can permission={COMMON_PERMISSIONS.HR.CREATE_POSITIONS}>
+                      <Button onClick={() => openPositionModal()}>
+                        <HiOutlinePlusCircle className="size-4 mr-2" />
+                        Créer un poste
+                      </Button>
+                    </Can>
                   )}
                 </div>
               </div>
@@ -539,18 +543,22 @@ export default function DepartmentsPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => openPositionModal(position)}>
-                              <HiOutlinePencil className="size-4 mr-2" />
-                              Modifier
-                            </DropdownMenuItem>
+                            <Can permission={COMMON_PERMISSIONS.HR.UPDATE_POSITIONS}>
+                              <DropdownMenuItem onClick={() => openPositionModal(position)}>
+                                <HiOutlinePencil className="size-4 mr-2" />
+                                Modifier
+                              </DropdownMenuItem>
+                            </Can>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleDeletePosition(position.id)}
-                            >
-                              <HiOutlineTrash className="size-4 mr-2" />
-                              Supprimer
-                            </DropdownMenuItem>
+                            <Can permission={COMMON_PERMISSIONS.HR.DELETE_POSITIONS}>
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleDeletePosition(position.id)}
+                              >
+                                <HiOutlineTrash className="size-4 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            </Can>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

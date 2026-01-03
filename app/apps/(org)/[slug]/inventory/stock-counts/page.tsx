@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/shared";
 
 export default function StockCountsPage() {
   const params = useParams();
@@ -203,16 +205,19 @@ export default function StockCountsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96" role="status" aria-label="Chargement">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" aria-hidden="true"></div>
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+      <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK} showMessage={true}>
+        <div className="flex items-center justify-center h-96" role="status" aria-label="Chargement">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" aria-hidden="true"></div>
+            <p className="mt-4 text-muted-foreground">Chargement...</p>
+          </div>
         </div>
-      </div>
+      </Can>
     );
   }
 
   return (
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK} showMessage={true}>
     <div className="space-y-6 p-6">
       {/* Modal des raccourcis */}
       {showShortcuts && (
@@ -266,15 +271,17 @@ export default function StockCountsPage() {
           >
             <Keyboard className="h-4 w-4" />
           </Button>
-          <Button asChild>
-            <Link href={`/apps/${slug}/inventory/stock-counts/new`}>
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              Nouvel inventaire
-              <kbd className="ml-2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs text-muted-foreground">
-                N
-              </kbd>
-            </Link>
-          </Button>
+          <Can permission={COMMON_PERMISSIONS.INVENTORY.ADJUST_STOCK}>
+            <Button asChild>
+              <Link href={`/apps/${slug}/inventory/stock-counts/new`}>
+                <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                Nouvel inventaire
+                <kbd className="ml-2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs text-muted-foreground">
+                  N
+                </kbd>
+              </Link>
+            </Button>
+          </Can>
         </div>
       </div>
 
@@ -373,6 +380,16 @@ export default function StockCountsPage() {
                     <p className="text-sm mt-2">
                       Appuyez sur <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">N</kbd> pour créer un nouvel inventaire
                     </p>
+                    <Can permission={COMMON_PERMISSIONS.INVENTORY.ADJUST_STOCK}>
+                      <div className="mt-4">
+                         <Button asChild>
+                          <Link href={`/apps/${slug}/inventory/stock-counts/new`}>
+                            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                            Créer un inventaire
+                          </Link>
+                        </Button>
+                      </div>
+                    </Can>
                   </td>
                 </tr>
               ) : (
@@ -424,26 +441,28 @@ export default function StockCountsPage() {
                             <Eye className="h-4 w-4" aria-hidden="true" />
                           </Link>
                         </Button>
-                        {count.status === 'completed' && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); handleValidate(count.id); }}
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" aria-hidden="true" />
-                            Valider
-                          </Button>
-                        )}
-                        {(count.status === 'planned' || count.status === 'in_progress') && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); handleCancel(count.id); }}
-                            aria-label={`Annuler l'inventaire ${count.count_number}`}
-                          >
-                            <XCircle className="h-4 w-4 text-destructive" aria-hidden="true" />
-                          </Button>
-                        )}
+                        <Can permission={COMMON_PERMISSIONS.INVENTORY.ADJUST_STOCK}>
+                          {count.status === 'completed' && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleValidate(count.id); }}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" aria-hidden="true" />
+                              Valider
+                            </Button>
+                          )}
+                          {(count.status === 'planned' || count.status === 'in_progress') && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => { e.stopPropagation(); handleCancel(count.id); }}
+                              aria-label={`Annuler l'inventaire ${count.count_number}`}
+                            >
+                              <XCircle className="h-4 w-4 text-destructive" aria-hidden="true" />
+                            </Button>
+                          )}
+                        </Can>
                       </div>
                     </td>
                   </tr>
@@ -469,6 +488,7 @@ export default function StockCountsPage() {
         Appuyez sur <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">?</kbd> pour voir tous les raccourcis clavier
       </p>
     </div>
+    </Can>
   );
 }
 
@@ -490,4 +510,3 @@ function ShortcutItem({ keys, description }: { keys: string[]; description: stri
     </div>
   );
 }
-

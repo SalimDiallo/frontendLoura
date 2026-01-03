@@ -222,6 +222,7 @@ export interface Product {
   unit: ProductUnit;
   min_stock_level: number;
   max_stock_level: number;
+  reorder_point?: number;
   barcode?: string;
   image_url?: string;
   notes?: string;
@@ -244,6 +245,7 @@ export interface ProductCreate {
   unit?: ProductUnit;
   min_stock_level?: number;
   max_stock_level?: number;
+  reorder_point?: number;
   barcode?: string;
   image_url?: string;
   notes?: string;

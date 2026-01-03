@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Button, Input, Card, Alert } from "@/components/ui";
 import { getProduct, updateProduct, getCategories } from "@/lib/services/inventory";
 import type { ProductUpdate, Category } from "@/lib/types/inventory";
+import { ProductUnit } from "@/lib/types/inventory";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 
@@ -26,7 +27,7 @@ export default function EditProductPage() {
     category: undefined,
     purchase_price: 0,
     selling_price: 0,
-    unit: "unit",
+    unit: ProductUnit.UNIT,
     min_stock_level: 0,
     max_stock_level: 0,
     reorder_point: 0,

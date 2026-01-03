@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Can } from "@/components/apps/common/protected-route";
+import { COMMON_PERMISSIONS } from "@/lib/types/shared";
 
 export default function OrdersPage() {
   const params = useParams();
@@ -120,17 +122,20 @@ export default function OrdersPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+      <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS} showMessage={true}>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+            <p className="mt-4 text-muted-foreground">Chargement...</p>
+          </div>
         </div>
-      </div>
+      </Can>
     );
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS} showMessage={true}>
+      <div className="p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -140,12 +145,14 @@ export default function OrdersPage() {
           </h1>
           <p className="text-sm text-muted-foreground">Commandes fournisseurs</p>
         </div>
-        <Button asChild>
-          <Link href={`/apps/${slug}/inventory/orders/new`}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nouvelle commande
-          </Link>
-        </Button>
+        <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_ORDERS}>
+          <Button asChild>
+            <Link href={`/apps/${slug}/inventory/orders/new`}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle commande
+            </Link>
+          </Button>
+        </Can>
       </div>
 
       {/* Stats cliquables */}
@@ -230,12 +237,14 @@ export default function OrdersPage() {
             <ShoppingCart className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
             <p className="font-medium">Aucune commande</p>
             <p className="text-sm text-muted-foreground">Créez votre première commande fournisseur</p>
-            <Button asChild className="mt-4">
-              <Link href={`/apps/${slug}/inventory/orders/new`}>
-                <Plus className="mr-2 h-4 w-4" />
-                Nouvelle commande
-              </Link>
-            </Button>
+            <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_ORDERS}>
+              <Button asChild className="mt-4">
+                <Link href={`/apps/${slug}/inventory/orders/new`}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nouvelle commande
+                </Link>
+              </Button>
+            </Can>
           </div>
         ) : (
           <div className="divide-y">
@@ -293,21 +302,27 @@ export default function OrdersPage() {
                       ) : (
                         <div className="flex items-center gap-1">
                           {(order.status === "draft" || order.status === "pending") && (
-                            <Button size="sm" variant="outline" onClick={() => handleConfirm(order.id)}>
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Confirmer
-                            </Button>
+                            <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS}>
+                              <Button size="sm" variant="outline" onClick={() => handleConfirm(order.id)}>
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Confirmer
+                              </Button>
+                            </Can>
                           )}
                           {order.status === "confirmed" && (
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleReceive(order.id)}>
-                              <Package className="h-4 w-4 mr-1" />
-                              Réceptionner
-                            </Button>
+                            <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS}>
+                              <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleReceive(order.id)}>
+                                <Package className="h-4 w-4 mr-1" />
+                                Réceptionner
+                              </Button>
+                            </Can>
                           )}
                           {order.status !== "received" && order.status !== "cancelled" && (
-                            <Button size="sm" variant="ghost" onClick={() => handleCancel(order.id)}>
-                              <XCircle className="h-4 w-4 text-red-500" />
-                            </Button>
+                            <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS}>
+                              <Button size="sm" variant="ghost" onClick={() => handleCancel(order.id)}>
+                                <XCircle className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </Can>
                           )}
                           <Button size="sm" variant="ghost" asChild>
                             <Link href={`/apps/${slug}/inventory/orders/${order.id}`}>
@@ -330,5 +345,6 @@ export default function OrdersPage() {
         {filteredOrders.length} commande(s) • {filterStatus ? `Filtre: ${filterStatus}` : 'Toutes'}
       </p>
     </div>
+    </Can>
   );
 }

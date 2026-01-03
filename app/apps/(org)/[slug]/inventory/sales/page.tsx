@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Can } from "@/components/apps/common/protected-route";
+import { COMMON_PERMISSIONS } from "@/lib/types/shared";
 
 export default function SalesPage() {
   const params = useParams();
@@ -192,12 +194,14 @@ export default function SalesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96" role="status">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+      <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_SALES} showMessage={true}>
+        <div className="flex items-center justify-center h-96" role="status">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Chargement...</p>
+          </div>
         </div>
-      </div>
+      </Can>
     );
   }
 
@@ -206,7 +210,8 @@ export default function SalesPage() {
   const totalRemaining = totalSales - totalPaid;
 
   return (
-    <div className="space-y-6 p-6">
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_SALES} showMessage={true}>
+      <div className="space-y-6 p-6">
       {/* Shortcuts Modal */}
       {showShortcuts && (
         <div
@@ -266,21 +271,23 @@ export default function SalesPage() {
           <Button variant="outline" size="sm" onClick={() => setShowShortcuts(true)}>
             <Keyboard className="h-4 w-4" />
           </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/apps/${slug}/inventory/sales/new`}>
-              <Plus className="mr-2 h-4 w-4" />
-              Mode avancé
-            </Link>
-          </Button>
-          <Button asChild className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg">
-            <Link href={`/apps/${slug}/inventory/sales/quick`}>
-              <Zap className="mr-2 h-4 w-4" />
-              Caisse Express
-              <kbd className="ml-2 hidden sm:inline-flex h-5 items-center rounded border border-white/30 bg-white/20 px-1.5 font-mono text-xs">
-                N
-              </kbd>
-            </Link>
-          </Button>
+          <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SALES}>
+            <Button variant="outline" asChild>
+              <Link href={`/apps/${slug}/inventory/sales/new`}>
+                <Plus className="mr-2 h-4 w-4" />
+                Mode avancé
+              </Link>
+            </Button>
+            <Button asChild className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-710 shadow-lg">
+              <Link href={`/apps/${slug}/inventory/sales/quick`}>
+                <Zap className="mr-2 h-4 w-4" />
+                Caisse Express
+                <kbd className="ml-2 hidden sm:inline-flex h-5 items-center rounded border border-white/30 bg-white/20 px-1.5 font-mono text-xs">
+                  N
+                </kbd>
+              </Link>
+            </Button>
+          </Can>
         </div>
       </div>
 
@@ -419,9 +426,11 @@ export default function SalesPage() {
                   <td colSpan={8} className="text-center p-8 text-muted-foreground">
                     <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Aucune vente trouvée</p>
-                    <p className="text-sm mt-2">
-                      Appuyez sur <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">N</kbd> pour créer une vente
-                    </p>
+                    <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SALES}>
+                      <p className="text-sm mt-2">
+                        Appuyez sur <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">N</kbd> pour créer une vente
+                      </p>
+                    </Can>
                   </td>
                 </tr>
               ) : (
@@ -487,16 +496,18 @@ export default function SalesPage() {
                           </Link>
                         </Button>
                         {sale.payment_status !== "paid" && sale.payment_status !== "cancelled" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCancelConfirmId(sale.id);
-                            }}
-                          >
-                            <Ban className="h-4 w-4 text-red-500" />
-                          </Button>
+                          <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_SALES}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCancelConfirmId(sale.id);
+                              }}
+                            >
+                              <Ban className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </Can>
                         )}
                       </div>
                     </td>
@@ -531,6 +542,7 @@ export default function SalesPage() {
         Appuyez sur <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">?</kbd> pour voir tous les raccourcis clavier
       </p>
     </div>
+    </Can>
   );
 }
 
