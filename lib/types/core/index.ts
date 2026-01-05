@@ -13,10 +13,19 @@ export interface AdminUser {
   email: string;
   first_name: string;
   last_name: string;
+  phone?: string;
+  avatar_url?: string;
+  user_type: 'admin';
   is_active: boolean;
   created_at: string;
-  organization_name?: string;
-  organizations_count: number;
+  organizations: Array<{
+    id: string;
+    name: string;
+    subdomain: string;
+    logo_url?: string;
+    is_active: boolean;
+  }>;
+  organizations_count?: number;
 }
 
 export interface LoginCredentials {
@@ -26,16 +35,26 @@ export interface LoginCredentials {
 
 export interface RegisterData {
   email: string;
+  password: string;
   first_name: string;
   last_name: string;
-  password: string;
+  phone?: string;
+  organization_name: string;
+  organization_subdomain: string;
+  organization_category?: string;
 }
 
 export interface AuthResponse {
   user: AdminUser;
+  user_type: 'admin' | 'employee';
   access: string;
   refresh: string;
   message: string;
+  organization?: {
+    id: string;
+    name: string;
+    subdomain: string;
+  };
 }
 
 // ============================================================================

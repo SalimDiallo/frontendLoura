@@ -191,12 +191,8 @@ class ApiClient {
     if (!refreshToken) return false;
 
     try {
-      // Déterminer le bon endpoint selon le type d'utilisateur
-      const user = tokenManager.getUser();
-      const userType = user?.userType || 'admin';
-      const refreshEndpoint = userType === 'employee'
-        ? API_ENDPOINTS.HR.AUTH.REFRESH
-        : API_ENDPOINTS.CORE.AUTH.REFRESH;
+      // Utiliser l'endpoint de refresh unifié
+      const refreshEndpoint = API_ENDPOINTS.AUTH.REFRESH;
 
       const response = await fetch(`${this.baseURL}${refreshEndpoint}`, {
         method: 'POST',

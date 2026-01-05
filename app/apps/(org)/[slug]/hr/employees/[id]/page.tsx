@@ -640,7 +640,7 @@ export default function EmployeeDetailPage() {
 
         {/* Compensation Tab */}
         <TabsContent value="compensation" className="space-y-4">
-          <Can permission={COMMON_PERMISSIONS.HR.VIEW_EMPLOYEE_COMPENSATION}>
+          <Can permission={COMMON_PERMISSIONS.HR.VIEW_PAYROLL}>
             <Card className="p-6 border-0 shadow-sm">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <HiOutlineBanknotes className="size-5 text-primary" />

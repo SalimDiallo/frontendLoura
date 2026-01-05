@@ -1,143 +1,143 @@
 /**
- * Composants pour protéger les routes avec des permissions
+ * Composants pour protéger les routes et le contenu avec des permissions
+ * Version simplifiée utilisant directement les codes du backend
  */
 
 'use client';
 
 import React, { PropsWithChildren } from 'react';
 import { useRouter } from 'next/navigation';
-import { usePermissionContext, convertBackendPermissionToFrontend } from './permission-provider';
-import type { RouteProtectionConfig } from '@/lib/types/shared';
+import { usePermissionContext } from './permission-provider';
+import { normalizePermissionCode, PERMISSIONS } from '@/lib/constants/permissions';
 import { Alert } from '@/components/ui/alert';
-import { HiOutlineShieldExclamation } from 'react-icons/hi2';
 import { Button } from '@/components/ui/button';
+import { HiOutlineShieldExclamation } from 'react-icons/hi2';
 
+// ============================================
+// Types
+// ============================================
 
+interface RouteProtectionConfig {
+  /** Permissions requises (OR logic - au moins une) */
+  requiredPermissions?: string[];
+  /** Toutes ces permissions sont requises (AND logic) */
+  requireAllPermissions?: string[];
+  /** Message d'erreur personnalisé */
+  deniedMessage?: string;
+  /** Redirection si accès refusé */
+  redirectTo?: string;
+}
 
 interface ProtectedRouteProps extends PropsWithChildren {
   config: RouteProtectionConfig;
   fallback?: React.ReactNode;
 }
 
+// ============================================
+// ProtectedRoute Component
+// ============================================
+
 /**
  * Composant pour protéger une route avec des permissions
  */
 export function ProtectedRoute({ children, config, fallback }: ProtectedRouteProps) {
   const router = useRouter();
-  const { permissionContext, hasAnyPermission, hasAllPermissions, isLoading } = usePermissionContext();
+  const { hasPermission, hasAnyPermission, hasAllPermissions, isAdmin, isLoading } = usePermissionContext();
 
   // Afficher un loader pendant le chargement
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
           <p className="mt-4 text-sm text-muted-foreground">Vérification des permissions...</p>
         </div>
       </div>
     );
   }
 
-  // Vérifier si l'utilisateur a accès
-  const hasAccess = checkAccess(config, permissionContext, hasAnyPermission, hasAllPermissions);
+  // Admin a toujours accès
+  if (isAdmin) {
+    return <>{children}</>;
+  }
 
-  if (!hasAccess) {
-    // Rediriger si configuré
-    if (config.redirectTo) {
-      router.push(config.redirectTo);
-      return null;
+  // Vérifier les permissions requises (OR logic)
+  if (config.requiredPermissions && config.requiredPermissions.length > 0) {
+    const hasAccess = hasAnyPermission(config.requiredPermissions);
+    if (!hasAccess) {
+      return renderDenied(config, fallback, router);
     }
+  }
 
-    // Afficher le fallback personnalisé ou le message par défaut
-    if (fallback) {
-      return <>{fallback}</>;
+  // Vérifier toutes les permissions (AND logic)
+  if (config.requireAllPermissions && config.requireAllPermissions.length > 0) {
+    const hasAccess = hasAllPermissions(config.requireAllPermissions);
+    if (!hasAccess) {
+      return renderDenied(config, fallback, router);
     }
-
-    return (
-      <div className="max-w-2xl mx-auto mt-8">
-        <Alert variant="error" className="border-red-200 bg-red-50">
-          <HiOutlineShieldExclamation className="h-5 w-5 text-red-600" />
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">Accès refusé</h3>
-            <div className="mt-2 text-sm text-red-700">
-              {config.deniedMessage || "Vous n'avez pas les permissions nécessaires pour accéder à cette page."}
-            </div>
-            <div className="mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.back()}
-                className="border-red-300 text-red-700 hover:bg-red-100"
-              >
-                Retour
-              </Button>
-            </div>
-          </div>
-        </Alert>
-      </div>
-    );
   }
 
   return <>{children}</>;
 }
 
-/**
- * Helper pour vérifier l'accès selon la configuration
- */
-function checkAccess(
+function renderDenied(
   config: RouteProtectionConfig,
-  permissionContext: any,
-  hasAnyPermission: (checks: any[]) => boolean,
-  hasAllPermissions: (checks: any[]) => boolean
-): boolean {
-  // Custom check en priorité
-  if (config.customCheck) {
-    return config.customCheck(permissionContext);
+  fallback: React.ReactNode | undefined,
+  router: ReturnType<typeof useRouter>
+) {
+  // Rediriger si configuré
+  if (config.redirectTo) {
+    router.push(config.redirectTo);
+    return null;
   }
 
-  // Vérifier les permissions requises (OR logic)
-  if (config.requiredPermissions && config.requiredPermissions.length > 0) {
-    return hasAnyPermission(config.requiredPermissions);
+  // Afficher le fallback personnalisé
+  if (fallback) {
+    return <>{fallback}</>;
   }
 
-  // Vérifier toutes les permissions (AND logic)
-  if (config.requireAllPermissions && config.requireAllPermissions.length > 0) {
-    return hasAllPermissions(config.requireAllPermissions);
-  }
-
-  // Par défaut, autoriser l'accès si aucune condition n'est spécifiée
-  return true;
+  // Message par défaut
+  return (
+    <div className="max-w-2xl mx-auto mt-8">
+      <Alert variant="error" className="border-red-200 bg-red-50">
+        <HiOutlineShieldExclamation className="h-5 w-5 text-red-600" />
+        <div className="ml-3">
+          <h3 className="text-sm font-medium text-red-800">Accès refusé</h3>
+          <div className="mt-2 text-sm text-red-700">
+            {config.deniedMessage || "Vous n'avez pas les permissions nécessaires pour accéder à cette page."}
+          </div>
+          <div className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.back()}
+              className="border-red-300 text-red-700 hover:bg-red-100"
+            >
+              Retour
+            </Button>
+          </div>
+        </div>
+      </Alert>
+    </div>
+  );
 }
 
-interface ConditionalRenderProps extends PropsWithChildren {
-  /**
-   * Code de permission à vérifier (supporte format backend can_* et frontend resource.action)
-   */
+// ============================================
+// Can Component
+// ============================================
+
+interface CanProps extends PropsWithChildren {
+  /** Code de permission unique à vérifier */
   permission?: string;
-
-  /**
-   * Permissions à vérifier (OR logic) - au moins une doit être présente
-   */
+  /** Permissions à vérifier (OR logic) - au moins une doit être présente */
   anyPermissions?: string[];
-
-  /**
-   * Permissions à vérifier (AND logic) - toutes doivent être présentes
-   */
+  /** Permissions à vérifier (AND logic) - toutes doivent être présentes */
   allPermissions?: string[];
-
-  /**
-   * Contenu à afficher si la permission n'est pas accordée
-   */
+  /** Contenu à afficher si la permission n'est pas accordée */
   fallback?: React.ReactNode;
-
-  /**
-   * Afficher un message d'accès refusé si l'utilisateur n'a pas la permission
-   */
+  /** Afficher un message d'accès refusé */
   showMessage?: boolean;
-
-  /**
-   * Si true, seulement les admins peuvent voir ce contenu
-   */
+  /** Si true, seulement les admins peuvent voir ce contenu */
   adminOnly?: boolean;
 }
 
@@ -147,33 +147,23 @@ interface ConditionalRenderProps extends PropsWithChildren {
  * @example
  * ```tsx
  * // Permission unique
- * <Can permission="employee.view">
- *   <EmployeeList />
- * </Can>
- *
- * // Format backend supporté
- * <Can permission="can_view_employee">
+ * <Can permission={PERMISSIONS.HR.VIEW_EMPLOYEES}>
  *   <EmployeeList />
  * </Can>
  *
  * // Au moins une permission (OR)
- * <Can anyPermissions={["employee.view", "employee.manage"]}>
- *   <EmployeeList />
+ * <Can anyPermissions={[PERMISSIONS.HR.VIEW_EMPLOYEES, PERMISSIONS.HR.VIEW_DEPARTMENTS]}>
+ *   <Content />
  * </Can>
  *
  * // Toutes les permissions (AND)
- * <Can allPermissions={["employee.view", "department.view"]}>
- *   <EmployeeList />
+ * <Can allPermissions={[PERMISSIONS.HR.VIEW_EMPLOYEES, PERMISSIONS.HR.UPDATE_EMPLOYEES]}>
+ *   <EditButton />
  * </Can>
  *
  * // Admin seulement
  * <Can adminOnly>
  *   <AdminPanel />
- * </Can>
- *
- * // Avec message d'erreur
- * <Can permission={COMMON_PERMISSIONS.HR.VIEW_ROLES} showMessage={true}>
- *   <RolesList />
  * </Can>
  * ```
  */
@@ -184,10 +174,10 @@ export function Can({
   allPermissions,
   fallback = null,
   showMessage = false,
-  adminOnly = false
-}: ConditionalRenderProps) {
-  const { hasPermission, permissionContext, isLoading } = usePermissionContext();
+  adminOnly = false,
+}: CanProps) {
   const router = useRouter();
+  const { hasPermission, isAdmin, isLoading } = usePermissionContext();
 
   // Pendant le chargement, ne rien afficher
   if (isLoading) {
@@ -198,22 +188,22 @@ export function Can({
 
   // Vérifier si admin seulement
   if (adminOnly) {
-    hasAccess = permissionContext?.isAdmin || permissionContext?.isSuperuser || false;
+    hasAccess = isAdmin;
   }
   // Vérifier une permission unique
   else if (permission) {
-    const normalizedPerm = convertBackendPermissionToFrontend(permission);
-    hasAccess = hasPermission(normalizedPerm);
+    const normalizedPerm = normalizePermissionCode(permission);
+    hasAccess = isAdmin || hasPermission(normalizedPerm);
   }
   // Vérifier au moins une permission (OR)
   else if (anyPermissions && anyPermissions.length > 0) {
-    const normalizedPerms = anyPermissions.map(convertBackendPermissionToFrontend);
-    hasAccess = normalizedPerms.some((perm) => hasPermission(perm));
+    const normalizedPerms = anyPermissions.map(normalizePermissionCode);
+    hasAccess = isAdmin || normalizedPerms.some((perm) => hasPermission(perm));
   }
   // Vérifier toutes les permissions (AND)
   else if (allPermissions && allPermissions.length > 0) {
-    const normalizedPerms = allPermissions.map(convertBackendPermissionToFrontend);
-    hasAccess = normalizedPerms.every((perm) => hasPermission(perm));
+    const normalizedPerms = allPermissions.map(normalizePermissionCode);
+    hasAccess = isAdmin || normalizedPerms.every((perm) => hasPermission(perm));
   }
 
   if (!hasAccess) {
@@ -231,7 +221,7 @@ export function Can({
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800">Accès refusé</h3>
               <div className="mt-2 text-sm text-red-700">
-                Vous n'avez pas les permissions nécessaires pour accéder à cette page.
+                Vous n'avez pas les permissions nécessaires.
               </div>
               <div className="mt-4">
                 <Button
@@ -256,13 +246,23 @@ export function Can({
   return <>{children}</>;
 }
 
-/**
- * Composant pour masquer du contenu si l'utilisateur a la permission
- */
-export function Cannot({ children, permission, fallback = null }: ConditionalRenderProps) {
-  const { hasPermission } = usePermissionContext();
+// ============================================
+// Cannot Component
+// ============================================
 
-  const cannotAccess = permission ? !hasPermission(permission) : false;
+/**
+ * Composant inverse de Can - affiche le contenu si l'utilisateur N'A PAS la permission
+ */
+export function Cannot({ children, permission, fallback = null }: CanProps) {
+  const { hasPermission, isAdmin } = usePermissionContext();
+
+  // Admin a toujours la permission
+  if (isAdmin) {
+    return <>{fallback}</>;
+  }
+
+  const normalizedPerm = permission ? normalizePermissionCode(permission) : '';
+  const cannotAccess = normalizedPerm ? !hasPermission(normalizedPerm) : false;
 
   if (!cannotAccess) {
     return <>{fallback}</>;
@@ -270,3 +270,9 @@ export function Cannot({ children, permission, fallback = null }: ConditionalRen
 
   return <>{children}</>;
 }
+
+// ============================================
+// Re-exports pour compatibilité
+// ============================================
+
+export { PERMISSIONS };

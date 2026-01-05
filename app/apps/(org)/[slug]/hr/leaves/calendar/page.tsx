@@ -698,6 +698,7 @@ export default function LeaveCalendarPage() {
             <span className="text-muted-foreground">Aujourd&apos;hui</span>
           </div>
           {uniqueLeaveTypes.slice(0, 5).map((leaveType) => {
+            if (typeof leaveType !== 'string') return null;
             const color = colorForLeaveType(leaveType);
             return (
               <div key={leaveType} className="flex items-center gap-2">

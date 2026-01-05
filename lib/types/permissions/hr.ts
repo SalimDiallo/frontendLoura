@@ -9,9 +9,7 @@ export const HR_PERMISSIONS = {
   CREATE_EMPLOYEES: 'hr.create_employees',
   UPDATE_EMPLOYEES: 'hr.update_employees',
   DELETE_EMPLOYEES: 'hr.delete_employees',
-  MANAGE_EMPLOYEES: 'hr.manage_employees',
   MANAGE_EMPLOYEE_PERMISSIONS: 'hr.manage_employee_permissions',
-  VIEW_EMPLOYEE_COMPENSATION: 'hr.view_employee_compensation',
 
   // Departments
   VIEW_DEPARTMENTS: 'hr.view_departments',

@@ -1,20 +1,57 @@
 /**
- * Types pour la gestion des permissions et de l'autorisation
- * Refactorisé pour utiliser le système modulaire défini dans lib/types/permissions/introduction
+ * Types partagés pour la gestion des permissions et de l'autorisation
+ * Simplifié pour utiliser directement les codes backend
  */
 
-import type { Permission } from '../hr';
-import { ResourceType, PermissionAction, COMMON_PERMISSIONS } from '../permissions';
+// Re-export depuis les modules principaux
+export { PERMISSIONS, HR_PERMISSIONS, INVENTORY_PERMISSIONS } from '@/lib/constants/permissions';
+export { normalizePermissionCode, parsePermissionCode, createPermissionCode } from '@/lib/constants/permissions';
+export type { Permission, HRPermission, InventoryPermission } from '@/lib/constants/permissions';
 
-// Re-export specific enums/constants for backward compatibility
-export { ResourceType, PermissionAction, COMMON_PERMISSIONS };
+// Re-export de la config des routes
+export type { RouteProtectionConfig } from '@/lib/config/route-permissions';
+export { HR_ROUTE_PERMISSIONS, INVENTORY_ROUTE_PERMISSIONS, getRoutePermission } from '@/lib/config/route-permissions';
 
 // ============================================
-// Permission Logic Types
+// Types Legacy (pour compatibilité)
 // ============================================
 
 /**
- * Structure d'une permission formatée
+ * @deprecated Utiliser directement les codes string
+ */
+export enum ResourceType {
+  EMPLOYEE = 'employee',
+  DEPARTMENT = 'department',
+  POSITION = 'position',
+  CONTRACT = 'contract',
+  ROLE = 'role',
+  LEAVE_REQUEST = 'leave_request',
+  PAYROLL = 'payroll',
+  ATTENDANCE = 'attendance',
+  PRODUCT = 'product',
+  CATEGORY = 'category',
+  WAREHOUSE = 'warehouse',
+  SUPPLIER = 'supplier',
+  ORDER = 'order',
+  SALE = 'sale',
+  STOCK = 'stock',
+}
+
+/**
+ * @deprecated Utiliser directement les codes string
+ */
+export enum PermissionAction {
+  VIEW = 'view',
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  APPROVE = 'approve',
+  EXPORT = 'export',
+  MANAGE = 'manage',
+}
+
+/**
+ * @deprecated Utiliser directement les codes string
  */
 export interface PermissionCheck {
   resource: ResourceType | string;
@@ -27,66 +64,97 @@ export interface PermissionCheck {
 export interface UserPermissionContext {
   userId: string;
   organizationId: string;
-  permissions: Permission[];
-  permissionCodes: string[];
+  permissions: string[];
   isAdmin?: boolean;
   isSuperuser?: boolean;
 }
 
-/**
- * Configuration de protection de route
- */
-export interface RouteProtectionConfig {
-  /**
-   * Permissions requises (OR logic - au moins une doit être présente)
-   */
-  requiredPermissions?: PermissionCheck[];
-
-  /**
-   * Toutes ces permissions sont requises (AND logic)
-   */
-  requireAllPermissions?: PermissionCheck[];
-
-  /**
-   * Custom function pour vérifier l'accès
-   */
-  customCheck?: (context: UserPermissionContext) => boolean;
-
-  /**
-   * Message d'erreur personnalisé
-   */
-  deniedMessage?: string;
-
-  /**
-   * Redirection si accès refusé
-   */
-  redirectTo?: string;
-}
-
 // ============================================
-// Permission Code Helpers
+// Legacy COMMON_PERMISSIONS (pour compatibilité)
 // ============================================
 
-/**
- * Helper pour créer un code de permission
- * Format: resource.action
- */
-export function createPermissionCode(
-  resource: ResourceType | string,
-  action: PermissionAction | string
-): string {
-  return `${resource}.${action}`;
-}
+import { PERMISSIONS as P } from '@/lib/constants/permissions';
 
 /**
- * Helper pour parser un code de permission
+ * @deprecated Utiliser PERMISSIONS directement
  */
-export function parsePermissionCode(code: string): PermissionCheck | null {
-  const parts = code.split('.');
-  if (parts.length !== 2) return null;
-
-  return {
-    resource: parts[0],
-    action: parts[1],
-  };
-}
+export const COMMON_PERMISSIONS = {
+  HR: {
+    VIEW_EMPLOYEES: P.HR.VIEW_EMPLOYEES,
+    CREATE_EMPLOYEES: P.HR.CREATE_EMPLOYEES,
+    UPDATE_EMPLOYEES: P.HR.UPDATE_EMPLOYEES,
+    DELETE_EMPLOYEES: P.HR.DELETE_EMPLOYEES,
+    MANAGE_EMPLOYEE_PERMISSIONS: P.HR.MANAGE_EMPLOYEE_PERMISSIONS,
+    VIEW_DEPARTMENTS: P.HR.VIEW_DEPARTMENTS,
+    CREATE_DEPARTMENTS: P.HR.CREATE_DEPARTMENTS,
+    UPDATE_DEPARTMENTS: P.HR.UPDATE_DEPARTMENTS,
+    DELETE_DEPARTMENTS: P.HR.DELETE_DEPARTMENTS,
+    VIEW_POSITIONS: P.HR.VIEW_POSITIONS,
+    CREATE_POSITIONS: P.HR.CREATE_POSITIONS,
+    UPDATE_POSITIONS: P.HR.UPDATE_POSITIONS,
+    DELETE_POSITIONS: P.HR.DELETE_POSITIONS,
+    VIEW_ROLES: P.HR.VIEW_ROLES,
+    CREATE_ROLES: P.HR.CREATE_ROLES,
+    UPDATE_ROLES: P.HR.UPDATE_ROLES,
+    DELETE_ROLES: P.HR.DELETE_ROLES,
+    VIEW_CONTRACTS: P.HR.VIEW_CONTRACTS,
+    CREATE_CONTRACTS: P.HR.CREATE_CONTRACTS,
+    UPDATE_CONTRACTS: P.HR.UPDATE_CONTRACTS,
+    DELETE_CONTRACTS: P.HR.DELETE_CONTRACTS,
+    VIEW_LEAVE_REQUESTS: P.HR.VIEW_LEAVE_REQUESTS,
+    CREATE_LEAVE_REQUESTS: P.HR.CREATE_LEAVE_REQUESTS,
+    APPROVE_LEAVE_REQUESTS: P.HR.APPROVE_LEAVE_REQUESTS,
+    VIEW_PAYROLL: P.HR.VIEW_PAYROLL,
+    CREATE_PAYROLL: P.HR.CREATE_PAYROLL,
+    UPDATE_PAYROLL: P.HR.UPDATE_PAYROLL,
+    EXPORT_PAYROLL: P.HR.EXPORT_PAYROLL,
+    VIEW_ATTENDANCE: P.HR.VIEW_ATTENDANCE,
+    VIEW_ALL_ATTENDANCE: P.HR.VIEW_ALL_ATTENDANCE,
+    CREATE_ATTENDANCE: P.HR.CREATE_ATTENDANCE,
+    UPDATE_ATTENDANCE: P.HR.UPDATE_ATTENDANCE,
+    DELETE_ATTENDANCE: P.HR.DELETE_ATTENDANCE,
+    APPROVE_ATTENDANCE: P.HR.APPROVE_ATTENDANCE,
+    MANUAL_CHECKIN: P.HR.MANUAL_CHECKIN,
+    CREATE_QR_SESSION: P.HR.CREATE_QR_SESSION,
+  },
+  INVENTORY: {
+    VIEW_PRODUCTS: P.INVENTORY.VIEW_PRODUCTS,
+    CREATE_PRODUCTS: P.INVENTORY.CREATE_PRODUCTS,
+    UPDATE_PRODUCTS: P.INVENTORY.UPDATE_PRODUCTS,
+    DELETE_PRODUCTS: P.INVENTORY.DELETE_PRODUCTS,
+    VIEW_CATEGORIES: P.INVENTORY.VIEW_CATEGORIES,
+    CREATE_CATEGORIES: P.INVENTORY.CREATE_CATEGORIES,
+    UPDATE_CATEGORIES: P.INVENTORY.UPDATE_CATEGORIES,
+    DELETE_CATEGORIES: P.INVENTORY.DELETE_CATEGORIES,
+    VIEW_WAREHOUSES: P.INVENTORY.VIEW_WAREHOUSES,
+    CREATE_WAREHOUSES: P.INVENTORY.CREATE_WAREHOUSES,
+    UPDATE_WAREHOUSES: P.INVENTORY.UPDATE_WAREHOUSES,
+    DELETE_WAREHOUSES: P.INVENTORY.DELETE_WAREHOUSES,
+    VIEW_SUPPLIERS: P.INVENTORY.VIEW_SUPPLIERS,
+    CREATE_SUPPLIERS: P.INVENTORY.CREATE_SUPPLIERS,
+    UPDATE_SUPPLIERS: P.INVENTORY.UPDATE_SUPPLIERS,
+    DELETE_SUPPLIERS: P.INVENTORY.DELETE_SUPPLIERS,
+    VIEW_STOCK: P.INVENTORY.VIEW_STOCK,
+    MANAGE_STOCK: P.INVENTORY.MANAGE_STOCK,
+    ADJUST_STOCK: P.INVENTORY.ADJUST_STOCK,
+    VIEW_MOVEMENTS: P.INVENTORY.VIEW_MOVEMENTS,
+    CREATE_MOVEMENTS: P.INVENTORY.CREATE_MOVEMENTS,
+    VIEW_ORDERS: P.INVENTORY.VIEW_ORDERS,
+    CREATE_ORDERS: P.INVENTORY.CREATE_ORDERS,
+    UPDATE_ORDERS: P.INVENTORY.UPDATE_ORDERS,
+    RECEIVE_ORDERS: P.INVENTORY.RECEIVE_ORDERS,
+    VIEW_STOCK_COUNTS: P.INVENTORY.VIEW_STOCK_COUNTS,
+    CREATE_STOCK_COUNTS: P.INVENTORY.CREATE_STOCK_COUNTS,
+    VALIDATE_STOCK_COUNTS: P.INVENTORY.VALIDATE_STOCK_COUNTS,
+    VIEW_SALES: P.INVENTORY.VIEW_SALES,
+    CREATE_SALES: P.INVENTORY.CREATE_SALES,
+    UPDATE_SALES: P.INVENTORY.UPDATE_SALES,
+    DELETE_SALES: P.INVENTORY.DELETE_SALES,
+    VIEW_CUSTOMERS: P.INVENTORY.VIEW_CUSTOMERS,
+    CREATE_CUSTOMERS: P.INVENTORY.CREATE_CUSTOMERS,
+    VIEW_PAYMENTS: P.INVENTORY.VIEW_PAYMENTS,
+    CREATE_PAYMENTS: P.INVENTORY.CREATE_PAYMENTS,
+    VIEW_REPORTS: P.INVENTORY.VIEW_REPORTS,
+    EXPORT_REPORTS: P.INVENTORY.EXPORT_REPORTS,
+  },
+} as const;

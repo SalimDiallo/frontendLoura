@@ -1,11 +1,17 @@
 /**
- * Hooks personnalisés pour les permissions avec Zustand
- * Supporte à la fois AdminUser et Employee avec leurs permissions respectives
+ * Hooks personnalisés pour les permissions
+ * Version simplifiée utilisant les codes backend directement
  */
 
 'use client';
 
-import { usePermissionsStore, permissionsSelectors, useAuthStore } from '@/lib/store';
+import { usePermissionsStore, permissionsSelectors } from '@/lib/store/permissions-store';
+import { useAuthStore } from '@/lib/store';
+import { normalizePermissionCode } from '@/lib/constants/permissions';
+
+// ============================================
+// Hooks de base
+// ============================================
 
 /**
  * Hook pour accéder à toutes les permissions
@@ -31,22 +37,41 @@ export function useRoleName() {
 /**
  * Hook pour vérifier une permission spécifique
  */
-export function useHasPermission(codename: string) {
-  return usePermissionsStore((state) => state.hasPermission(codename));
+export function useHasPermission(code: string) {
+  const userType = useAuthStore((state) => state.userType);
+  const hasPermission = usePermissionsStore((state) => state.hasPermission);
+  
+  // Admin a toutes les permissions
+  if (userType === 'admin') return true;
+  
+  const normalizedCode = normalizePermissionCode(code);
+  return hasPermission(normalizedCode);
 }
 
 /**
  * Hook pour vérifier si l'utilisateur a au moins une des permissions
  */
-export function useHasAnyPermission(codenames: string[]) {
-  return usePermissionsStore((state) => state.hasAnyPermission(codenames));
+export function useHasAnyPermission(codes: string[]) {
+  const userType = useAuthStore((state) => state.userType);
+  const hasAnyPermission = usePermissionsStore((state) => state.hasAnyPermission);
+  
+  if (userType === 'admin') return true;
+  
+  const normalizedCodes = codes.map(normalizePermissionCode);
+  return hasAnyPermission(normalizedCodes);
 }
 
 /**
  * Hook pour vérifier si l'utilisateur a toutes les permissions
  */
-export function useHasAllPermissions(codenames: string[]) {
-  return usePermissionsStore((state) => state.hasAllPermissions(codenames));
+export function useHasAllPermissions(codes: string[]) {
+  const userType = useAuthStore((state) => state.userType);
+  const hasAllPermissions = usePermissionsStore((state) => state.hasAllPermissions);
+  
+  if (userType === 'admin') return true;
+  
+  const normalizedCodes = codes.map(normalizePermissionCode);
+  return hasAllPermissions(normalizedCodes);
 }
 
 /**
@@ -64,32 +89,53 @@ export function usePermissionsActions() {
   };
 }
 
+// ============================================
+// Hook principal
+// ============================================
+
 /**
  * Hook principal pour les permissions
- * Compatible avec l'ancienne API pour faciliter la migration
+ * Fournit toutes les données et helpers nécessaires
  */
 export function usePermissions() {
   const permissions = usePermissionsData();
   const role = useRole();
   const roleName = useRoleName();
   
-  // Ajout des données utilisateur depuis le store auth
+  // Données utilisateur
   const user = useAuthStore((state) => state.user);
   const userType = useAuthStore((state) => state.userType);
   const loading = useAuthStore((state) => state.isLoading);
   
-  // AdminUser = pas de userType 'employee'
+  // Admin a toutes les permissions
   const isAdmin = userType === 'admin';
 
-  // Helpers qui utilisent le store
-  const hasPermission = (code: string) =>
-    usePermissionsStore.getState().hasPermission(code);
+  /**
+   * Vérifie si l'utilisateur a une permission
+   */
+  const hasPermission = (code: string): boolean => {
+    if (isAdmin) return true;
+    const normalizedCode = normalizePermissionCode(code);
+    return usePermissionsStore.getState().hasPermission(normalizedCode);
+  };
 
-  const hasAnyPermission = (codes: string[]) =>
-    usePermissionsStore.getState().hasAnyPermission(codes);
+  /**
+   * Vérifie si l'utilisateur a au moins une des permissions
+   */
+  const hasAnyPermission = (codes: string[]): boolean => {
+    if (isAdmin) return true;
+    const normalizedCodes = codes.map(normalizePermissionCode);
+    return usePermissionsStore.getState().hasAnyPermission(normalizedCodes);
+  };
 
-  const hasAllPermissions = (codes: string[]) =>
-    usePermissionsStore.getState().hasAllPermissions(codes);
+  /**
+   * Vérifie si l'utilisateur a toutes les permissions
+   */
+  const hasAllPermissions = (codes: string[]): boolean => {
+    if (isAdmin) return true;
+    const normalizedCodes = codes.map(normalizePermissionCode);
+    return usePermissionsStore.getState().hasAllPermissions(normalizedCodes);
+  };
 
   // Alias pour compatibilité
   const can = hasPermission;
@@ -104,6 +150,7 @@ export function usePermissions() {
     permissions,
     role,
     roleName,
+    // Helpers
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,

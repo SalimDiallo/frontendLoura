@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Card, Input, Alert, Badge, Label } from "@/components/ui";
-import { authService } from "@/lib/services/auth/auth.service";
+import { authService, UnifiedUser } from "@/lib/services/auth/auth.service";
 import type { AdminUser } from "@/lib/types/core";
 import {
   User,
@@ -28,7 +28,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const params = useParams();
   const orgSlug = params.slug as string;
-  const [user, setUser] = useState<AdminUser | null>(null);
+  const [user, setUser] = useState<UnifiedUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -50,8 +50,10 @@ export default function ProfilePage() {
     try {
       setLoading(true);
       setError(null);
-      const userData = await authService.getCurrentUser();
-      setUser(userData);
+      const response = await authService.getCurrentUser();
+      // Extraire l'utilisateur de la réponse
+      const userData = response;
+      setUser(userData as any);
       setEditData({
         first_name: userData.first_name || "",
         last_name: userData.last_name || "",
@@ -75,7 +77,7 @@ export default function ProfilePage() {
         last_name: editData.last_name,
       });
       
-      setUser(updatedUser);
+      setUser(updatedUser as UnifiedUser);
       setSuccess("Profil mis à jour avec succès !");
       setIsEditing(false);
       setTimeout(() => setSuccess(null), 3000);
@@ -197,10 +199,18 @@ export default function ProfilePage() {
                 : user?.email || "Utilisateur"}
             </h2>
             <p className="text-muted-foreground text-sm">{user?.email}</p>
-            <Badge variant="success" className="mt-3">
+            {
+              user?.user_type == "admin"  ? 
+              <Badge variant="success" className="mt-3">
               <Shield className="mr-1 h-3 w-3" />
               Administrateur
             </Badge>
+              :
+            <Badge variant="success" className="mt-3">
+              <User className="mr-1 h-3 w-3" />
+              Utilisateur
+            </Badge>
+            }
 
             {/* Quick Stats */}
             <div className="w-full mt-6 pt-6 border-t space-y-3">

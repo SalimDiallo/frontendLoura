@@ -11,10 +11,10 @@ import {
   ChevronUp,
   LogOut,
   Settings,
-  User,
   Sparkles,
   LayoutDashboard,
   Users,
+  User,
 } from "lucide-react";
 
 import {
@@ -39,7 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { authService } from "@/lib/services/core";
+import { authService, CurrentUser } from "@/lib/services/core";
 import { cn } from "@/lib/utils";
 
 // Types
@@ -85,17 +85,15 @@ export function AppSidebar() {
   const isCollapsed = state === "collapsed";
   
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [user, setUser] = useState<{
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-  } | null>(null);
+  const [user, setUser] = useState<CurrentUser>(null);
 
   useEffect(() => {
     let ignore = false;
     async function fetchUser() {
       try {
         const userData = await authService.getCurrentUser();
+        console.log(userData);
+        
         if (!ignore) setUser(userData ?? null);
       } catch {
         if (!ignore) setUser(null);
@@ -109,16 +107,16 @@ export function AppSidebar() {
 
   const getInitials = (u: typeof user) => {
     if (!u) return "A";
-    if (u.firstName || u.lastName) {
-      return `${u.firstName?.[0] ?? ""}${u.lastName?.[0] ?? ""}`.toUpperCase() || "A";
+    if (u.first_name || u.last_name) {
+      return `${u.first_name?.[0] ?? ""}${u.last_name?.[0] ?? ""}`.toUpperCase() || "A";
     }
     return u.email?.[0]?.toUpperCase() || "A";
   };
 
   const getDisplayName = (u: typeof user) => {
     if (!u) return "Admin";
-    if (u.firstName || u.lastName) {
-      return [u.firstName, u.lastName].filter(Boolean).join(" ");
+    if (u.first_name || u.last_name) {
+      return [u.first_name, u.last_name].filter(Boolean).join(" ");
     }
     return u.email || "Admin";
   };
@@ -252,7 +250,7 @@ export function AppSidebar() {
         <div className="flex-1 min-h-4" />
 
         {/* Upgrade Card - Only when expanded */}
-        {!isCollapsed && (
+        {/* {!isCollapsed && (
           <SidebarGroup className="px-0">
             <SidebarGroupContent>
               <div className="mx-1 rounded-2xl bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 p-4 border border-primary/10">
@@ -273,7 +271,7 @@ export function AppSidebar() {
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
-        )}
+        )} */}
       </SidebarContent>
 
       {/* Footer */}

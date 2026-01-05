@@ -1,208 +1,144 @@
 /**
- * Service d'authentification unifié - Admin (Core) et Employee (HR)
+ * Service d'authentification unifié
+ * ===================================
+ * Un seul service pour Admin et Employee.
+ * Le backend retourne user_type pour la redirection.
  */
 
 import { apiClient, tokenManager } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { useAuthStore, usePermissionsStore } from '@/lib/store';
-import type {
-  LoginCredentials,
-  RegisterData,
-  AuthResponse,
-  AdminUser,
-} from '@/lib/types/core';
+import type { AdminUser } from '@/lib/types/core';
 import type { Employee } from '@/lib/types/hr';
 
 // ============================================================================
-// Types pour l'authentification Employee
+// TYPES
 // ============================================================================
 
-/**
- * Type pour les credentials de connexion employee
- */
-export interface EmployeeLoginCredentials {
+/** Credentials de connexion (Admin ou Employee) */
+export interface LoginCredentials {
   email: string;
   password: string;
 }
 
-/**
- * Type pour la réponse d'authentification employee
- */
-export interface EmployeeAuthResponse {
-  employee: Employee;
+/** Données d'inscription Admin + Organisation */
+export interface RegisterData {
+  email: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+}
+
+/** Réponse d'authentification unifiée */
+export interface AuthResponse {
+  user: UnifiedUser;
+  user_type: 'admin' | 'employee';
   access: string;
   refresh: string;
   message: string;
+  organization?: {
+    id: string;
+    name: string;
+    subdomain: string;
+  };
 }
 
-/**
- * Type pour le changement de mot de passe
- */
+/** Utilisateur unifié (Admin ou Employee) */
+export interface UnifiedUser {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  avatar_url?: string;
+  user_type: 'admin' | 'employee';
+  is_active: boolean;
+  created_at: string;
+  // Fields spécifiques Admin
+  organizations?: Array<{
+    id: string;
+    name: string;
+    subdomain: string;
+    logo_url?: string;
+    is_active: boolean;
+  }>;
+  // Fields spécifiques Employee
+  employee_id?: string;
+  organization?: {
+    id: string;
+    name: string;
+    subdomain: string;
+    logo_url?: string;
+  };
+  organization_subdomain?: string; // Compatibilité ancien format
+  department?: { id: string; name: string };
+  position?: { id: string; title: string };
+  employment_status?: string;
+  permissions?: string[];
+}
+
+/** Données pour changement de mot de passe */
 export interface ChangePasswordData {
   old_password: string;
   new_password: string;
   new_password_confirm: string;
 }
 
-export type CurrentUser = AdminUser | Employee | null;
-
 // ============================================================================
-// Service d'authentification Admin (Core)
+// SERVICE D'AUTHENTIFICATION UNIFIÉ
 // ============================================================================
 
 export const authService = {
   /**
-   * Inscription d'un nouvel utilisateur
+   * Inscription Admin + Organisation
    */
   async register(data: RegisterData): Promise<AuthResponse> {
     const response = await apiClient.post<AuthResponse>(
-      API_ENDPOINTS.CORE.AUTH.REGISTER,
+      API_ENDPOINTS.AUTH.REGISTER,
       data,
       { requiresAuth: false }
     );
 
-    // Sauvegarder les tokens et l'utilisateur
     if (response.access && response.refresh) {
       tokenManager.setTokens(response.access, response.refresh);
-      tokenManager.saveUser(response.user);
-
-      // Mettre à jour le store Zustand
-      useAuthStore.getState().setUser(response.user, 'admin');
+      tokenManager.saveUser({ ...response.user, userType: response.user_type });
+      useAuthStore.getState().setUser(response.user, response.user_type);
     }
 
     return response;
   },
 
   /**
-   * Connexion d'un utilisateur
+   * Connexion unifiée (Admin ou Employee)
+   * Le backend détermine le type via l'email
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const response = await apiClient.post<AuthResponse>(
-      API_ENDPOINTS.CORE.AUTH.LOGIN,
+      API_ENDPOINTS.AUTH.LOGIN,
       credentials,
       { requiresAuth: false }
     );
 
-    // Sauvegarder les tokens et l'utilisateur
     if (response.access && response.refresh) {
       tokenManager.setTokens(response.access, response.refresh);
-      tokenManager.saveUser(response.user);
-
+      tokenManager.saveUser({ ...response.user, userType: response.user_type });
+      
       // Mettre à jour le store Zustand
-      useAuthStore.getState().setUser(response.user, 'admin');
-    }
+      useAuthStore.getState().setUser(response.user, response.user_type);
 
-    return response;
-  },
-
-  /**
-   * Déconnexion
-   */
-  async logout(): Promise<void> {
-    try {
-      await apiClient.post(API_ENDPOINTS.CORE.AUTH.LOGOUT, {
-        refresh: tokenManager.getRefreshToken(),
-      });
-    } catch (error) {
-      // Continuer même si l'API échoue
-      console.error('Erreur lors de la déconnexion:', error);
-    } finally {
-      // Toujours nettoyer les tokens locaux
-      tokenManager.clearTokens();
-
-      // Nettoyer les stores Zustand
-      useAuthStore.getState().clearUser();
-    }
-  },
-
-  /**
-   * Récupérer les informations de l'utilisateur connecté
-   */
-  async getCurrentUser(): Promise<CurrentUser> {
-    
-    const response = await apiClient.get<{user: CurrentUser}>(API_ENDPOINTS.CORE.AUTH.ME);
-    tokenManager.saveUser(response.user);
-
-    // Synchroniser avec le store Zustand
-    useAuthStore.getState().setUser(response.user, 'admin');
-
-    return response.user;
-  },
-
-  /**
-   * Mettre à jour le profil de l'utilisateur
-   */
-  async updateProfile(data: { first_name?: string; last_name?: string }): Promise<AdminUser> {
-    const response = await apiClient.patch<{ user: AdminUser; message: string }>(
-      API_ENDPOINTS.CORE.AUTH.UPDATE_PROFILE,
-      data
-    );
-    
-    tokenManager.saveUser(response.user);
-    useAuthStore.getState().setUser(response.user, 'admin');
-    
-    return response.user;
-  },
-
-  /**
-   * Changer le mot de passe
-   */
-  async changePassword(data: ChangePasswordData): Promise<{ message: string }> {
-    return apiClient.post<{ message: string }>(
-      API_ENDPOINTS.CORE.AUTH.CHANGE_PASSWORD,
-      data
-    );
-  },
-
-  /**
-   * Vérifier si l'utilisateur est authentifié
-   */
-  isAuthenticated(): boolean {
-    return !!tokenManager.getAccessToken();
-  },
-
-  /**
-   * Récupérer l'utilisateur depuis le localStorage
-   */
-  getStoredUser(): AdminUser | null {
-    return tokenManager.getUser();
-  },
-};
-
-// ============================================================================
-// Service d'authentification Employee (HR)
-// ============================================================================
-
-export const employeeAuthService = {
-  /**
-   * Connexion d'un employé
-   */
-  async login(credentials: EmployeeLoginCredentials): Promise<EmployeeAuthResponse> {
-    const response = await apiClient.post<EmployeeAuthResponse>(
-      API_ENDPOINTS.HR.AUTH.LOGIN,
-      credentials,
-      { requiresAuth: false }
-    );
-
-    // Sauvegarder les tokens et l'employé
-    if (response.access && response.refresh) {
-      tokenManager.setTokens(response.access, response.refresh);
-      tokenManager.saveUser({ ...response.employee, userType: 'employee' });
-
-      // Mettre à jour le store Zustand
-      useAuthStore.getState().setUser(response.employee, 'employee');
-
-      // Mettre à jour les permissions de l'employé (combinaison rôle + custom)
-      if (response.employee.role) {
-        usePermissionsStore.getState().setRole(response.employee.role);
+      // Si Employee, charger les permissions
+      if (response.user_type === 'employee' && response.user.permissions) {
+        usePermissionsStore.getState().setPermissions(response.user.permissions);
       }
 
-      // Stocker toutes les permissions (all_permissions contient rôle + custom)
-      const allPermissions = response.employee.all_permissions || [];
-      usePermissionsStore.getState().setPermissions(allPermissions);
+      // Stocker le slug de l'organisation pour les requêtes API
+      if (response.user_type === 'employee' && response.user.organization) {
+        localStorage.setItem('current_organization_slug', response.user.organization.subdomain);
+      } else if (response.user_type === 'admin' && response.user.organizations?.[0]) {
+        localStorage.setItem('current_organization_slug', response.user.organizations[0].subdomain);
+      }
     }
-
-    console.log(response);
 
     return response;
   },
@@ -212,55 +148,54 @@ export const employeeAuthService = {
    */
   async logout(): Promise<void> {
     try {
-      await apiClient.post(API_ENDPOINTS.HR.AUTH.LOGOUT, {
+      await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, {
         refresh: tokenManager.getRefreshToken(),
       });
     } catch (error) {
       console.error('Erreur lors de la déconnexion:', error);
     } finally {
       tokenManager.clearTokens();
-
-      // Nettoyer les stores Zustand
+      localStorage.removeItem('current_organization_slug');
       useAuthStore.getState().clearUser();
       usePermissionsStore.getState().clearPermissions();
     }
   },
 
   /**
-   * Récupérer les informations de l'employé connecté
+   * Récupérer l'utilisateur courant
    */
-  async getCurrentEmployee(): Promise<Employee> {
-    const response = await apiClient.get<Employee>(API_ENDPOINTS.HR.AUTH.ME);
-    tokenManager.saveUser({ ...response, userType: 'employee' });
+  async getCurrentUser(): Promise<UnifiedUser> {
+    const response = await apiClient.get<UnifiedUser>(
+      API_ENDPOINTS.AUTH.ME
+    );
+    
+    tokenManager.saveUser({ ...response, userType: response.user_type });
+    useAuthStore.getState().setUser(response, response.user_type);
 
-    // Synchroniser avec les stores Zustand
-    useAuthStore.getState().setUser(response, 'employee');
-
-    // Mettre à jour les permissions (combinaison rôle + custom)
-    if (response.role) {
-      usePermissionsStore.getState().setRole(response.role);
+    // Si Employee, charger les permissions
+    if (response.user_type === 'employee' && response.permissions) {
+      usePermissionsStore.getState().setPermissions(response.permissions);
     }
-
-    // Stocker toutes les permissions (all_permissions contient rôle + custom)
-    const allPermissions = response.all_permissions || [];
-    usePermissionsStore.getState().setPermissions(allPermissions);
 
     return response;
   },
 
   /**
-   * Mettre à jour le profil de l'employé
+   * Mettre à jour le profil
    */
-  async updateProfile(data: { phone?: string; address?: string; emergency_contact?: string; emergency_phone?: string }): Promise<Employee> {
-    const response = await apiClient.patch<{ employee: Employee; message: string }>(
-      API_ENDPOINTS.HR.AUTH.UPDATE_PROFILE,
+  async updateProfile(data: Partial<UnifiedUser>): Promise<UnifiedUser> {
+    const response = await apiClient.patch<{ user: UnifiedUser; message: string }>(
+      API_ENDPOINTS.AUTH.UPDATE_PROFILE,
       data
     );
     
-    tokenManager.saveUser({ ...response.employee, userType: 'employee' });
-    useAuthStore.getState().setUser(response.employee, 'employee');
+    const storedUser = tokenManager.getUser();
+    const userType = storedUser?.userType || 'admin';
     
-    return response.employee;
+    tokenManager.saveUser({ ...response.user, userType });
+    useAuthStore.getState().setUser(response.user, userType);
+    
+    return response.user;
   },
 
   /**
@@ -268,27 +203,66 @@ export const employeeAuthService = {
    */
   async changePassword(data: ChangePasswordData): Promise<{ message: string }> {
     return apiClient.post<{ message: string }>(
-      API_ENDPOINTS.HR.AUTH.CHANGE_PASSWORD,
+      API_ENDPOINTS.AUTH.CHANGE_PASSWORD,
       data
     );
   },
 
   /**
-   * Vérifier si l'utilisateur est authentifié en tant qu'employé
+   * Vérifier si authentifié
    */
   isAuthenticated(): boolean {
-    const user = tokenManager.getUser();
-    return !!tokenManager.getAccessToken() && user?.userType === 'employee';
+    return !!tokenManager.getAccessToken();
   },
 
   /**
-   * Récupérer l'employé depuis le localStorage
+   * Récupérer l'utilisateur stocké
    */
-  getStoredEmployee(): Employee | null {
+  getStoredUser(): UnifiedUser | null {
+    return tokenManager.getUser();
+  },
+
+  /**
+   * Récupérer le type d'utilisateur
+   */
+  getUserType(): 'admin' | 'employee' | null {
     const user = tokenManager.getUser();
-    if (user && user.userType === 'employee') {
-      return user as Employee;
+    return user?.userType || null;
+  },
+
+  /**
+   * Vérifier si l'utilisateur est Admin
+   */
+  isAdmin(): boolean {
+    return this.getUserType() === 'admin';
+  },
+
+  /**
+   * Vérifier si l'utilisateur est Employee
+   */
+  isEmployee(): boolean {
+    return this.getUserType() === 'employee';
+  },
+
+  /**
+   * Récupérer l'organisation courante
+   */
+  getCurrentOrganization() {
+    const user = this.getStoredUser();
+    if (!user) return null;
+
+    if (user.user_type === 'employee' && user.organization) {
+      return user.organization;
+    }
+    if (user.user_type === 'admin' && user.organizations?.[0]) {
+      return user.organizations[0];
     }
     return null;
   },
 };
+
+
+// Re-export types for compatibility
+export type { LoginCredentials as EmployeeLoginCredentials };
+export type { AuthResponse as EmployeeAuthResponse };
+export type CurrentUser = UnifiedUser | null;

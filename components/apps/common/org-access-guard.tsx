@@ -7,8 +7,7 @@
 
 import { useEffect, useState, useCallback, PropsWithChildren } from 'react';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/lib/services/core';
-import { employeeAuthService } from '@/lib/services/hr';
+import { authService } from '@/lib/services/auth/auth.service';
 import { apiClient, tokenManager } from '@/lib/api/client';
 import type { Organization } from '@/lib/types/core';
 import { Alert } from '@/components/ui/alert';
@@ -46,8 +45,8 @@ export function OrgAccessGuard({ children, organizationSlug }: OrgAccessGuardPro
       
 
       if (!storedUser) {
-        // Not authenticated (redirect employee as default)
-        router.replace(`/auth/employee?redirect=/apps/${organizationSlug}/dashboard`);
+        // Not authenticated - rediriger vers login unifié
+        router.replace(`/auth?type=employee&redirect=/apps/${organizationSlug}/dashboard`);
         return;
       }
 
@@ -56,15 +55,16 @@ export function OrgAccessGuard({ children, organizationSlug }: OrgAccessGuardPro
       const slug = organizationSlug.toLowerCase();
 
       if (userType === 'employee') {
-        const employee = employeeAuthService.getStoredEmployee();
+        const employee = authService.getStoredUser();
         if (!employee) {
-          employeeAuthService.logout();
-          router.replace(`/auth/employee?redirect=/apps/${organizationSlug}/dashboard`);
+          authService.logout();
+          router.replace(`/auth?type=employee&redirect=/apps/${organizationSlug}/dashboard`);
           return;
         }
 
         // L'employé appartient bien à l'orga ?
-        if (!employee.organization_subdomain || employee.organization_subdomain.toLowerCase() !== slug) {
+        const employeeSubdomain = employee.organization_subdomain || employee.organization?.subdomain;
+        if (!employeeSubdomain || employeeSubdomain.toLowerCase() !== slug) {
           setError("Vous n'avez pas accès à cette organisation.");
           setHasAccess(false);
           setIsLoading(false);
@@ -73,8 +73,8 @@ export function OrgAccessGuard({ children, organizationSlug }: OrgAccessGuardPro
 
         // Employé désactivé ?
         if (!employee.is_active) {
-          employeeAuthService.logout();
-          router.replace(`/auth/employee?message=${encodeURIComponent("Votre compte a été désactivé. Veuillez contacter votre administrateur.")}`);
+          authService.logout();
+          router.replace(`/auth?type=employee&message=${encodeURIComponent("Votre compte a été désactivé. Veuillez contacter votre administrateur.")}`);
           return;
         }
 
@@ -88,7 +88,7 @@ export function OrgAccessGuard({ children, organizationSlug }: OrgAccessGuardPro
       // Admin user case - seulement si on n'est PAS un employé
       const adminUser = authService.getStoredUser();
       if (!adminUser) {
-        router.replace(`/auth/admin?redirect=/apps/${organizationSlug}/dashboard`);
+        router.replace(`/auth?type=admin&redirect=/apps/${organizationSlug}/dashboard`);
         return;
       }
 
@@ -131,9 +131,9 @@ export function OrgAccessGuard({ children, organizationSlug }: OrgAccessGuardPro
       // Optionnel : déconnexion employé si erreur d'accès
       const storedUser = tokenManager.getUser();
       if (storedUser?.userType === 'employee') {
-        employeeAuthService.logout();
+        authService.logout();
         router.replace(
-          `/auth/employee?message=${encodeURIComponent("Erreur lors de la vérification de l'accès. Veuillez vous reconnecter.")}`
+          `/auth?type=employee&message=${encodeURIComponent("Erreur lors de la vérification de l'accès. Veuillez vous reconnecter.")}`
         );
         return;
       }
@@ -192,7 +192,7 @@ export function OrgAccessGuard({ children, organizationSlug }: OrgAccessGuardPro
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => router.push(isEmployee ? '/auth/employee' : '/auth/admin')}
+                onClick={() => router.push(isEmployee ? '/auth?type=employee' : '/auth?type=admin')}
                 className="border-red-300 text-red-700 hover:bg-red-100"
               >
                 Se reconnecter

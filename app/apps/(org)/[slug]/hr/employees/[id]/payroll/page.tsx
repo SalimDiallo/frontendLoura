@@ -208,13 +208,15 @@ export default function EmployeePayrollHistoryPage() {
                     <TableCell>
                       <div className="text-sm">
                         <div className="font-medium">
-                          {new Date(payroll.period_start).toLocaleDateString("fr-FR", {
+                          {payroll.start_date ? new Date(payroll.start_date).toLocaleDateString("fr-FR", {
                             month: 'long',
                             year: 'numeric'
-                          })}
+                          }) : payroll.payroll_period_name || 'N/A'}
                         </div>
                         <div className="text-muted-foreground">
-                          {new Date(payroll.period_start).toLocaleDateString("fr-FR")} → {new Date(payroll.period_end).toLocaleDateString("fr-FR")}
+                          {payroll.start_date && payroll.end_date 
+                            ? `${new Date(payroll.start_date).toLocaleDateString("fr-FR")} → ${new Date(payroll.end_date).toLocaleDateString("fr-FR")}`
+                            : payroll.payroll_period_name || 'N/A'}
                         </div>
                       </div>
                     </TableCell>

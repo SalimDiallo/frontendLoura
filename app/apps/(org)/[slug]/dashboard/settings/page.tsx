@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Card, Input, Alert, Badge, Label } from "@/components/ui";
-import { authService } from "@/lib/services/auth/auth.service";
+import { authService, UnifiedUser } from "@/lib/services/auth/auth.service";
 import type { AdminUser } from "@/lib/types/core";
 import {
   User,
@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<AdminUser | null>(null);
+  const [user, setUser] = useState<UnifiedUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -63,8 +63,8 @@ export default function SettingsPage() {
   const loadUserProfile = async () => {
     try {
       setLoading(true);
-      const userData = await authService.getCurrentUser();
-      setUser(userData);
+      const response = await authService.getCurrentUser();
+      setUser(response.user);
     } catch (err: any) {
       setError(err.message || "Erreur lors du chargement");
     } finally {

@@ -27,17 +27,18 @@ export const API_ENDPOINTS = {
   /**
    * Module CORE - Authentification, Organisations, Catégories
    */
+  // Authentification unifiée (Admin et Employee)
+  AUTH: {
+    LOGIN: '/auth/login/',                         // Login unifié
+    REGISTER: '/auth/register/',                   // Registration Admin + Organisation
+    LOGOUT: '/auth/logout/',                       // Logout centralisé
+    REFRESH: '/auth/refresh/',                     // Refresh centralisé
+    ME: '/auth/me/',                               // Utilisateur courant
+    UPDATE_PROFILE: '/auth/profile/update/',       // Mise à jour du profil
+    CHANGE_PASSWORD: '/auth/profile/change-password/',  // Changement de mot de passe
+  },
+
   CORE: {
-    // Authentification (admin - centralisée dans authentication app)
-    AUTH: {
-      REGISTER: '/core/auth/register/',  // Register reste dans core
-      LOGIN: '/auth/admin/login/',       // Login déplacé vers authentication
-      LOGOUT: '/auth/logout/',           // Logout centralisé
-      REFRESH: '/auth/refresh/',         // Refresh centralisé
-      ME: '/auth/me/',                   // Me centralisé
-      UPDATE_PROFILE: '/auth/profile/update/',     // Mise à jour du profil
-      CHANGE_PASSWORD: '/auth/profile/change-password/',  // Changement de mot de passe
-    },
     // Organisations
     ORGANIZATIONS: {
       LIST: '/core/organizations/',
@@ -60,15 +61,6 @@ export const API_ENDPOINTS = {
    * Module HR - Gestion des ressources humaines
    */
   HR: {
-    // Authentification Employee (centralisée dans authentication app)
-    AUTH: {
-      LOGIN: '/auth/employee/login/',     // Login déplacé vers authentication
-      REFRESH: '/auth/refresh/',          // Refresh centralisé
-      LOGOUT: '/auth/logout/',            // Logout centralisé
-      ME: '/auth/me/',                    // Me centralisé
-      UPDATE_PROFILE: '/auth/profile/update/',     // Mise à jour du profil (centralisé)
-      CHANGE_PASSWORD: '/auth/profile/change-password/',  // Changement de mot de passe (centralisé)
-    },
     // Employés
     EMPLOYEES: {
       LIST: '/hr/employees/',

@@ -96,21 +96,21 @@ export const siteConfig = {
 
   // Routes centralisées d'authentification
   auth: {
-    selection: "/auth",        // Page de sélection du type de compte
-    admin: "/auth/admin",       // Login administrateur
-    employee: "/auth/employee", // Login employé
-    logout: "/auth/logout"      // Logout (commun)
+    login: "/auth",              // Page de connexion unifiée
+    register: "/core/register",  // Inscription (admin only)
+    logout: "/auth/logout",      // Logout
+    forgotPassword: "/auth/forgot-password"
   },
 
   // Routes du module Core
   core: {
     // Authentification (admin seulement - register reste dans core)
     auth: {
-      login: "/auth/admin",      // Redirige vers /auth/admin
+      login: "/auth?type=admin",   // Login via page unifiée
       register: "/core/register",
       logout: "/auth/logout",
-      forgotPassword: "/core/forgot-password",
-      resetPassword: "/core/reset-password"
+      forgotPassword: "/auth/forgot-password",
+      resetPassword: "/auth/reset-password"
     },
     // Dashboard
     dashboard: {
@@ -134,7 +134,7 @@ export const siteConfig = {
   hr: {
     // Authentification employés
     auth: {
-      login: "/auth/employee",    // Redirige vers /auth/employee
+      login: "/auth?type=employee",  // Login via page unifiée
       logout: "/auth/logout",
       changePassword: "/hr/change-password"
     },

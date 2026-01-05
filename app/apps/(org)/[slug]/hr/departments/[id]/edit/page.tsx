@@ -31,10 +31,17 @@ const departmentSchema = z.object({
   description: z.string().optional(),
   manager: z.string().optional(),
   parent_department: z.string().optional(),
-  is_active: z.boolean().default(true),
+  is_active: z.boolean(),
 });
 
-type DepartmentFormData = z.infer<typeof departmentSchema>;
+type DepartmentFormData = {
+  name: string;
+  code: string;
+  description?: string;
+  manager?: string;
+  parent_department?: string;
+  is_active: boolean;
+};
 
 export default function EditDepartmentPage() {
   const params = useParams();
@@ -44,7 +51,7 @@ export default function EditDepartmentPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [department, setDepartment] = useState<Department | null>(null);
@@ -65,12 +72,12 @@ export default function EditDepartmentPage() {
       setLoadingData(true);
       const [deptData, employeesData, depts] = await Promise.all([
         getDepartment(id),
-        getEmployees({ employment_status: 'active' }),
+        getEmployees(slug),
         getDepartments({ is_active: true, organization_subdomain: slug }),
       ]);
 
       setDepartment(deptData);
-      setEmployees(employeesData.results);
+      setEmployees(employeesData.results.map((e: any) => ({ id: e.id, first_name: e.first_name || '', last_name: e.last_name || '' })));
       setDepartments(depts.filter(d => d.id !== id)); // Exclure le département actuel
 
       form.reset({
