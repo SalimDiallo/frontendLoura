@@ -45,8 +45,12 @@ export interface Department {
   name: string;
   code: string;
   description?: string;
-  manager?: string; // Employee ID
+  head_id?: string; // Employee or AdminUser ID
+  head_name?: string; // Display name of head
+  head_type?: 'employee' | 'adminuser'; // Type of head
+  manager?: string; // Alias for head_id (legacy)
   parent_department?: string; // Department ID
+  employee_count?: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -56,7 +60,8 @@ export interface DepartmentCreate {
   name: string;
   code: string;
   description?: string;
-  manager?: string;
+  manager?: string; // Employee or AdminUser ID
+  head_id?: string; // Alternative name for manager
   parent_department?: string;
   is_active?: boolean;
 }

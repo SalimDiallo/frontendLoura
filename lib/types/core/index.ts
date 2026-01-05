@@ -7,6 +7,7 @@
 // USER & AUTHENTICATION
 // ============================================================================
 
+
 export interface AdminUser {
   id: string;
   email: string;
@@ -14,6 +15,7 @@ export interface AdminUser {
   last_name: string;
   is_active: boolean;
   created_at: string;
+  organization_name?: string;
   organizations_count: number;
 }
 

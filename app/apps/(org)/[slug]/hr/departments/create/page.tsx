@@ -34,10 +34,6 @@ const departmentSchema = z.object({
 
 type DepartmentFormData = z.infer<typeof departmentSchema>;
 
-interface EmployeeOption extends Employee {
-  // Adding flexible properties to satisfy type checks if needed,
-  // but casting is better
-}
 
 export default function CreateDepartmentPage() {
   const params = useParams();
@@ -85,7 +81,7 @@ export default function CreateDepartmentPage() {
     try {
       setLoading(true);
       setError(null);
-
+      console.log(data);
       await createDepartment(data);
       router.push(`/apps/${slug}/hr/departments`);
     } catch (err: any) {

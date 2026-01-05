@@ -44,6 +44,8 @@ export interface ChangePasswordData {
   new_password_confirm: string;
 }
 
+export type CurrentUser = AdminUser | Employee | null;
+
 // ============================================================================
 // Service d'authentification Admin (Core)
 // ============================================================================
@@ -116,14 +118,15 @@ export const authService = {
   /**
    * Récupérer les informations de l'utilisateur connecté
    */
-  async getCurrentUser(): Promise<AdminUser> {
-    const response = await apiClient.get<AdminUser>(API_ENDPOINTS.CORE.AUTH.ME);
-    tokenManager.saveUser(response);
+  async getCurrentUser(): Promise<CurrentUser> {
+    
+    const response = await apiClient.get<{user: CurrentUser}>(API_ENDPOINTS.CORE.AUTH.ME);
+    tokenManager.saveUser(response.user);
 
     // Synchroniser avec le store Zustand
-    useAuthStore.getState().setUser(response, 'admin');
+    useAuthStore.getState().setUser(response.user, 'admin');
 
-    return response;
+    return response.user;
   },
 
   /**

@@ -538,6 +538,14 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
                         <div className="whitespace-pre-wrap">{msg.content}</div>
                       )}
                     </div>
+                    
+                    {/* Affichage des données réelles des outils */}
+                    {msg.role === "assistant" && msg.toolResults && msg.toolResults.length > 0 && (
+                      <ChatDataDisplay 
+                        toolResults={msg.toolResults} 
+                        className="mt-3"
+                      />
+                    )}
 
                     {/* Actions et timestamp */}
                     <div
@@ -725,8 +733,8 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
                 agentMode ? "text-amber-600/60 dark:text-amber-400/60" : "text-muted-foreground/60"
               )}>
                 {agentMode 
-                  ? "⚡ Mode Agent : L'IA exécutera des actions automatiquement"
-                  : "Loura AI peut faire des erreurs. Vérifiez les informations importantes."
+                  ? "⚡ Mode Agent : Données réelles uniquement • Pas d'inventions"
+                  : "💡 Activez le Mode Agent pour des données réelles de votre organisation"
                 }
               </p>
             </form>

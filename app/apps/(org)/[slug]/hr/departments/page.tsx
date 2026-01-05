@@ -68,7 +68,11 @@ export default function DepartmentsPage() {
 
   useEffect(() => {
     loadData();
+    
   }, [slug]);
+    console.log("Departements -------------------")
+    console.log(departments);
+
 
   const loadData = async () => {
     try {

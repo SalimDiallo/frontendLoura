@@ -66,7 +66,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState, useEffect } from "react";
-import { authService } from "@/lib/services/auth/auth.service";
+import { authService, CurrentUser } from "@/lib/services/auth/auth.service";
 import { cn } from "@/lib/utils";
 
 // Types
@@ -91,14 +91,9 @@ export function OrganisationSideBar() {
   const orgSlug = params.slug as string;
 
   const [openGroups, setOpenGroups] = useState<{ [key: string]: boolean }>({
-    RH: true,
   });
 
-  const [user, setUser] = useState<{
-    email?: string;
-    first_name?: string;
-    last_name?: string;
-  } | null>(null);
+  const [user, setUser] = useState<CurrentUser>(null);
 
 
   useEffect(() => {
@@ -130,8 +125,8 @@ export function OrganisationSideBar() {
 
   const getDisplayName = (u: typeof user) => {
     if (!u) return "Utilisateur";
-    if (u.last_name || u.last_name) {
-      return [u.last_name, u.last_name].filter(Boolean).join(" ");
+    if (u.last_name || u.first_name) {
+      return [u.last_name, u.first_name].filter(Boolean).join(" ");
     }
     return u.email || "Utilisateur";
   };
@@ -344,7 +339,7 @@ export function OrganisationSideBar() {
                 {!isCollapsed && (
                   <div className="grid flex-1 text-left leading-tight">
                     <span className="truncate font-bold text-sm capitalize">
-                      {orgSlug || "Organisation"}
+                      {user?.organization_name || "Organisation"}
                     </span>
                     <span className="truncate text-[11px] text-muted-foreground">
                       Espace de travail
