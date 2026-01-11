@@ -1,9 +1,16 @@
 /**
  * Contract Service
- * Refactoré pour utiliser BaseService
+ * 
+ * Service pour la gestion des contrats de travail.
+ * 
+ * RÈGLE MÉTIER IMPORTANTE:
+ * Un employé ne peut avoir qu'un seul contrat actif à un instant donné.
+ * Quand un nouveau contrat est créé comme actif ou qu'un contrat existant
+ * est activé, les autres contrats de l'employé sont automatiquement désactivés.
  */
 
 import { BaseService, type CrudEndpoints } from '@/lib/api/base-service';
+import { apiClient } from '@/lib/api/client';
 import type {
   Contract,
   ContractCreate,
@@ -22,6 +29,14 @@ interface ContractFilters extends FilterParams {
   contract_type?: string;
   is_active?: boolean;
   organization_subdomain?: string;
+}
+
+/**
+ * Réponse de l'API pour les actions activate/deactivate
+ */
+interface ContractActionResponse {
+  message: string;
+  contract: Contract;
 }
 
 /**
@@ -53,6 +68,9 @@ class ContractService extends BaseService<Contract, ContractCreate, ContractUpda
 
   /**
    * Create a new contract
+   * 
+   * Note: Si is_active est true (défaut), les autres contrats actifs
+   * de l'employé seront automatiquement désactivés.
    */
   async createContract(orgSlug: string, data: ContractCreate): Promise<Contract> {
     return this.create(data);
@@ -60,6 +78,9 @@ class ContractService extends BaseService<Contract, ContractCreate, ContractUpda
 
   /**
    * Update an existing contract
+   * 
+   * Note: Si is_active passe à true, les autres contrats actifs
+   * de l'employé seront automatiquement désactivés.
    */
   async updateContract(orgSlug: string, contractId: string, data: ContractUpdate): Promise<Contract> {
     return this.update(contractId, data);
@@ -73,7 +94,7 @@ class ContractService extends BaseService<Contract, ContractCreate, ContractUpda
   }
 
   /**
-   * Get contracts for a specific employee
+   * Get all contracts for a specific employee
    */
   async getEmployeeContracts(orgSlug: string, employeeId: string): Promise<Contract[]> {
     const response = await this.getContracts(orgSlug, { employee: employeeId });
@@ -82,6 +103,7 @@ class ContractService extends BaseService<Contract, ContractCreate, ContractUpda
 
   /**
    * Get active contract for an employee
+   * Returns null if the employee has no active contract
    */
   async getActiveContract(orgSlug: string, employeeId: string): Promise<Contract | null> {
     const response = await this.getContracts(orgSlug, {
@@ -92,19 +114,57 @@ class ContractService extends BaseService<Contract, ContractCreate, ContractUpda
   }
 
   /**
+   * Check if an employee already has an active contract
+   */
+  async hasActiveContract(orgSlug: string, employeeId: string): Promise<boolean> {
+    const activeContract = await this.getActiveContract(orgSlug, employeeId);
+    return activeContract !== null;
+  }
+
+  /**
    * Deactivate a contract
+   * Uses the dedicated API endpoint for deactivation
    */
   async deactivateContract(orgSlug: string, contractId: string): Promise<Contract> {
-    return this.updateContract(orgSlug, contractId, { is_active: false });
+    const response = await apiClient.post<ContractActionResponse>(
+      `${BASE_PATH}/${contractId}/deactivate/`
+    );
+    return response.contract;
   }
 
   /**
    * Activate a contract
+   * 
+   * IMPORTANT: Cette action désactive automatiquement tous les autres
+   * contrats actifs de l'employé pour garantir qu'il n'y a qu'un seul
+   * contrat actif à la fois.
    */
   async activateContract(orgSlug: string, contractId: string): Promise<Contract> {
-    return this.updateContract(orgSlug, contractId, { is_active: true });
+    const response = await apiClient.post<ContractActionResponse>(
+      `${BASE_PATH}/${contractId}/activate/`
+    );
+    return response.contract;
+  }
+
+  /**
+   * Get the active contract for an employee using the dedicated endpoint
+   */
+  async getActiveContractForEmployee(orgSlug: string, employeeId: string): Promise<Contract | null> {
+    try {
+      const response = await apiClient.get<Contract | { message: string; contract: null }>(
+        `${BASE_PATH}/active/${employeeId}/`
+      );
+      // Si la réponse contient contract: null, retourner null
+      if ('contract' in response && response.contract === null) {
+        return null;
+      }
+      return response as Contract;
+    } catch {
+      return null;
+    }
   }
 }
 
 // Instance singleton du service
 export const contractService = new ContractService();
+

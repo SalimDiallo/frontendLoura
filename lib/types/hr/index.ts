@@ -846,6 +846,10 @@ export interface Contract {
   description?: string;
   contract_file_url?: string;
   is_active: boolean;
+  // Nouveaux champs pour la gestion optimisée des contrats
+  is_expired?: boolean;
+  employee_contract_count?: number;
+  has_other_active_contract?: boolean;
   created_at: string;
   updated_at: string;
 }

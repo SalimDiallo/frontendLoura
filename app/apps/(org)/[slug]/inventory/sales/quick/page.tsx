@@ -20,6 +20,9 @@ import {
   CreditCard,
   Smartphone,
   Check,
+  Percent,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +31,8 @@ interface CartItem {
   product_name: string;
   quantity: number;
   unit_price: number;
+  discount_type: "percentage" | "fixed";
+  discount_value: number;
 }
 
 export default function QuickSalePOSPage() {
@@ -45,6 +50,11 @@ export default function QuickSalePOSPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  
+  // Remise globale
+  const [globalDiscountType, setGlobalDiscountType] = useState<"percentage" | "fixed">("percentage");
+  const [globalDiscountValue, setGlobalDiscountValue] = useState(0);
+  const [showDiscountOptions, setShowDiscountOptions] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -95,6 +105,8 @@ export default function QuickSalePOSPage() {
           product_name: product.name,
           quantity: 1,
           unit_price: product.selling_price || 0,
+          discount_type: "percentage",
+          discount_value: 0,
         },
       ];
     });
@@ -114,11 +126,41 @@ export default function QuickSalePOSPage() {
     );
   };
 
+  const updateItemDiscount = (productId: string, discountType: "percentage" | "fixed", discountValue: number) => {
+    setCart((prev) =>
+      prev.map((item) =>
+        item.product_id === productId
+          ? { ...item, discount_type: discountType, discount_value: Math.max(0, discountValue) }
+          : item
+      )
+    );
+  };
+
   const removeFromCart = (productId: string) => {
     setCart((prev) => prev.filter((item) => item.product_id !== productId));
   };
 
-  const total = cart.reduce((acc, item) => acc + item.quantity * item.unit_price, 0);
+  // Calculs avec réductions
+  const subtotal = cart.reduce((acc, item) => {
+    const itemTotal = item.quantity * item.unit_price;
+    const itemDiscount = item.discount_type === "percentage" 
+      ? itemTotal * (item.discount_value / 100)
+      : item.discount_value;
+    return acc + Math.max(0, itemTotal - itemDiscount);
+  }, 0);
+  
+  const globalDiscountAmount = globalDiscountType === "percentage"
+    ? subtotal * (globalDiscountValue / 100)
+    : globalDiscountValue;
+  const total = Math.max(0, subtotal - globalDiscountAmount);
+  const totalSavings = cart.reduce((acc, item) => {
+    const itemTotal = item.quantity * item.unit_price;
+    const itemDiscount = item.discount_type === "percentage" 
+      ? itemTotal * (item.discount_value / 100)
+      : item.discount_value;
+    return acc + itemDiscount;
+  }, 0) + globalDiscountAmount;
+  
   const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   const formatCurrency = (amount: number) => {
@@ -143,10 +185,14 @@ export default function QuickSalePOSPage() {
         warehouse: defaultWarehouse,
         payment_method: paymentMethod,
         paid_amount: isPaid ? total : 0,
+        discount_type: globalDiscountType,
+        discount_value: globalDiscountValue,
         items: cart.map((item) => ({
           product: item.product_id,
           quantity: item.quantity,
           unit_price: item.unit_price,
+          discount_type: item.discount_type,
+          discount_value: item.discount_value,
         })),
       });
 
@@ -154,6 +200,9 @@ export default function QuickSalePOSPage() {
       setCart([]);
       setIsPaid(true);
       setPaymentMethod("cash");
+      setGlobalDiscountValue(0);
+      setGlobalDiscountType("percentage");
+      setShowDiscountOptions(false);
 
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
@@ -178,6 +227,7 @@ export default function QuickSalePOSPage() {
           searchInputRef.current?.blur();
         } else if (cart.length > 0) {
           setCart([]);
+          setGlobalDiscountValue(0);
         }
       }
       if ((e.key === "/" || (e.ctrlKey && e.key === "k")) && document.activeElement?.tagName !== "INPUT") {
@@ -295,7 +345,12 @@ export default function QuickSalePOSPage() {
         <div className="p-4 space-y-3 bg-muted/10 border-b">
           <div className="flex justify-between items-center">
             <span className="text-lg font-bold">TOTAL</span>
-            <span className="text-2xl font-black text-primary">{formatCurrency(total)}</span>
+            <div className="text-right">
+              <span className="text-2xl font-black text-primary">{formatCurrency(total)}</span>
+              {totalSavings > 0 && (
+                <p className="text-xs text-green-600">-{formatCurrency(totalSavings)} économisés</p>
+              )}
+            </div>
           </div>
 
           <Button
@@ -373,6 +428,105 @@ export default function QuickSalePOSPage() {
               </button>
             </div>
           )}
+
+          {/* Remise globale - Masquée par défaut */}
+          {cart.length > 0 && (
+            <button
+              onClick={() => setShowDiscountOptions(!showDiscountOptions)}
+              className="w-full flex items-center justify-between p-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <Percent className="h-4 w-4" />
+                Remise {globalDiscountValue > 0 && (
+                  <Badge className="bg-green-100 text-green-700 text-xs">
+                    -{globalDiscountType === "percentage" ? `${globalDiscountValue}%` : formatCurrency(globalDiscountValue)}
+                  </Badge>
+                )}
+              </span>
+              {showDiscountOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+          )}
+
+          {showDiscountOptions && cart.length > 0 && (
+            <div className="space-y-3 p-3 bg-muted/30 rounded-lg animate-in slide-in-from-top-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium">Remise globale</p>
+                {/* Toggle % / GNF */}
+                <div className="flex items-center gap-1 p-0.5 bg-muted rounded-lg">
+                  <button
+                    onClick={() => setGlobalDiscountType("percentage")}
+                    className={cn(
+                      "px-2 py-1 text-xs font-medium rounded transition-colors",
+                      globalDiscountType === "percentage" ? "bg-background shadow" : ""
+                    )}
+                  >
+                    %
+                  </button>
+                  <button
+                    onClick={() => setGlobalDiscountType("fixed")}
+                    className={cn(
+                      "px-2 py-1 text-xs font-medium rounded transition-colors",
+                      globalDiscountType === "fixed" ? "bg-background shadow" : ""
+                    )}
+                  >
+                    GNF
+                  </button>
+                </div>
+              </div>
+              
+              {/* Boutons rapides */}
+              {globalDiscountType === "percentage" ? (
+                <div className="flex gap-1">
+                  {[0, 5, 10, 15, 20].map((disc) => (
+                    <button
+                      key={disc}
+                      onClick={() => setGlobalDiscountValue(disc)}
+                      className={cn(
+                        "flex-1 py-1.5 text-xs font-medium rounded transition-colors",
+                        globalDiscountValue === disc
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted hover:bg-muted/80"
+                      )}
+                    >
+                      {disc === 0 ? "0%" : `-${disc}%`}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex gap-1">
+                  {[0, 1000, 5000, 10000, 20000].map((disc) => (
+                    <button
+                      key={disc}
+                      onClick={() => setGlobalDiscountValue(disc)}
+                      className={cn(
+                        "flex-1 py-1.5 text-[10px] font-medium rounded transition-colors",
+                        globalDiscountValue === disc
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted hover:bg-muted/80"
+                      )}
+                    >
+                      {disc === 0 ? "0" : `-${(disc/1000)}k`}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {/* Saisie manuelle */}
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  value={globalDiscountValue || ""}
+                  onChange={(e) => setGlobalDiscountValue(parseFloat(e.target.value) || 0)}
+                  placeholder={globalDiscountType === "percentage" ? "Ex: 15" : "Ex: 5000"}
+                  className="h-8 text-sm"
+                />
+                <span className="flex items-center text-xs text-muted-foreground">
+                  {globalDiscountType === "percentage" ? "%" : "GNF"}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Cart Header */}
@@ -383,7 +537,7 @@ export default function QuickSalePOSPage() {
             {itemCount > 0 && <Badge variant="secondary" className="text-xs">{itemCount}</Badge>}
           </div>
           {cart.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => setCart([])}>
+            <Button variant="ghost" size="sm" onClick={() => { setCart([]); setGlobalDiscountValue(0); }}>
               <Trash2 className="h-3 w-3 text-red-500" />
             </Button>
           )}
@@ -398,35 +552,104 @@ export default function QuickSalePOSPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {cart.map((item) => (
-                <div key={item.product_id} className="p-2 rounded-lg bg-muted/30">
-                  <div className="flex items-start justify-between mb-1">
-                    <p className="font-medium text-sm truncate flex-1 pr-2">{item.product_name}</p>
-                    <button onClick={() => removeFromCart(item.product_id)} className="text-red-500 hover:text-red-600">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => updateQuantity(item.product_id, -1)}
-                        disabled={item.quantity <= 1}
-                        className="w-6 h-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-30"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="w-6 text-center font-bold text-sm">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.product_id, 1)}
-                        className="w-6 h-6 rounded border flex items-center justify-center hover:bg-muted"
-                      >
-                        <Plus className="h-3 w-3" />
+              {cart.map((item) => {
+                const itemSubtotal = item.quantity * item.unit_price;
+                const itemDiscountAmount = item.discount_type === "percentage" 
+                  ? itemSubtotal * (item.discount_value / 100)
+                  : item.discount_value;
+                const itemTotal = Math.max(0, itemSubtotal - itemDiscountAmount);
+                
+                return (
+                  <div key={item.product_id} className="p-2 rounded-lg bg-muted/30">
+                    <div className="flex items-start justify-between mb-1">
+                      <p className="font-medium text-sm truncate flex-1 pr-2">{item.product_name}</p>
+                      <button onClick={() => removeFromCart(item.product_id)} className="text-red-500 hover:text-red-600">
+                        <X className="h-3 w-3" />
                       </button>
                     </div>
-                    <span className="font-bold text-sm">{formatCurrency(item.quantity * item.unit_price)}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => updateQuantity(item.product_id, -1)}
+                          disabled={item.quantity <= 1}
+                          className="w-6 h-6 rounded border flex items-center justify-center hover:bg-muted disabled:opacity-30"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="w-6 text-center font-bold text-sm">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.product_id, 1)}
+                          className="w-6 h-6 rounded border flex items-center justify-center hover:bg-muted"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-sm">{formatCurrency(itemTotal)}</span>
+                        {item.discount_value > 0 && (
+                          <p className="text-[10px] text-green-600">
+                            -{item.discount_type === "percentage" ? `${item.discount_value}%` : formatCurrency(item.discount_value)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Remise par article - Saisie complète */}
+                    {showDiscountOptions && (
+                      <div className="mt-2 pt-2 border-t border-dashed flex items-center gap-1">
+                        <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+                        {/* Boutons rapides */}
+                        {[0, 5, 10].map((d) => (
+                          <button
+                            key={d}
+                            onClick={() => updateItemDiscount(item.product_id, "percentage", d)}
+                            className={cn(
+                              "w-6 h-6 text-[10px] rounded font-medium transition-colors shrink-0",
+                              item.discount_type === "percentage" && item.discount_value === d
+                                ? "bg-green-600 text-white"
+                                : "bg-muted hover:bg-muted/80"
+                            )}
+                          >
+                            {d}%
+                          </button>
+                        ))}
+                        {/* Séparateur */}
+                        <span className="text-muted-foreground text-xs mx-1">|</span>
+                        {/* Saisie manuelle */}
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.discount_value || ""}
+                          onChange={(e) => updateItemDiscount(item.product_id, item.discount_type, parseFloat(e.target.value) || 0)}
+                          placeholder="..."
+                          className="w-12 h-6 text-[10px] text-center rounded border bg-background px-1"
+                        />
+                        {/* Toggle type */}
+                        <div className="flex items-center gap-0.5 p-0.5 bg-muted rounded shrink-0">
+                          <button
+                            onClick={() => updateItemDiscount(item.product_id, "percentage", item.discount_value)}
+                            className={cn(
+                              "px-1 py-0.5 text-[10px] font-medium rounded transition-colors",
+                              item.discount_type === "percentage" ? "bg-background shadow" : ""
+                            )}
+                          >
+                            %
+                          </button>
+                          <button
+                            onClick={() => updateItemDiscount(item.product_id, "fixed", item.discount_value)}
+                            className={cn(
+                              "px-1 py-0.5 text-[10px] font-medium rounded transition-colors",
+                              item.discount_type === "fixed" ? "bg-background shadow" : ""
+                            )}
+                          >
+                            GNF
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

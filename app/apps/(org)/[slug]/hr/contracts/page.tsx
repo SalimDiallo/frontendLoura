@@ -140,13 +140,19 @@ export default function ContractsPage() {
   const handleToggleActive = async (contract: Contract) => {
     try {
       if (contract.is_active) {
+        // Désactivation - confirmation simple
+        if (!confirm("Êtes-vous sûr de vouloir désactiver ce contrat ?")) return;
         await contractService.deactivateContract(slug, contract.id);
       } else {
+        // Activation - confirmation explicative
+        const confirmMessage = `Êtes-vous sûr de vouloir activer ce contrat ?\n\n⚠️ Important : Si ${contract.employee_name || "cet employé"} a d'autres contrats actifs, ils seront automatiquement désactivés.\n\nUn employé ne peut avoir qu'un seul contrat actif à la fois.`;
+        if (!confirm(confirmMessage)) return;
         await contractService.activateContract(slug, contract.id);
       }
       await loadContracts();
-    } catch (err) {
-      alert("Erreur lors de la modification du statut");
+    } catch (err: any) {
+      const message = err?.message || "Erreur lors de la modification du statut";
+      alert(message);
       console.error(err);
     }
   };
@@ -305,28 +311,78 @@ export default function ContractsPage() {
         </div>
 
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4 border-0 shadow-sm">
-            <div className="text-sm text-muted-foreground">Total contrats</div>
-            <div className="text-2xl font-bold mt-1">{contracts.length}</div>
-          </Card>
-          <Card className="p-4 border-0 shadow-sm">
-            <div className="text-sm text-muted-foreground">Actifs</div>
-            <div className="text-2xl font-bold mt-1 text-green-600">
-              {activeContracts.length}
+        {/* Stats Cards - Cliquables pour filtrer */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card 
+            className={`p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md ${
+              filterActive === null && !filterType ? 'ring-2 ring-primary' : ''
+            }`}
+            onClick={() => {
+              setFilterActive(null);
+              setFilterType(null);
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
+                <HiOutlineDocumentText className="size-5 text-primary" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">{contracts.length}</div>
+                <div className="text-xs text-muted-foreground">Total</div>
+              </div>
             </div>
           </Card>
-          <Card className="p-4 border-0 shadow-sm">
-            <div className="text-sm text-muted-foreground">Inactifs</div>
-            <div className="text-2xl font-bold mt-1 text-orange-600">
-              {inactiveContracts.length}
+          
+          <Card 
+            className={`p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md ${
+              filterActive === true ? 'ring-2 ring-green-500' : ''
+            }`}
+            onClick={() => setFilterActive(filterActive === true ? null : true)}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-green-100">
+                <HiOutlineCheckCircle className="size-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-green-600">{activeContracts.length}</div>
+                <div className="text-xs text-muted-foreground">Actifs</div>
+              </div>
             </div>
           </Card>
-          <Card className="p-4 border-0 shadow-sm">
-            <div className="text-sm text-muted-foreground">CDI</div>
-            <div className="text-2xl font-bold mt-1 text-blue-600">
-              {contracts.filter((c) => c.contract_type === 'permanent').length}
+          
+          <Card 
+            className={`p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md ${
+              filterActive === false ? 'ring-2 ring-gray-400' : ''
+            }`}
+            onClick={() => setFilterActive(filterActive === false ? null : false)}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-gray-100">
+                <HiOutlineXCircle className="size-5 text-gray-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-600">{inactiveContracts.length}</div>
+                <div className="text-xs text-muted-foreground">Inactifs</div>
+              </div>
+            </div>
+          </Card>
+          
+          <Card 
+            className={`p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md ${
+              filterType === 'permanent' ? 'ring-2 ring-blue-500' : ''
+            }`}
+            onClick={() => setFilterType(filterType === 'permanent' ? null : 'permanent')}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100">
+                <span className="text-sm font-bold text-blue-600">CDI</span>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {contracts.filter((c) => c.contract_type === 'permanent').length}
+                </div>
+                <div className="text-xs text-muted-foreground">Permanents</div>
+              </div>
             </div>
           </Card>
         </div>
