@@ -1,7 +1,7 @@
 export const siteConfig = {
   name: "LouraTech",
   url: "https://agent-magicui.vercel.app",
-  description: "Your template for building AI-powered agents with Magic UI.",
+  description: "Votre outil de gestion tout en un !",
   links: {
     twitter: "https://x.com/dillionverma",
     github: "https://github.com/dillionverma",

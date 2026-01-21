@@ -1,4 +1,5 @@
-"use client"
+"use client";
+
 import { FirstBentoAnimation } from "@/components/landing/first-bento-animation";
 import { FourthBentoAnimation } from "@/components/landing/fourth-bento-animation";
 import { SecondBentoAnimation } from "@/components/landing/second-bento-animation";
@@ -761,15 +762,6 @@ export const siteConfig = {
         isPopular: false,
       },
     ],
-  },
-  ctaSection: {
-    title: "Ready to get started?",
-    subtext: "Join thousands of satisfied users today.",
-    button: {
-      text: "Get Started for Free",
-      href: "#",
-    },
-    backgroundImage: "https://images.unsplash.com/photo-1635776063328-153b13e3c245?q=80&w=2832&auto=format&fit=crop",
   },
   testimonials: [
     {

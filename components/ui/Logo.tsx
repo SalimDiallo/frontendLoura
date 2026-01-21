@@ -13,8 +13,8 @@ export default function Logo({
 }){
     return <div className={className}>
         <Link href="/" className="inline-block">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl shadow-lg shadow-blue-500/20 mb-4 hover:scale-105 transition-transform p-2">
-              <Image src={"/images/logo.png"} width={100} height={100} alt="Logo de Loura tech" />
+            <div className="w-12 h-12">
+              <img  src={"/images/logo.png"} width={100} height={100} alt="Logo de Loura tech" />
             </div>
           </Link>
          {

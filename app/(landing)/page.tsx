@@ -1,3 +1,5 @@
+"use client";
+
 import { BentoSection } from "@/components/landing/sections/bento-section";
 import { CompanyShowcase } from "@/components/landing/sections/company-showcase";
 import { CTASection } from "@/components/landing/sections/cta-section";
