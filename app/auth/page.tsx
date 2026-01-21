@@ -289,8 +289,6 @@ export default function UnifiedLoginPage() {
                 type="submit"
                 className={cn(
                   "w-full h-11 text-base font-medium transition-all",
-                  "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                   
                 )}
                 disabled={form.formState.isSubmitting}
               >
