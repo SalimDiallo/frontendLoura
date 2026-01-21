@@ -148,11 +148,13 @@ export interface Supplier {
   phone?: string;
   address?: string;
   city?: string;
+  postal_code?: string;
   country?: string;
   contact_person?: string;
   tax_id?: string;
   payment_terms?: string;
   notes?: string;
+  website?: string;
   order_count?: number;
   total_orders_amount?: number;
   is_active: boolean;
@@ -167,11 +169,13 @@ export interface SupplierCreate {
   phone?: string;
   address?: string;
   city?: string;
+  postal_code?: string;
   country?: string;
   contact_person?: string;
   tax_id?: string;
   payment_terms?: string;
   notes?: string;
+  website?: string;
   is_active?: boolean;
 }
 

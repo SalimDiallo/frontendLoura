@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Alert, Badge, Card } from "@/components/ui";
 import { getCategory, deleteCategory, getProducts } from "@/lib/services/inventory";
-import type { Category, Product } from "@/lib/types/inventory";
+import type { Category, ProductList } from "@/lib/types/inventory";
 import {
   ArrowLeft,
   Edit,
@@ -24,7 +24,7 @@ export default function CategoryDetailPage() {
   const categoryId = params.id as string;
 
   const [category, setCategory] = useState<Category | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductList[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -225,11 +225,6 @@ export default function CategoryDetailPage() {
                   <tr key={product.id} className="border-b hover:bg-muted/50 transition-colors">
                     <td className="p-4">
                       <div className="font-medium">{product.name}</div>
-                      {product.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-1">
-                          {product.description}
-                        </p>
-                      )}
                     </td>
                     <td className="p-4">
                       <code className="text-sm bg-muted px-2 py-1 rounded">
@@ -237,7 +232,7 @@ export default function CategoryDetailPage() {
                       </code>
                     </td>
                     <td className="p-4 text-right">
-                      <Badge variant={product.is_low_stock ? "destructive" : "default"}>
+                      <Badge variant="default">
                         {product.total_stock || 0}
                       </Badge>
                     </td>

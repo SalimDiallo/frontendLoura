@@ -8,7 +8,7 @@ import { Menu, X } from "lucide-react";
 import { AnimatePresence, motion, useScroll } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ThemeToggle } from "@/components/ui";
+import { buttonVariants, ThemeToggle } from "@/components/ui";
 import Logo from "@/components/ui/Logo";
 
 const INITIAL_WIDTH = "70rem";
@@ -117,7 +117,7 @@ export function Navbar() {
             <div className="flex flex-row items-center gap-1 md:gap-3 shrink-0">
               <div className="flex items-center space-x-6">
                 <Link
-                  className="bg-secondary h-8 hidden md:flex items-center justify-center text-sm font-normal tracking-wide rounded-full text-primary-foreground dark:text-secondary-foreground w-fit px-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] border border-white/[0.12]"
+                  className={buttonVariants()}
                   href="#"
                 >
                   Commencer
@@ -210,7 +210,7 @@ export function Navbar() {
                 <div className="flex flex-col gap-2">
                   <Link
                     href="#"
-                    className="bg-secondary h-8 flex items-center justify-center text-sm font-normal tracking-wide rounded-full text-primary-foreground dark:text-secondary-foreground w-full px-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] border border-white/[0.12] hover:bg-secondary/80 transition-all ease-out active:scale-95"
+                    className="bg-primary h-8 flex items-center justify-center text-sm font-normal tracking-wide rounded-full text-primary-foreground dark:text-secondary-foreground w-full px-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] border hover:bg-secondary/80 transition-all ease-out active:scale-95"
                   >
                     Commencer
                   </Link>

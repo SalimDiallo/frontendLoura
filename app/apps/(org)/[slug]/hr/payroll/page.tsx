@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +61,7 @@ import { API_CONFIG } from "@/lib/api/config";
 import { PDFPreviewModal } from "@/components/ui";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types";
+import { GeneratePayslipsModal } from "@/components/hr/payroll/GeneratePayslipsModal";
 
 // ============================================
 // MAIN COMPONENT
@@ -91,6 +93,7 @@ export default function PayrollPage() {
   const [showPeriodDialog, setShowPeriodDialog] = useState(false);
   const [showAdvanceDialog, setShowAdvanceDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedAdvance, setSelectedAdvance] = useState<PayrollAdvance | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
@@ -195,8 +198,16 @@ export default function PayrollPage() {
   // ACTIONS
   // ============================================
 
-  const handleGenerate = async () => {
-    if (!currentPeriod) {
+  const handleGenerate = async (config?: {
+    periodId: string;
+    employeeIds: string[];
+    autoApprove: boolean;
+    autoDeductAdvances: boolean;
+  }) => {
+    // Si config fournie (du modal), utiliser ces paramètres
+    const periodId = config?.periodId || currentPeriod?.id;
+    
+    if (!periodId) {
       setError("Aucune période de paie. Créez-en une d'abord.");
       return;
     }
@@ -204,13 +215,22 @@ export default function PayrollPage() {
     try {
       setGenerating(true);
       setError(null);
-      const result = await generateBulkPayslips(currentPeriod.id, { auto_deduct_advances: true });
+      
+      const result = await generateBulkPayslips(periodId, { 
+        auto_deduct_advances: config?.autoDeductAdvances ?? true,
+        auto_approve: config?.autoApprove ?? false,
+        employee_ids: config?.employeeIds ?? [],
+      });
 
       let message = `✅ ${result.created} fiche(s) créée(s)`;
       if (result.advances_deducted > 0) {
         message += ` • ${result.advances_deducted} avance(s) déduite(s)`;
       }
+      if (result.auto_approved) {
+        message += ` • Auto-approuvées`;
+      }
       setSuccess(message);
+      setShowGenerateModal(false);
       await loadData();
     } catch (err: any) {
       setError(err?.data?.detail || err?.message || "Erreur lors de la génération");
@@ -461,18 +481,11 @@ export default function PayrollPage() {
           <Button variant="ghost" size="sm" onClick={loadData}>
             <HiOutlineArrowPath className="size-4" />
           </Button>
-          <Button onClick={handleGenerate} disabled={generating || !currentPeriod}>
-            {generating ? (
-              <>
-                <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Génération...
-              </>
-            ) : (
-              <>
-                <HiOutlineSparkles className="size-4 mr-2" />
-                Générer les fiches
-              </>
-            )}
+          <Button asChild>
+            <Link href={`/apps/${slug}/hr/payroll/generate`}>
+              <HiOutlineSparkles className="size-4 mr-2" />
+              Générer les fiches
+            </Link>
           </Button>
         </div>
       </div>
@@ -953,6 +966,16 @@ export default function PayrollPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Generate Payslips Modal */}
+      <GeneratePayslipsModal
+        isOpen={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
+        periods={periods}
+        currentPeriod={currentPeriod}
+        organizationSlug={slug}
+        onGenerate={handleGenerate}
+      />
     </div>
    </Can>
   );

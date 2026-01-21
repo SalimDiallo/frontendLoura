@@ -1,6 +1,6 @@
 import { SectionHeader } from "@/components/landing/section-header";
 import { SocialProofTestimonials } from "@/components/landing/testimonial-scroll";
-import { siteConfig } from "@/lib/config";
+import { siteConfig } from "@/lib/landing/config";
 
 export function TestimonialSection() {
   const { testimonials } = siteConfig;

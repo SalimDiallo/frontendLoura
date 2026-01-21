@@ -114,6 +114,7 @@ export async function generateBulkPayslips(
   skipped: number;
   total_employees: number;
   advances_deducted: number;
+  auto_approved?: boolean;
   errors: string[];
 }> {
   return apiClient.post(

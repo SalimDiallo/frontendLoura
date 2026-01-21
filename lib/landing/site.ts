@@ -1,10 +1,10 @@
 export const siteConfig = {
   name: "LouraTech",
-  url: "https://agent-magicui.vercel.app",
+  url: "https://loura.app",
   description: "Votre outil de gestion tout en un !",
   links: {
-    twitter: "https://x.com/dillionverma",
-    github: "https://github.com/dillionverma",
+    twitter: "https://x.com/loura",
+    github: "https://github.com/loura",
   },
 };
 

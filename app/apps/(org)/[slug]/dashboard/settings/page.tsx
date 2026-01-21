@@ -63,8 +63,8 @@ export default function SettingsPage() {
   const loadUserProfile = async () => {
     try {
       setLoading(true);
-      const response = await authService.getCurrentUser();
-      setUser(response.user);
+      const user = await authService.getCurrentUser();
+      setUser(user);
     } catch (err: any) {
       setError(err.message || "Erreur lors du chargement");
     } finally {

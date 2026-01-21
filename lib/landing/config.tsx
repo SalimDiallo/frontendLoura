@@ -31,29 +31,34 @@ export const Highlight = ({
 export const BLUR_FADE_DELAY = 0.15;
 
 export const siteConfig = {
-  name: "Cal AI",
-  description: "Smart scheduling powered by AI.",
-  cta: "Get Started",
+  name: "Louratech",
+  description: "La plateforme SaaS tout-en-un de gestion d'agence avec modules RH, Stocks, Services, Projets, CRM et plus.",
+  cta: "Commencer",
   url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   keywords: [
-    "AI Calendar",
-    "Smart Scheduling",
-    "Productivity",
-    "Time Management",
+    "SaaS Gestion d'agence",
+    "Ressources humaines",
+    "Gestion des stocks",
+    "Suivi des services",
+    "Gestion de projet",
+    "CRM",
+    "Logiciel agence",
+    "Louratech",
+    "Productivité entreprise"
   ],
   links: {
-    email: "support@calai.app",
-    twitter: "https://twitter.com/calaiapp",
-    discord: "https://discord.gg/calaiapp",
-    github: "https://github.com/calaiapp",
-    instagram: "https://instagram.com/calaiapp",
+    email: "support@louratech.com",
+    twitter: "https://twitter.com/louratech",
+    discord: "https://discord.gg/louratech",
+    github: "https://github.com/louratech",
+    instagram: "https://instagram.com/louratech",
   },
   nav: {
     links: [
-      { id: 1, name: "Home", href: "#hero" },
-      { id: 2, name: "How it Works", href: "#bento" },
-      { id: 3, name: "Features", href: "#features" },
-      { id: 4, name: "Pricing", href: "#pricing" },
+      { id: 1, name: "Accueil", href: "#hero" },
+      { id: 2, name: "Modules", href: "#modules" },
+      { id: 3, name: "Fonctionnalités", href: "#features" },
+      { id: 4, name: "Tarifs", href: "#pricing" },
     ],
   },
   hero: {
@@ -71,18 +76,18 @@ export const siteConfig = {
         <path d="M2.37845 10.5993L2.57045 10.4893L6.88445 12.9533C7.22435 13.1474 7.60901 13.2496 8.00045 13.2496C8.39189 13.2496 8.77656 13.1474 9.11645 12.9533L13.4305 10.4883L13.6225 10.5983C13.7374 10.6638 13.833 10.7586 13.8994 10.8731C13.9659 10.9875 14.0009 11.1175 14.0009 11.2498C14.0009 11.3821 13.9659 11.5121 13.8994 11.6265C13.833 11.7409 13.7374 11.8357 13.6225 11.9013L8.37245 14.9013C8.25915 14.966 8.13093 15 8.00045 15C7.86997 15 7.74175 14.966 7.62845 14.9013L2.37845 11.9013C2.2635 11.8357 2.16795 11.7409 2.10148 11.6265C2.03501 11.5121 2 11.3821 2 11.2498C2 11.1175 2.03501 10.9875 2.10148 10.8731C2.16795 10.7586 2.2635 10.6638 2.37845 10.5983V10.5993Z" />
       </svg>
     ),
-    badge: "Introducing custom automations",
-    title: "Meet your AI Agent Streamline your workflow",
+    badge: "Découvrez la gestion intelligente d'agence",
+    title: "Louratech : Centralisez et pilotez tous vos modules",
     description:
-      "AI assistant designed to streamline your digital workflows and handle mundane tasks, so you can focus on what truly matters",
+      "Louratech est une solution SaaS pour digitaliser et optimiser la gestion des agences, avec des modules intégrés : RH, Stocks, Services, Projets, CRM, et bien plus.",
     cta: {
       primary: {
-        text: "Try for Free",
-        href: "#",
+        text: "Essayez gratuitement",
+        href: "/core/register",
       },
       secondary: {
-        text: "Log in",
-        href: "#",
+        text: "Se connecter",
+        href: "/auth",
       },
     },
   },
@@ -288,62 +293,62 @@ export const siteConfig = {
     ],
   },
   featureSection: {
-    title: "Simple. Seamless. Smart.",
+    title: "Simple. Centralisé. Puissant.",
     description:
-      "Discover how SkyAgent transforms your commands into action in four easy steps",
+      "Découvrez comment Louratech simplifie la gestion de votre agence en quelques étapes, quelque soit votre module : RH, Stocks, Services, et plus.",
     items: [
       {
         id: 1,
-        title: "Ask Your AI Agent Directly",
+        title: "Choisissez votre module (RH, Stock, Services...)",
         content:
-          "Speak or type your command—let SkyAgent capture your intent. Your request instantly sets the process in motion.",
+          "Sélectionnez le domaine de gestion souhaité. Louratech regroupe tous vos modules dans un même espace pour une navigation fluide, adaptée à la gestion d’agence moderne.",
         image:
           "https://images.unsplash.com/photo-1720371300677-ba4838fa0678?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
       },
       {
         id: 2,
-        title: "Let SkyAgent Process It",
+        title: "Saisissez ou exprimez votre requête",
         content:
-          "We prioritize the needs and preferences of our users in our design process.",
+          "Demandez une action (ex: enregistrer un nouveau collaborateur, consulter l’état des stocks, générer un rapport de mission). Louratech comprend vos besoins et lance automatiquement la procédure adaptée.",
         image:
           "https://images.unsplash.com/photo-1686170287433-c95faf6d3608?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHwzfHx8ZW58MHx8fHx8fA%3D%3D",
       },
       {
         id: 3,
-        title: "Receive Instant, Actionable Results",
+        title: "Obtenez des résultats immédiats et actionnables",
         content:
-          "Our features seamlessly integrate with your existing systems for a smooth experience.",
+          "Visualisez instantanément les réponses, rapports, ou actions réalisées dans le module choisi. Les modules travaillent de concert pour que vos données soient toujours à jour et cohérentes.",
         image:
           "https://images.unsplash.com/photo-1720378042271-60aff1e1c538?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHwxMHx8fGVufDB8fHx8fA%3D%3D",
       },
       {
         id: 4,
-        title: "Continuous Improvement",
+        title: "Amélioration continue adaptée à votre agence",
         content:
-          "We are constantly updating and improving our features to provide the best experience.",
+          "Louratech évolue avec vos besoins : nous enrichissons en permanence les modules RH, Stocks, Services et plus, afin de simplifier encore la gestion de votre agence.",
         image:
           "https://images.unsplash.com/photo-1666882990322-e7f3b8df4f75?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDF8fHxlbnwwfHx8fHw%3D",
       },
     ],
   },
   bentoSection: {
-    title: "Empower Your Workflow with AI",
+    title: "Accélérez la gestion de votre agence avec l’IA Louratech",
     description:
-      "Ask your AI Agent for real-time collaboration, seamless integrations, and actionable insights to streamline your operations.",
+      "Collaborez en temps réel, connectez tous vos modules (RH, Stocks, Services...) et profitez de rapports intelligents pour optimiser vos opérations d’agence.",
     items: [
       {
         id: 1,
         content: <FirstBentoAnimation />,
-        title: "Real-time AI Collaboration",
+        title: "Collaboration en temps réel",
         description:
-          "Experience real-time assistance. Ask your AI Agent to coordinate tasks, answer questions, and maintain team alignment.",
+          "Coordonnez vos équipes, suivez les demandes, affectez ou transférez des missions : tout se fait en temps réel dans vos modules Louratech.",
       },
       {
         id: 2,
         content: <SecondBentoAnimation />,
-        title: "Seamless Integrations",
+        title: "Modules interconnectés",
         description:
-          "Unite your favorite tools for effortless connectivity. Boost productivity through interconnected workflows.",
+          "Synchronisez vos RH, Stocks, Services, Interventions et Comptabilité pour une gestion centralisée et automatisée de toute l’agence.",
       },
       {
         id: 3,
@@ -355,46 +360,46 @@ export const siteConfig = {
             ]}
           />
         ),
-        title: "Instant Insight Reporting",
+        title: "Rapports et tableaux de bord intelligents",
         description:
-          "Transform raw data into clear insights in seconds. Empower smarter decisions with real-time, always-learning intelligence.",
+          "Visualisez l’ensemble de vos indicateurs d’agence (absentéisme, niveau de stocks, taux de service…) grâce à des rapports IA personnalisés et mis à jour en continu.",
       },
       {
         id: 4,
         content: <FourthBentoAnimation once={false} />,
-        title: "Smart Automation",
+        title: "Automatisation du quotidien",
         description:
-          "Set it, forget it. Your AI Agent tackles repetitive tasks so you can focus on strategy, innovation, and growth.",
+          "Automatisez les tâches répétitives : pointages, relances clients, alertes de stocks... et consacrez plus de temps à l’innovation, au développement, et au service client.",
       },
     ],
   },
   benefits: [
     {
       id: 1,
-      text: "Save hours each week with AI-optimized scheduling.",
+      text: "Gagnez des heures chaque semaine grâce à l’automatisation des plannings et tâches de gestion.",
       image: "/Device-6.png",
     },
     {
       id: 2,
-      text: "Reduce scheduling conflicts and double-bookings.",
+      text: "Réduisez les erreurs et les doublons dans la saisie et la planification de vos ressources.",
       image: "/Device-7.png",
     },
     {
       id: 3,
-      text: "Improve work-life balance with smart time allocation.",
+      text: "Favorisez l’équilibre et la satisfaction de vos équipes par une gestion intelligente du temps et des missions.",
       image: "/Device-8.png",
     },
     {
       id: 4,
-      text: "Increase productivity with AI-driven time management insights.",
+      text: "Augmentez la productivité de toute l’agence avec la vision centralisée et les alertes automatisées de Louratech.",
       image: "/Device-1.png",
     },
   ],
   growthSection: {
-    title: "Built for Secure Growth",
-    description:
-      "Where advanced security meets seamless scalability—designed to protect your data and empower your growth.",
-    items: [
+      title: "Conçu pour la croissance sécurisée",
+      description:
+        "Où la sécurité avancée rencontre la scalabilité sans interruption - conçu pour protéger vos données et vous aider à croître.",
+      items: [
       {
         id: 1,
         content: (
@@ -673,9 +678,9 @@ export const siteConfig = {
           </div>
         ),
 
-        title: "Advanced Task Security",
+        title: "Sécurité avancée des données",
         description:
-          "Safeguard your tasks with state-of-art encryption and secure access to your workflow data.",
+          "Protégez l'ensemble de vos données de gestion grâce à un chiffrement de pointe et un accès sécurisé à vos informations d'entreprise.",
       },
       {
         id: 2,
@@ -685,79 +690,78 @@ export const siteConfig = {
           </div>
         ),
 
-        title: "Scalable for Teams",
+        title: "Pensé pour les équipes",
         description:
-          "Grow with your team. Track tasks across multiple workspaces and all team members.",
+          "Évoluez facilement avec votre organisation. Centralisez le suivi de vos opérations sur plusieurs espaces de travail et pour tous les membres de votre équipe.",
       },
     ],
   },
   quoteSection: {
     quote:
-      "SkyAgent has transformed our daily operations. Tasks that once consumed hours now complete in moments, freeing our team to focus on creativity and strategic growth.",
+      "Notre solution SaaS simplifie la gestion quotidienne de notre entreprise. Les modules intégrés, comme les ressources humaines et la gestion des stocks, nous permettent de gagner un temps précieux et d’optimiser nos processus.",
     author: {
-      name: "Alex Johnson",
-      role: "CTO, Innovatech",
+      name: "Alexandre Dupuis",
+      role: "Directeur Technique, Innovatech",
       image: "https://randomuser.me/api/portraits/men/91.jpg",
     },
   },
   pricing: {
-    title: "Pricing that scales with you",
+    title: "Des tarifs adaptés à la croissance de votre entreprise",
     description:
-      "Whichever plan you pick, it's free until you love your docs. That's our promise.",
+      "Quel que soit le forfait choisi, bénéficiez d'un essai gratuit pour découvrir notre plateforme de gestion. Sans engagement.",
     pricingItems: [
       {
-        name: "Free",
+        name: "Gratuit",
         href: "#",
-        price: "$0",
-        period: "month",
-        yearlyPrice: "$0",
+        price: "0€",
+        period: "mois",
+        yearlyPrice: "0€",
         features: [
-          "Custom domain",
-          "SEO-optimizations",
-          "Auto-generated API docs",
-          "Built-in components library",
+          "Gestion des utilisateurs",
+          "Module RH de base",
+          "Gestion simplifiée des stocks",
+          "Support par email",
         ],
-        description: "Perfect for individual users",
-        buttonText: "Start Free",
+        description: "Idéal pour les petites entreprises ou l’essai de la solution",
+        buttonText: "Commencer gratuitement",
         buttonColor: "bg-accent text-primary",
         isPopular: false,
       },
       {
-        name: "Startup",
+        name: "Professionnel",
         href: "#",
-        price: "$12",
-        period: "month",
-        yearlyPrice: "$120",
+        price: "19€",
+        period: "mois",
+        yearlyPrice: "190€",
         features: [
-          "Custom domain",
-          "SEO-optimizations",
-          "Auto-generated API docs",
-          "Built-in components library",
-          "E-commerce integration",
-          "User authentication system",
-          "Multi-language support",
-          "Real-time collaboration tools",
+          "Gestion avancée des stocks",
+          "Module de paie et RH complet",
+          "Gestion des congés",
+          "Suivi des ventes",
+          "Intégration comptable",
+          "Accès multi-utilisateurs",
+          "Support prioritaire",
         ],
-        description: "Ideal for professionals and small teams",
-        buttonText: "Upgrade to Pro",
+        description: "Pour les sociétés en croissance et les équipes dynamiques",
+        buttonText: "Souscrire à Pro",
         buttonColor: "bg-secondary text-white",
         isPopular: true,
       },
       {
-        name: "Enterprise",
+        name: "Entreprise",
         href: "#",
-        price: "$24",
-        period: "month",
-        yearlyPrice: "$240",
+        price: "39€",
+        period: "mois",
+        yearlyPrice: "390€",
         features: [
-          "Custom domain",
-          "SEO-optimizations",
-          "Auto-generated API docs",
-          "Built-in components librarys",
-          "Real-time collaboration tools",
+          "Gestion multi-établissements",
+          "Automatisations avancées",
+          "Reporting personnalisé",
+          "Module RH & Stocks illimités",
+          "Gestion des accès avancée",
         ],
-        description: "Best for large teams and enterprise-level organizations",
-        buttonText: "Contact Sales",
+        description: "Conçu pour les grandes entreprises et les organisations exigeantes",
+        buttonText: "Contacter le service commercial",
         buttonColor: "bg-primary text-primary-foreground",
         isPopular: false,
       },
@@ -766,284 +770,249 @@ export const siteConfig = {
   testimonials: [
     {
       id: "1",
-      name: "Alex Rivera",
-      role: "CTO at InnovateTech",
-      img: "https://randomuser.me/api/portraits/men/91.jpg",
+      name: "Sophie Martin",
+      role: "Responsable RH chez AlphaCo",
+      img: "https://randomuser.me/api/portraits/women/12.jpg",
       description: (
         <p>
-          The AI-driven analytics from #QuantumInsights have revolutionized our
-          product development cycle.
+          L’automatisation de la gestion RH a révolutionné notre organisation quotidienne.
           <Highlight>
-            Insights are now more accurate and faster than ever.
+            Moins d’erreurs, plus d’efficacité.
           </Highlight>{" "}
-          A game-changer for tech companies.
+          Un gain de temps évident pour toute l’équipe.
         </p>
       ),
     },
     {
       id: "2",
-      name: "Samantha Lee",
-      role: "Marketing Director at NextGen Solutions",
-      img: "https://randomuser.me/api/portraits/women/12.jpg",
+      name: "Martin Dupont",
+      role: "Gérant chez BioStock",
+      img: "https://randomuser.me/api/portraits/men/45.jpg",
       description: (
         <p>
-          Implementing #AIStream&apos;s customer prediction model has
-          drastically improved our targeting strategy.
-          <Highlight>Seeing a 50% increase in conversion rates!</Highlight>{" "}
-          Highly recommend their solutions.
+          Grâce au module de gestion des stocks, notre inventaire est toujours à jour et les ruptures sont évitées.
+          <Highlight>Visibilité totale sur nos flux !</Highlight>{" "}
+          Je recommande vivement cette solution pour PME.
         </p>
       ),
     },
     {
       id: "3",
-      name: "Raj Patel",
-      role: "Founder & CEO at StartUp Grid",
-      img: "https://randomuser.me/api/portraits/men/45.jpg",
+      name: "Claire Petit",
+      role: "Directrice des Opérations chez NextCorp",
+      img: "https://randomuser.me/api/portraits/women/83.jpg",
       description: (
         <p>
-          As a startup, we need to move fast and stay ahead. #CodeAI&apos;s
-          automated coding assistant helps us do just that.
-          <Highlight>Our development speed has doubled.</Highlight> Essential
-          tool for any startup.
+          L’intégration entre les modules RH et comptabilité est fluide.
+          <Highlight>Tout est centralisé en un seul endroit.</Highlight> La prise en main fut rapide et intuitive.
         </p>
       ),
     },
     {
       id: "4",
-      name: "Emily Chen",
-      role: "Product Manager at Digital Wave",
-      img: "https://randomuser.me/api/portraits/women/83.jpg",
+      name: "Jean Fournier",
+      role: "Responsable IT chez Digisol",
+      img: "https://randomuser.me/api/portraits/men/1.jpg",
       description: (
         <p>
-          #VoiceGen&apos;s AI-driven voice synthesis has made creating global
-          products a breeze.
-          <Highlight>Localization is now seamless and efficient.</Highlight> A
-          must-have for global product teams.
+          La sécurité des données et la gestion des accès nous rassurent au quotidien.
+          <Highlight>
+            Solution conforme RGPD.
+          </Highlight>{" "}
+          L’équipe support est toujours réactive.
         </p>
       ),
     },
     {
       id: "5",
-      name: "Michael Brown",
-      role: "Data Scientist at FinTech Innovations",
-      img: "https://randomuser.me/api/portraits/men/1.jpg",
+      name: "Fatima Benali",
+      role: "Directrice administrative chez Urbanis",
+      img: "https://randomuser.me/api/portraits/women/5.jpg",
       description: (
         <p>
-          Leveraging #DataCrunch&apos;s AI for our financial models has given us
-          an edge in predictive accuracy.
+          L’automatisation des tâches administratives nous a permis de réduire significativement les papiers et erreurs.
           <Highlight>
-            Our investment strategies are now powered by real-time data
-            analytics.
+            Gain de temps et sérénité retrouvée.
           </Highlight>{" "}
-          Transformative for the finance industry.
         </p>
       ),
     },
     {
       id: "6",
-      name: "Linda Wu",
-      role: "VP of Operations at LogiChain Solutions",
-      img: "https://randomuser.me/api/portraits/women/5.jpg",
+      name: "Kevin Moreau",
+      role: "Chef de projet chez GreenLog",
+      img: "https://randomuser.me/api/portraits/men/14.jpg",
       description: (
         <p>
-          #LogiTech&apos;s supply chain optimization tools have drastically
-          reduced our operational costs.
+          La gestion de stock en multi-établissements est un vrai plus pour notre activité logistique.
           <Highlight>
-            Efficiency and accuracy in logistics have never been better.
+            Traçabilité et contrôle en temps réel.
           </Highlight>{" "}
         </p>
       ),
     },
     {
       id: "7",
-      name: "Carlos Gomez",
-      role: "Head of R&D at EcoInnovate",
-      img: "https://randomuser.me/api/portraits/men/14.jpg",
+      name: "Amélie Girard",
+      role: "Responsable Marketing chez TrendyApp",
+      img: "https://randomuser.me/api/portraits/women/56.jpg",
       description: (
         <p>
-          By integrating #GreenTech&apos;s sustainable energy solutions,
-          we&apos;ve seen a significant reduction in carbon footprint.
+          L’accès multi-utilisateurs nous permet de mieux collaborer entre les équipes RH et commerciales.
           <Highlight>
-            Leading the way in eco-friendly business practices.
+            Chacun dispose des informations utiles à son métier.
           </Highlight>{" "}
-          Pioneering change in the industry.
         </p>
       ),
     },
     {
       id: "8",
-      name: "Aisha Khan",
-      role: "Chief Marketing Officer at Fashion Forward",
-      img: "https://randomuser.me/api/portraits/women/56.jpg",
+      name: "Nicolas Dupuis",
+      role: "Directeur IT chez MedSolution",
+      img: "https://randomuser.me/api/portraits/men/18.jpg",
       description: (
         <p>
-          #TrendSetter&apos;s market analysis AI has transformed how we approach
-          fashion trends.
+          Le suivi des performances et le reporting sont d’une grande précision.
           <Highlight>
-            Our campaigns are now data-driven with higher customer engagement.
+            Décisions stratégiques facilitées !
           </Highlight>{" "}
-          Revolutionizing fashion marketing.
         </p>
       ),
     },
     {
       id: "9",
-      name: "Tom Chen",
-      role: "Director of IT at HealthTech Solutions",
-      img: "https://randomuser.me/api/portraits/men/18.jpg",
+      name: "Laure Mercier",
+      role: "CEO chez EduForma",
+      img: "https://randomuser.me/api/portraits/women/73.jpg",
       description: (
         <p>
-          Implementing #MediCareAI in our patient care systems has improved
-          patient outcomes significantly.
+          La personnalisation des modules RH et gestion a amélioré l’implication de nos équipes.
           <Highlight>
-            Technology and healthcare working hand in hand for better health.
+            Un SaaS adapté à toutes nos exigences.
           </Highlight>{" "}
-          A milestone in medical technology.
         </p>
       ),
     },
     {
       id: "10",
-      name: "Sofia Patel",
-      role: "CEO at EduTech Innovations",
-      img: "https://randomuser.me/api/portraits/women/73.jpg",
+      name: "Yannick Lefèvre",
+      role: "CTO chez SécureTech",
+      img: "https://randomuser.me/api/portraits/men/25.jpg",
       description: (
         <p>
-          #LearnSmart&apos;s AI-driven personalized learning plans have doubled
-          student performance metrics.
+          Grâce aux outils de sécurité intégrés, nos données sont protégées et l’accès est totalement maîtrisé.
           <Highlight>
-            Education tailored to every learner&apos;s needs.
+            Tranquillité d’esprit au quotidien.
           </Highlight>{" "}
-          Transforming the educational landscape.
         </p>
       ),
     },
     {
       id: "11",
-      name: "Jake Morrison",
-      role: "CTO at SecureNet Tech",
-      img: "https://randomuser.me/api/portraits/men/25.jpg",
+      name: "Sonia Lemoine",
+      role: "Chef de produit chez CréaSolutions",
+      img: "https://randomuser.me/api/portraits/women/78.jpg",
       description: (
         <p>
-          With #CyberShield&apos;s AI-powered security systems, our data
-          protection levels are unmatched.
-          <Highlight>
-            Ensuring safety and trust in digital spaces.
-          </Highlight>{" "}
-          Redefining cybersecurity standards.
+          Notre process créatif est beaucoup plus fluide grâce à l’automatisation des tâches répétitives.
+          <Highlight>Priorité donnée à l’innovation.</Highlight>
         </p>
       ),
     },
     {
       id: "12",
-      name: "Nadia Ali",
-      role: "Product Manager at Creative Solutions",
-      img: "https://randomuser.me/api/portraits/women/78.jpg",
-      description: (
-        <p>
-          #DesignPro&apos;s AI has streamlined our creative process, enhancing
-          productivity and innovation.
-          <Highlight>Bringing creativity and technology together.</Highlight> A
-          game-changer for creative industries.
-        </p>
-      ),
-    },
-    {
-      id: "13",
-      name: "Omar Farooq",
-      role: "Founder at Startup Hub",
+      name: "Omar Bensaïd",
+      role: "Fondateur chez StartUpHub",
       img: "https://randomuser.me/api/portraits/men/54.jpg",
       description: (
         <p>
-          #VentureAI&apos;s insights into startup ecosystems have been
-          invaluable for our growth and funding strategies.
+          L’analyse intelligente des données RH et de stock nous offre un pilotage efficace de la croissance.
           <Highlight>
-            Empowering startups with data-driven decisions.
+            Un atout précieux pour tout entrepreneur.
           </Highlight>{" "}
-          A catalyst for startup success.
         </p>
       ),
     },
   ],
   faqSection: {
-    title: "Frequently Asked Questions",
+    title: "Foire aux questions",
     description:
-      "Answers to common questions about SkyAgent and its features. If you have any other questions, please don't hesitate to contact us.",
+      "Retrouvez ici les réponses aux questions les plus fréquentes sur notre plateforme SaaS et ses fonctionnalités. Pour toute autre demande, contactez notre support.",
     faQitems: [
       {
         id: 1,
-        question: "What is an AI Agent?",
+        question: "Qu’est-ce qu’un logiciel SaaS de gestion d’entreprise ?",
         answer:
-          "An AI Agent is an intelligent software program that can perform tasks autonomously, learn from interactions, and make decisions to help achieve specific goals. It combines artificial intelligence and machine learning to provide personalized assistance and automation.",
+          "Un logiciel SaaS de gestion d’entreprise est une solution en ligne permettant de gérer différents aspects de l’activité, comme les ressources humaines, les stocks, la comptabilité, depuis une plateforme unique et sécurisée.",
       },
       {
         id: 2,
-        question: "How does SkyAgent work?",
+        question: "Quels modules sont inclus ?",
         answer:
-          "SkyAgent works by analyzing your requirements, leveraging advanced AI algorithms to understand context, and executing tasks based on your instructions. It can integrate with your workflow, learn from feedback, and continuously improve its performance.",
+          "Notre solution comprend entre autres : gestion des ressources humaines, gestion des stocks, suivi des ventes, intégration comptable, et reporting avancé. Chaque module est conçu pour optimiser votre activité.",
       },
       {
         id: 3,
-        question: "How secure is my data?",
+        question: "Mes données sont-elles sécurisées ?",
         answer:
-          "We implement enterprise-grade security measures including end-to-end encryption, secure data centers, and regular security audits. Your data is protected according to industry best practices and compliance standards.",
+          "Oui. Nous utilisons des mesures de sécurité de niveau entreprise : chiffrement des données, centres de données sécurisés et contrôles d’accès avancés. Conformité RGPD garantie.",
       },
       {
         id: 4,
-        question: "Can I integrate my existing tools?",
+        question: "Peut-on connecter d’autres outils ?",
         answer:
-          "Yes, SkyAgent is designed to be highly compatible with popular tools and platforms. We offer APIs and pre-built integrations for seamless connection with your existing workflow tools and systems.",
+          "Absolument ! Notre plateforme offre des APIs et des intégrations prêtes à l’emploi pour connecter facilement vos outils existants (comptabilité, CRM, etc.).",
       },
       {
         id: 5,
-        question: "Is there a free trial available?",
+        question: "Y a-t-il un essai gratuit ?",
         answer:
-          "Yes, we offer a 14-day free trial that gives you full access to all features. No credit card is required to start your trial, and you can upgrade or cancel at any time.",
+          "Oui, un essai gratuit de 14 jours est proposé pour accéder à toutes les fonctionnalités. Aucun moyen de paiement n’est requis pour démarrer et vous pouvez arrêter à tout moment.",
       },
       {
         id: 6,
-        question: "How does SkyAgent save me time?",
+        question: "Comment ma société va-t-elle gagner du temps ?",
         answer:
-          "SkyAgent automates repetitive tasks, streamlines workflows, and provides quick solutions to common challenges. This automation and efficiency can save hours of manual work, allowing you to focus on more strategic activities.",
+          "L’automatisation des tâches courantes, la centralisation des données et des workflows simplifiés réduisent considérablement le temps consacré à la gestion. Vous vous concentrez sur l’essentiel !",
       },
     ],
   },
   ctaSection: {
     id: "cta",
-    title: "Automate. Simplify. Thrive",
+    title: "Automatisez. Simplifiez. Réussissez.",
     backgroundImage: "/agent-cta-background.png",
     button: {
-      text: "Start Your 30-Day Free Trial Today",
+      text: "Essayez gratuitement pendant 30 jours",
       href: "#",
     },
-    subtext: "Cancel anytime, no questions asked",
+    subtext: "Annulez à tout moment, sans engagement",
   },
   footerLinks: [
     {
-      title: "Company",
+      title: "Entreprise",
       links: [
-        { id: 1, title: "About", url: "#" },
+        { id: 1, title: "À propos", url: "#" },
         { id: 2, title: "Contact", url: "#" },
         { id: 3, title: "Blog", url: "#" },
-        { id: 4, title: "Story", url: "#" },
+        { id: 4, title: "Notre histoire", url: "#" },
       ],
     },
     {
-      title: "Products",
+      title: "Produits",
       links: [
-        { id: 5, title: "Company", url: "#" },
-        { id: 6, title: "Product", url: "#" },
-        { id: 7, title: "Press", url: "#" },
-        { id: 8, title: "More", url: "#" },
+        { id: 5, title: "RH", url: "#" },
+        { id: 6, title: "Stocks", url: "#" },
+        { id: 7, title: "Comptabilité", url: "#" },
+        { id: 8, title: "Voir plus", url: "#" },
       ],
     },
     {
-      title: "Resources",
+      title: "Ressources",
       links: [
-        { id: 9, title: "Press", url: "#" },
-        { id: 10, title: "Careers", url: "#" },
-        { id: 11, title: "Newsletters", url: "#" },
-        { id: 12, title: "More", url: "#" },
+        { id: 9, title: "Aide", url: "#" },
+        { id: 10, title: "Carrières", url: "#" },
+        { id: 11, title: "Newsletter", url: "#" },
+        { id: 12, title: "Autres", url: "#" },
       ],
     },
   ],

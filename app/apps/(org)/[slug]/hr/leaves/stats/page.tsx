@@ -110,7 +110,7 @@ export default function LeaveStatsPage() {
   const employeeStats = monthRequests
     .filter((r) => r.status === "approved")
     .reduce((acc: any[], request) => {
-      const employeeName = request.employee_details?.full_name || "N/A";
+      const employeeName = request.employee_name || "N/A";
       const existing = acc.find((e) => e.name === employeeName);
 
       if (existing) {
