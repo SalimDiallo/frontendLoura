@@ -59,7 +59,7 @@ export default function DashboardPage() {
         categoryService.getAll(),
       ]);
 
-      setUser(userData);
+      if(userData.user_type === "admin"){ setUser(userData);}
       setOrganizations(orgsData);
       setCategories(catsData);
     } catch (err) {

@@ -48,16 +48,19 @@ export default function AttendanceApprovalsPage() {
     if (!permLoading && !isAdmin && !hasPermission('can_approve_attendance')) {
       router.push(`/apps/${slug}/hr/attendance`);
     }
-  }, [permLoading, isAdmin, hasPermission, router, slug]);
+  }, [permLoading, isAdmin, router, slug]); // hasPermission removed - it causes infinite loop
 
+  // Load attendances only once when permissions are ready
   useEffect(() => {
     if (!permLoading && (isAdmin || hasPermission('can_approve_attendance'))) {
       loadAttendances();
     }
-  }, [slug, permLoading, isAdmin, hasPermission]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, permLoading, isAdmin]); // hasPermission removed - it causes infinite loop
 
   useEffect(() => {
     filterAttendances();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attendances, statusFilter, searchQuery]);
 
   const loadAttendances = async () => {

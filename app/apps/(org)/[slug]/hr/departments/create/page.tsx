@@ -21,6 +21,7 @@ import {
   HiOutlineCheckCircle,
   HiOutlineSparkles,
 } from "react-icons/hi2";
+import { da } from "date-fns/locale";
 
 // Schema de validation
 const departmentSchema = z.object({
@@ -68,6 +69,7 @@ export default function CreateDepartmentPage() {
       ]);
       // Type assertion or mapping if structures differ slightly
       setEmployees(employeesData.results as unknown as Employee[]);
+      console.log(employeesData)
       setDepartments(depts);
     } catch (err) {
       console.error("Erreur lors du chargement des données:", err);
@@ -82,6 +84,8 @@ export default function CreateDepartmentPage() {
       setLoading(true);
       setError(null);
       console.log(data);
+      console.log(data);
+      
       await createDepartment(data);
       router.push(`/apps/${slug}/hr/departments`);
     } catch (err: any) {

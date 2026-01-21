@@ -28,7 +28,7 @@ import {
 } from "@/lib/services/hr/leave.service";
 import { getLeaveTypes } from "@/lib/services/hr/leave-type.service";
 import { getEmployees } from "@/lib/services/hr/employee.service";
-import type { LeaveRequest, LeaveType, Employee } from "@/lib/types/hr";
+import type { LeaveRequest, LeaveType, EmployeeListItem } from "@/lib/types/hr";
 import { exportLeaveRequestToPDF } from "@/lib/utils/pdf-export";
 
 type SortField = "created_at" | "start_date" | "end_date" | "total_days";
@@ -40,7 +40,7 @@ export default function LeaveHistoryPage() {
 
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +70,7 @@ export default function LeaveHistoryPage() {
         await Promise.all([
           getLeaveRequests(),
           getLeaveTypes({ is_active: true }),
-          getEmployees({ is_active: true }),
+          getEmployees(slug, { is_active: true }),
         ]);
 
       setLeaveRequests(requestsResponse.results || []);
@@ -275,72 +275,70 @@ export default function LeaveHistoryPage() {
           {/* Employee Filter */}
           <Select
             value={selectedEmployee}
-            onChange={(e) => setSelectedEmployee(e.target.value)}
-            options={[
-              { value: "all", label: "Tous les employés" },
-              ...employees.map((employee) => ({
-                value: employee.id,
-                label: employee.full_name,
-              })),
-            ]}
-          />
+            onValueChange={(value: string) => setSelectedEmployee(value)}
+          >
+            <option value="all">Tous les employés</option>
+            {employees.map((employee) => (
+              <option key={employee.id} value={employee.id}>
+                {employee.full_name}
+              </option>
+            ))}
+          </Select>
 
           {/* Type Filter */}
           <Select
             value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            options={[
-              { value: "all", label: "Tous les types" },
-              ...leaveTypes.map((type) => ({
-                value: type.id,
-                label: type.name,
-              })),
-            ]}
-          />
+            onValueChange={(value: string) => setSelectedType(value)}
+          >
+            <option value="all">Tous les types</option>
+            {leaveTypes.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </Select>
 
           {/* Status Filter */}
           <Select
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            options={[
-              { value: "all", label: "Tous les statuts" },
-              { value: "pending", label: "En attente" },
-              { value: "approved", label: "Approuvé" },
-              { value: "rejected", label: "Rejeté" },
-              { value: "cancelled", label: "Annulé" },
-            ]}
-          />
+            onValueChange={(value: string) => setSelectedStatus(value)}
+          >
+            <option value="all">Tous les statuts</option>
+            <option value="pending">En attente</option>
+            <option value="approved">Approuvé</option>
+            <option value="rejected">Rejeté</option>
+            <option value="cancelled">Annulé</option>
+          </Select>
 
           {/* Year Filter */}
           <Select
             value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            options={[
-              { value: "all", label: "Toutes les années" },
-              ...availableYears.map((year) => ({
-                value: year,
-                label: year,
-              })),
-            ]}
-          />
+            onValueChange={(value: string) => setSelectedYear(value)}
+          >
+            <option value="all">Toutes les années</option>
+            {availableYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </Select>
 
           {/* Sort */}
           <Select
             value={`${sortField}-${sortOrder}`}
-            onChange={(e) => {
-              const [field, order] = e.target.value.split("-") as [SortField, SortOrder];
+            onValueChange={(value: string) => {
+              const [field, order] = value.split("-") as [SortField, SortOrder];
               setSortField(field);
               setSortOrder(order);
             }}
-            options={[
-              { value: "created_at-desc", label: "Plus récent (création)" },
-              { value: "created_at-asc", label: "Plus ancien (création)" },
-              { value: "start_date-desc", label: "Plus récent (début)" },
-              { value: "start_date-asc", label: "Plus ancien (début)" },
-              { value: "total_days-desc", label: "Plus de jours" },
-              { value: "total_days-asc", label: "Moins de jours" },
-            ]}
-          />
+          >
+            <option value="created_at-desc">Plus récent (création)</option>
+            <option value="created_at-asc">Plus ancien (création)</option>
+            <option value="start_date-desc">Plus récent (début)</option>
+            <option value="start_date-asc">Plus ancien (début)</option>
+            <option value="total_days-desc">Plus de jours</option>
+            <option value="total_days-asc">Moins de jours</option>
+          </Select>
         </div>
 
         <div className="flex items-center justify-between">

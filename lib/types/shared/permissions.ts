@@ -75,9 +75,7 @@ export interface UserPermissionContext {
 
 import { PERMISSIONS as P } from '@/lib/constants/permissions';
 
-/**
- * @deprecated Utiliser PERMISSIONS directement
- */
+
 export const COMMON_PERMISSIONS = {
   HR: {
     VIEW_EMPLOYEES: P.HR.VIEW_EMPLOYEES,

@@ -30,6 +30,7 @@ import { FormInputField, FormSelectField } from "@/components/ui/form-fields";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/shared";
 import { cn } from "@/lib/utils";
+import { formatApiErrorsForDisplay } from "@/lib/utils/format-api-errors";
 
 // Schema de validation
 const employeeSchema = z.object({
@@ -67,7 +68,8 @@ export default function CreateEmployeePage() {
   const slug = params.slug as string;
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Array<{ field: string; messages: string[] }>>([]);
+  const [errorTitle, setErrorTitle] = useState<string>("");
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -110,27 +112,49 @@ export default function CreateEmployeePage() {
   const loadFormData = useCallback(async () => {
     try {
       setLoadingData(true);
-      const [org, depts, positionsData, rolesData, employeesData] = await Promise.all([
-        organizationService.getBySlug(slug),
-        getDepartments({ is_active: true, organization_subdomain: slug }),
-        getPositions({ is_active: true }),
-        getRoles({ is_active: true, organization_subdomain: slug }),
-        getEmployees(slug),
-      ]);
-
+      
+      // Charger l'organisation (obligatoire)
+      const org = await organizationService.getBySlug(slug);
       if (!org) {
-        setError("Organisation non trouvée");
+        setErrors([{ field: '', messages: ['Organisation non trouvée'] }]);
+        setErrorTitle('Erreur');
         return;
       }
-
       setCurrentOrganization(org);
+
+      // Charger les données en parallèle, avec gestion d'erreur individuelle
+      // Si une API échoue (permissions), on continue avec une liste vide
+      const [depts, positionsData, rolesData, employeesData] = await Promise.all([
+        getDepartments({ is_active: true, organization_subdomain: slug })
+          .catch((err) => {
+            console.warn("Impossible de charger les départements (permissions?):", err);
+            return [];
+          }),
+        getPositions({ is_active: true })
+          .catch((err) => {
+            console.warn("Impossible de charger les postes (permissions?):", err);
+            return [];
+          }),
+        getRoles({ is_active: true, organization_subdomain: slug })
+          .catch((err) => {
+            console.warn("Impossible de charger les rôles (permissions?):", err);
+            return [];
+          }),
+        getEmployees(slug)
+          .catch((err) => {
+            console.warn("Impossible de charger les managers (permissions?):", err);
+            return { results: [] };
+          }),
+      ]);
+
       setDepartments(depts);
       setPositions(positionsData);
       setRoles(rolesData);
       setManagers(employeesData?.results || []);
     } catch (err) {
       console.error("Erreur lors du chargement des données:", err);
-      setError("Erreur lors du chargement des données du formulaire");
+      setErrors([{ field: '', messages: ['Erreur lors du chargement des données du formulaire'] }]);
+      setErrorTitle('Erreur');
     } finally {
       setLoadingData(false);
     }
@@ -143,7 +167,8 @@ export default function CreateEmployeePage() {
   const onSubmit = async (data: EmployeeFormData) => {
     try {
       setLoading(true);
-      setError(null);
+      setErrors([]);
+      setErrorTitle("");
 
       if (!currentOrganization) {
         throw new Error("Organisation non trouvée");
@@ -188,10 +213,11 @@ export default function CreateEmployeePage() {
 
       await createEmployee(employeeData);
       router.push(`/apps/${slug}/hr/employees`);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Erreur lors de la création de l'employé");
+      const formatted = formatApiErrorsForDisplay(err);
+      setErrorTitle(formatted.title);
+      setErrors(formatted.errors);
     } finally {
       setLoading(false);
     }
@@ -230,7 +256,21 @@ export default function CreateEmployeePage() {
         </div>
       </div>
 
-      {error && <Alert variant="error">{error}</Alert>}
+      {errors.length > 0 && (
+        <Alert variant="error">
+          <div className="space-y-2">
+            <p className="font-semibold">{errorTitle}</p>
+            <ul className="list-disc list-inside space-y-1 text-sm">
+              {errors.map((err, idx) => (
+                <li key={idx}>
+                  {err.field && <span className="font-medium">{err.field}: </span>}
+                  {err.messages.join(', ')}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Alert>
+      )}
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -298,10 +338,12 @@ export default function CreateEmployeePage() {
                       <option key={pos.id} value={pos.id}>{pos.title}</option>
                     ))}
                   </select>
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowPositionModal(true)} className="h-10 gap-1">
-                    <HiOutlinePlusCircle className="size-4" />
-                    Créer
-                  </Button>
+                  <Can permission={COMMON_PERMISSIONS.HR.CREATE_POSITIONS}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setShowPositionModal(true)} className="h-10 gap-1">
+                      <HiOutlinePlusCircle className="size-4" />
+                      Créer
+                    </Button>
+                  </Can>
                 </div>
               </div>
               <FormSelectField

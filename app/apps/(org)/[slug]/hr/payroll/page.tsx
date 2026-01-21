@@ -1,28 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -32,585 +17,431 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label, Textarea } from "@/components/ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   HiOutlineBanknotes,
   HiOutlinePlusCircle,
-  HiOutlineEllipsisVertical,
-  HiOutlineEye,
   HiOutlineCheckCircle,
+  HiOutlineXCircle,
   HiOutlineDocumentText,
-  HiOutlineCurrencyDollar,
-  HiOutlineChartBar,
-  HiOutlinePencil,
-  HiOutlineTrash,
-  HiOutlineSparkles,
   HiOutlineCalendar,
   HiOutlineMagnifyingGlass,
-  HiOutlineFunnel,
-  HiOutlineArrowDownTray,
-  HiOutlineXMark,
-  HiOutlineArrowTrendingUp,
-  HiOutlineArrowTrendingDown,
+  HiOutlineSparkles,
+  HiOutlineArrowPath,
+  HiOutlineCurrencyDollar,
 } from "react-icons/hi2";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import {
   getPayrolls,
-  getPayrollStats,
   markPayrollAsPaid,
   deletePayroll,
-  generatePayrollsForPeriod,
-  downloadPayrollPDF,
   generateBulkPayslips,
 } from "@/lib/services/hr";
-import { getPayrollPeriods } from "@/lib/services/hr/payroll-period.service";
-import { getPayrollAdvances } from "@/lib/services/hr/payroll-advance.service";
-import type { Payroll, PayrollStatus, PayrollPeriod, PayrollAdvance } from "@/lib/types/hr";
-import { Can } from "@/components/apps/common";
-import { ResourceType, PermissionAction } from "@/lib/types/shared";
-import { Label } from "@/components/ui/label";
-import { PDFPreviewModal } from '@/components/ui';
+import { getPayrollPeriods, createPayrollPeriod, deletePayrollPeriod } from "@/lib/services/hr/payroll-period.service";
+import { getPayrollAdvances, createPayrollAdvance, approvePayrollAdvance, rejectPayrollAdvance } from "@/lib/services/hr/payroll-advance.service";
+import { getEmployees } from "@/lib/services/hr/employee.service";
+import type { Payroll, PayrollStatus, PayrollPeriod, PayrollAdvance, EmployeeListItem } from "@/lib/types/hr";
+import { PayrollAdvanceStatus } from "@/lib/types/hr";
 import { API_CONFIG } from "@/lib/api/config";
-import { cn } from "@/lib/utils";
-import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
-import { HiOutlineQuestionMarkCircle } from "react-icons/hi2";
+import { PDFPreviewModal } from "@/components/ui";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types";
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
 export default function PayrollPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
 
-  // Data state
-  const [payslips, setPayslips] = useState<Payroll[]>([]);
-  const [filteredPayslips, setFilteredPayslips] = useState<Payroll[]>([]);
+  // Main states
+  const [activeTab, setActiveTab] = useState("payslips");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [stats, setStats] = useState({
-    total_payrolls: 0,
-    total_gross_salary: 0,
-    total_net_salary: 0,
-    total_deductions: 0,
-    average_salary: 0,
-    paid_count: 0,
-    pending_count: 0,
-    draft_count: 0,
-  });
+  const [generating, setGenerating] = useState(false);
 
-  // Quick actions data
+  // Data states
+  const [payslips, setPayslips] = useState<Payroll[]>([]);
+  const [periods, setPeriods] = useState<PayrollPeriod[]>([]);
+  const [advances, setAdvances] = useState<PayrollAdvance[]>([]);
+  const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [currentPeriod, setCurrentPeriod] = useState<PayrollPeriod | null>(null);
-  const [pendingAdvances, setPendingAdvances] = useState<PayrollAdvance[]>([]);
-  const [loadingQuickData, setLoadingQuickData] = useState(false);
 
-  // UI state
-  const [processingId, setProcessingId] = useState<string | null>(null);
+  // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [showFilters, setShowFilters] = useState(false);
 
-  // Dialog state
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; payslipId: string | null }>({
-    open: false,
-    payslipId: null,
-  });
-  const [markPaidDialog, setMarkPaidDialog] = useState<{ open: boolean; payslipId: string | null }>({
-    open: false,
-    payslipId: null,
-  });
-  const [bulkGenerateDialog, setBulkGenerateDialog] = useState(false);
-  const [bulkGenerating, setBulkGenerating] = useState(false);
-  const [configDialog, setConfigDialog] = useState(false);
+  // Dialogs
+  const [showPeriodDialog, setShowPeriodDialog] = useState(false);
+  const [showAdvanceDialog, setShowAdvanceDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [selectedAdvance, setSelectedAdvance] = useState<PayrollAdvance | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
 
-  // PDF Preview state
+  // Period form
+  const [periodForm, setPeriodForm] = useState({
+    name: "",
+    start_date: "",
+    end_date: "",
+    payment_date: "",
+  });
+
+  // Advance form
+  const [advanceForm, setAdvanceForm] = useState({
+    employee: "",
+    amount: "",
+    reason: "",
+  });
+
+  // PDF preview
   const [pdfPreview, setPdfPreview] = useState<{
     isOpen: boolean;
     pdfUrl: string;
     title: string;
     filename: string;
-  }>({
-    isOpen: false,
-    pdfUrl: '',
-    title: '',
-    filename: '',
-  });
+  }>({ isOpen: false, pdfUrl: "", title: "", filename: "" });
 
-  // Custom deductions configuration
-  const [deductionConfig, setDeductionConfig] = useState({
-    cnps_percentage: 3.6,
-    tax_percentage: 10,
-    custom_deductions: [] as { name: string; amount: number }[],
-  });
-
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    loadData();
-    loadQuickActionData();
-    loadDeductionConfig();
-  }, [slug]);
-
-  useEffect(() => {
-    filterPayslips();
-  }, [payslips, searchQuery, statusFilter]);
-
-  const loadData = async () => {
+  // Load all data
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const currentDate = new Date();
-      const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth() + 1;
+      const [payrollsData, periodsData, advancesData, employeesData] = await Promise.all([
+        getPayrolls(slug, { page_size: 100 }),
+        getPayrollPeriods(slug, { page_size: 100 }),
+        getPayrollAdvances({ organization_subdomain: slug }).catch(() => []),
+        getEmployees(slug, { page_size: 100 }),
+      ]);
 
-      // Charger les fiches de paie
-      const payrollsData = await getPayrolls(slug, { page_size: 100 });
       setPayslips(payrollsData.results);
-
-      // Charger les statistiques
-      try {
-        const statsData = await getPayrollStats(slug, { year: currentYear, month: currentMonth });
-        setStats(statsData);
-      } catch (statsErr) {
-        console.warn('Stats endpoint not available, calculating from payroll data:', statsErr);
-        // Calculer les stats à partir des données de paie
-        calculateLocalStats(payrollsData.results);
-      }
+      setPeriods(periodsData.results);
+      setAdvances(advancesData || []);
+      setEmployees(employeesData.results);
+      
+      // Get current active period (most recent with status draft/processing)
+      const activePeriod = periodsData.results.find(p => p.status === "draft" || p.status === "processing") || periodsData.results[0];
+      setCurrentPeriod(activePeriod || null);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Erreur lors du chargement des données";
-      setError(errorMessage);
-      console.error('Error loading payroll data:', err);
+      setError(err instanceof Error ? err.message : "Erreur de chargement");
     } finally {
       setLoading(false);
     }
-  };
+  }, [slug]);
 
-  const calculateLocalStats = (payrollData: Payroll[]) => {
-    const draftCount = payrollData.filter(p => p.status === 'draft').length;
-    const pendingCount = payrollData.filter(p => p.status === 'pending').length;
-    const paidCount = payrollData.filter(p => p.status === 'paid').length;
-    const totalNet = payrollData.reduce((sum, p) => sum + p.net_salary, 0);
-    const totalGross = payrollData.reduce((sum, p) => sum + p.gross_salary, 0);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-    setStats({
-      total_payrolls: payrollData.length,
-      total_gross_salary: totalGross,
-      total_net_salary: totalNet,
-      total_deductions: totalGross - totalNet,
-      average_salary: payrollData.length > 0 ? totalNet / payrollData.length : 0,
-      paid_count: paidCount,
-      pending_count: pendingCount,
-      draft_count: draftCount,
-    });
-  };
+  // Auto-clear messages
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
-  const loadQuickActionData = async () => {
+  // Stats
+  const stats = useMemo(() => {
+    return {
+      // Payslips
+      totalPayslips: payslips.length,
+      paidPayslips: payslips.filter(p => p.status === "paid").length,
+      pendingPayslips: payslips.filter(p => p.status !== "paid").length,
+      totalNet: payslips.reduce((sum, p) => sum + (Number(p.net_salary) || 0), 0),
+      // Advances
+      totalAdvances: advances.length,
+      pendingAdvances: advances.filter(a => a.status === PayrollAdvanceStatus.PENDING).length,
+      approvedAdvances: advances.filter(a => a.status === PayrollAdvanceStatus.APPROVED).length,
+      // Periods
+      totalPeriods: periods.length,
+    };
+  }, [payslips, advances, periods]);
+
+  // Filtered data
+  const filteredPayslips = useMemo(() => {
+    return payslips.filter(p =>
+      !searchQuery ||
+      p.employee_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.employee_id?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [payslips, searchQuery]);
+
+  const filteredAdvances = useMemo(() => {
+    return advances.filter(a =>
+      !searchQuery ||
+      a.employee_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [advances, searchQuery]);
+
+  // ============================================
+  // ACTIONS
+  // ============================================
+
+  const handleGenerate = async () => {
+    if (!currentPeriod) {
+      setError("Aucune période de paie. Créez-en une d'abord.");
+      return;
+    }
+
     try {
-      setLoadingQuickData(true);
+      setGenerating(true);
+      setError(null);
+      const result = await generateBulkPayslips(currentPeriod.id, { auto_deduct_advances: true });
 
-      // Load current/active period
-      const periodsData = await getPayrollPeriods(slug, { status: 'active', page_size: 1 });
-      if (periodsData.results.length > 0) {
-        setCurrentPeriod(periodsData.results[0]);
+      let message = `✅ ${result.created} fiche(s) créée(s)`;
+      if (result.advances_deducted > 0) {
+        message += ` • ${result.advances_deducted} avance(s) déduite(s)`;
       }
-
-      // Load pending advances
-      const advancesData = await getPayrollAdvances({
-        organization_subdomain: slug,
-        status: 'pending',
-      });
-      setPendingAdvances(advancesData);
-    } catch (err) {
-      console.warn('Error loading quick action data:', err);
+      setSuccess(message);
+      await loadData();
+    } catch (err: any) {
+      setError(err?.data?.detail || err?.message || "Erreur lors de la génération");
     } finally {
-      setLoadingQuickData(false);
+      setGenerating(false);
     }
   };
 
-  const loadDeductionConfig = () => {
-    try {
-      const savedConfig = localStorage.getItem(`deduction_config_${slug}`);
-      if (savedConfig) {
-        setDeductionConfig(JSON.parse(savedConfig));
-      }
-    } catch (err) {
-      console.warn('Error loading deduction config:', err);
-    }
-  };
-
-  const saveDeductionConfig = () => {
-    try {
-      localStorage.setItem(`deduction_config_${slug}`, JSON.stringify(deductionConfig));
-      setConfigDialog(false);
-      setSuccess('Configuration enregistrée avec succès');
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError('Erreur lors de l\'enregistrement de la configuration');
-    }
-  };
-
-  const filterPayslips = () => {
-    let filtered = [...payslips];
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (p) =>
-          p.employee_details?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.employee_details?.employee_id?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Status filter
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((p) => p.status === statusFilter);
-    }
-
-    setFilteredPayslips(filtered);
-    setCurrentPage(1);
-  };
-
-  const handleMarkAsPaid = async (id: string) => {
+  const handleMarkPaid = async (id: string) => {
     try {
       setProcessingId(id);
       await markPayrollAsPaid(id);
-      setMarkPaidDialog({ open: false, payslipId: null });
+      setSuccess("✅ Fiche marquée comme payée");
       await loadData();
-    } catch (err) {
+    } catch {
       setError("Erreur lors de la mise à jour");
-      console.error(err);
     } finally {
       setProcessingId(null);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeletePayslip = async (id: string) => {
+    if (!confirm("Supprimer cette fiche de paie ?")) return;
     try {
-      setProcessingId(id);
       await deletePayroll(id);
-      setDeleteDialog({ open: false, payslipId: null });
+      setSuccess("✅ Fiche supprimée");
       await loadData();
-    } catch (err) {
+    } catch {
       setError("Erreur lors de la suppression");
-      console.error(err);
-    } finally {
-      setProcessingId(null);
     }
   };
 
   const handlePreviewPDF = async (payslipId: string, employeeName: string) => {
     try {
-      setProcessingId(payslipId);
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       const response = await fetch(
         `${API_CONFIG.baseURL}/hr/payslips/${payslipId}/export_pdf/`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'X-Organization-Slug': slug,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}`, "X-Organization-Slug": slug } }
       );
-      
-      if (!response.ok) throw new Error('Erreur de chargement');
-      
+      if (!response.ok) throw new Error("Erreur");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
       setPdfPreview({
         isOpen: true,
         pdfUrl: url,
         title: `Fiche de paie - ${employeeName}`,
-        filename: `Fiche_Paie_${employeeName.replace(/\s+/g, '_')}.pdf`,
+        filename: `Fiche_Paie_${employeeName.replace(/\s+/g, "_")}.pdf`,
       });
-    } catch (err) {
+    } catch {
       setError("Erreur lors du chargement du PDF");
-      console.error(err);
+    }
+  };
+
+  // Period actions
+  const initPeriodForm = () => {
+    const now = new Date();
+    const monthName = now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    setPeriodForm({
+      name: monthName.charAt(0).toUpperCase() + monthName.slice(1),
+      start_date: firstDay.toISOString().split('T')[0],
+      end_date: lastDay.toISOString().split('T')[0],
+      payment_date: "",
+    });
+    setShowPeriodDialog(true);
+  };
+
+  const handleCreatePeriod = async () => {
+    if (!periodForm.name || !periodForm.start_date || !periodForm.end_date) {
+      setError("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    try {
+      setProcessingId("period");
+      await createPayrollPeriod(slug, periodForm);
+      setSuccess("✅ Période créée");
+      setShowPeriodDialog(false);
+      await loadData();
+    } catch (err: any) {
+      setError(err?.message || "Erreur lors de la création");
     } finally {
       setProcessingId(null);
     }
   };
 
-  const closePdfPreview = () => {
-    if (pdfPreview.pdfUrl) {
-      window.URL.revokeObjectURL(pdfPreview.pdfUrl);
+  const handleDeletePeriod = async (id: string) => {
+    if (!confirm("Supprimer cette période ?")) return;
+    try {
+      await deletePayrollPeriod(id);
+      setSuccess("✅ Période supprimée");
+      await loadData();
+    } catch {
+      setError("Impossible de supprimer cette période");
     }
-    setPdfPreview({
-      isOpen: false,
-      pdfUrl: '',
-      title: '',
-      filename: '',
-    });
   };
 
-  const handleQuickGenerate = async () => {
-    if (!currentPeriod) {
-      setError("Aucune période de paie active trouvée. Veuillez créer une période de paie d'abord.");
+  // Advance actions
+  const handleCreateAdvance = async () => {
+    if (!advanceForm.employee || !advanceForm.amount || !advanceForm.reason) {
+      setError("Veuillez remplir tous les champs");
       return;
     }
 
     try {
-      setBulkGenerating(true);
-      setError(null);
-      setSuccess(null);
-
-      // NOTE: Custom deduction configuration is saved in localStorage for display purposes.
-      // The backend currently uses hardcoded CNPS (3.6%) and tax (10%) percentages.
-      // To apply custom percentages, the backend API would need to be enhanced to accept
-      // these parameters in the request payload.
-      const result = await generateBulkPayslips(currentPeriod.id, {
-        auto_deduct_advances: true,
-        // TODO: Add support for custom deductions when backend is enhanced:
-        // custom_cnps_percentage: deductionConfig.cnps_percentage,
-        // custom_tax_percentage: deductionConfig.tax_percentage,
-        // custom_deductions: deductionConfig.custom_deductions,
+      setProcessingId("advance");
+      await createPayrollAdvance({
+        employee: advanceForm.employee,
+        amount: Number(advanceForm.amount),
+        reason: advanceForm.reason,
       });
-
-      let message = `✅ ${result.created} fiche(s) de paie créée(s) avec succès !`;
-      if (result.advances_deducted > 0) {
-        message += ` ✨ ${result.advances_deducted} avance(s) déduite(s) automatiquement.`;
-      }
-      if (result.skipped > 0) {
-        message += ` ⚠️ ${result.skipped} fiche(s) ignorée(s) (déjà existante).`;
-      }
-
-      setSuccess(message);
+      setSuccess("✅ Demande d'avance créée");
+      setShowAdvanceDialog(false);
+      setAdvanceForm({ employee: "", amount: "", reason: "" });
       await loadData();
-      await loadQuickActionData();
     } catch (err: any) {
-      const errorMessage = err?.data?.detail || err?.message || "Erreur lors de la génération automatique";
-      setError(errorMessage);
-      console.error('Quick generation error:', err);
+      setError(err?.message || "Erreur lors de la création");
     } finally {
-      setBulkGenerating(false);
+      setProcessingId(null);
     }
   };
 
-  const handleBulkGenerate = async (payrollPeriodId?: string) => {
-    if (!payrollPeriodId) {
-      setError("Veuillez sélectionner une période de paie depuis l'onglet 'Périodes'");
+  const handleApproveAdvance = async (advance: PayrollAdvance) => {
+    try {
+      setProcessingId(advance.id);
+      await approvePayrollAdvance(advance.id);
+      setSuccess(`✅ Avance approuvée - sera déduite à la prochaine paie`);
+      await loadData();
+    } catch (err: any) {
+      setError(err?.message || "Erreur lors de l'approbation");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRejectAdvance = async () => {
+    if (!selectedAdvance || !rejectionReason) {
+      setError("Veuillez fournir une raison");
       return;
     }
 
     try {
-      setBulkGenerating(true);
-      const result = await generatePayrollsForPeriod(payrollPeriodId);
-
-      let message = `✅ ${result.created} fiche(s) de paie créée(s) avec succès !`;
-      if (result.skipped > 0) {
-        message += `\n⚠️ ${result.skipped} fiche(s) ignorée(s) (déjà existante).`;
-      }
-      if (result.errors.length > 0) {
-        message += `\n\n❌ Erreurs (${result.errors.length}) :\n${result.errors.slice(0, 5).join('\n')}`;
-        if (result.errors.length > 5) {
-          message += `\n... et ${result.errors.length - 5} autre(s)`;
-        }
-      }
-
-      alert(message);
-      setBulkGenerateDialog(false);
+      setProcessingId(selectedAdvance.id);
+      await rejectPayrollAdvance(selectedAdvance.id, rejectionReason);
+      setSuccess("✅ Avance rejetée");
+      setShowRejectDialog(false);
+      setSelectedAdvance(null);
+      setRejectionReason("");
       await loadData();
-    } catch (err) {
-      setError("Erreur lors de la génération groupée");
-      console.error(err);
+    } catch (err: any) {
+      setError(err?.message || "Erreur lors du rejet");
     } finally {
-      setBulkGenerating(false);
+      setProcessingId(null);
     }
   };
 
-  const getStatusBadge = (status: PayrollStatus) => {
-    const statusConfig = {
-      draft: { label: "Brouillon", variant: "default" as const },
-      pending: { label: "En attente", variant: "warning" as const },
-      paid: { label: "Payé", variant: "success" as const },
-      cancelled: { label: "Annulé", variant: "error" as const },
-    };
+  // ============================================
+  // RENDER HELPERS
+  // ============================================
 
-    const config = statusConfig[status] || { label: status, variant: "default" as const };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+  const getPayslipStatusBadge = (status: PayrollStatus) => {
+    const config: Record<string, { label: string; variant: "default" | "warning" | "success" | "error" }> = {
+      draft: { label: "Brouillon", variant: "default" },
+      pending: { label: "En attente", variant: "warning" },
+      paid: { label: "Payé", variant: "success" },
+      cancelled: { label: "Annulé", variant: "error" },
+    };
+    const { label, variant } = config[status] || { label: status, variant: "default" };
+    return <Badge variant={variant}>{label}</Badge>;
   };
 
-  // Pagination
-  const totalPages = Math.ceil(filteredPayslips.length / itemsPerPage);
-  const paginatedPayslips = filteredPayslips.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const getAdvanceStatusBadge = (status: PayrollAdvanceStatus) => {
+    const config: Record<string, { label: string; variant: "default" | "warning" | "success" | "error" }> = {
+      pending: { label: "En attente", variant: "warning" },
+      approved: { label: "Approuvée", variant: "success" },
+      rejected: { label: "Rejetée", variant: "error" },
+      deducted: { label: "Déduite", variant: "default" },
+    };
+    const { label, variant } = config[status] || { label: status, variant: "default" };
+    return <Badge variant={variant}>{label}</Badge>;
+  };
 
-  // Raccourcis clavier
-  const shortcuts: KeyboardShortcut[] = useMemo(() => [
-    // Navigation de base
-    commonShortcuts.search(() => searchInputRef.current?.focus()),
-    commonShortcuts.new(() => router.push(`/apps/${slug}/hr/payroll/create`)),
-    commonShortcuts.help(() => setShowShortcuts(true)),
-    commonShortcuts.escape(() => {
-      if (showShortcuts) {
-        setShowShortcuts(false);
-      } else if (document.activeElement === searchInputRef.current) {
-        searchInputRef.current?.blur();
-        setSearchQuery("");
-      } else {
-        setSelectedIndex(-1);
-      }
-    }),
-
-    // Navigation dans la liste
-    commonShortcuts.arrowDown(() => {
-      setSelectedIndex((prev) => Math.min(prev + 1, paginatedPayslips.length - 1));
-    }),
-    commonShortcuts.arrowUp(() => {
-      setSelectedIndex((prev) => Math.max(prev - 1, 0));
-    }),
-    commonShortcuts.enter(() => {
-      if (selectedIndex >= 0 && paginatedPayslips[selectedIndex]) {
-        router.push(`/apps/${slug}/hr/payroll/${paginatedPayslips[selectedIndex].id}`);
-      }
-    }),
-
-    // Actions sur la fiche de paie sélectionnée
-    { key: "p", action: () => {
-      if (selectedIndex >= 0 && paginatedPayslips[selectedIndex]) {
-        handlePreviewPDF(paginatedPayslips[selectedIndex].id, paginatedPayslips[selectedIndex].employee_details?.full_name || "");
-      }
-    }, description: "Aperçu PDF de la fiche sélectionnée" },
-    { key: "m", action: () => {
-      if (selectedIndex >= 0 && paginatedPayslips[selectedIndex] && paginatedPayslips[selectedIndex].status !== "paid") {
-        setMarkPaidDialog({ open: true, payslipId: paginatedPayslips[selectedIndex].id });
-      }
-    }, description: "Marquer comme payée" },
-
-    // Génération
-    { key: "g", action: () => {
-      if (currentPeriod && !bulkGenerating) {
-        handleQuickGenerate();
-      }
-    }, description: "Générer toutes les fiches" },
-
-    // Filtres de statut (1-4)
-    commonShortcuts.filter("1", () => setStatusFilter(statusFilter === "all" ? "all" : "all"), "Tous les statuts"),
-    commonShortcuts.filter("2", () => setStatusFilter(statusFilter === "draft" ? "all" : "draft"), "Filtrer: Brouillons"),
-    commonShortcuts.filter("3", () => setStatusFilter(statusFilter === "pending" ? "all" : "pending"), "Filtrer: En attente"),
-    commonShortcuts.filter("4", () => setStatusFilter(statusFilter === "paid" ? "all" : "paid"), "Filtrer: Payées"),
-
-    // Réinitialisation et pagination
-    { key: "r", action: () => {
-      setSearchQuery("");
-      setStatusFilter("all");
-    }, description: "Réinitialiser les filtres" },
-    { key: ",", action: () => {
-      if (currentPage > 1) setCurrentPage(currentPage - 1);
-    }, description: "Page précédente" },
-    { key: ".", action: () => {
-      if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-    }, description: "Page suivante" },
-
-    // Liens rapides
-    { key: "t", action: () => router.push(`/apps/${slug}/hr/payroll/periods`), description: "Ouvrir les périodes" },
-    { key: "a", action: () => router.push(`/apps/${slug}/hr/payroll/advances`), description: "Ouvrir les avances" },
-  ], [slug, router, showShortcuts, selectedIndex, paginatedPayslips, statusFilter, currentPage, totalPages, currentPeriod, bulkGenerating]);
-
-  useKeyboardShortcuts({ shortcuts });
+  // ============================================
+  // LOADING STATE
+  // ============================================
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-32 bg-muted rounded"></div>
-            ))}
-          </div>
-          <div className="h-64 bg-muted rounded"></div>
-        </div>
+      <div className="space-y-4 animate-pulse">
+        <div className="h-8 bg-muted rounded w-1/4" />
+        <div className="h-24 bg-muted rounded" />
+        <div className="h-64 bg-muted rounded" />
       </div>
     );
   }
 
-  const statsCards = [
-    {
-      title: "Masse salariale nette",
-      value: formatCurrency(stats.total_net_salary),
-      subtitle: `Brut: ${formatCurrency(stats.total_gross_salary)}`,
-      icon: HiOutlineCurrencyDollar,
-      color: "green",
-      bgColor: "bg-green-100",
-      iconColor: "text-green-600",
-      trend: stats.total_net_salary > 0 ? "up" : "neutral",
-    },
-    {
-      title: "Fiches de paie",
-      value: stats.total_payrolls,
-      subtitle: `Moyenne: ${formatCurrency(stats.average_salary)}`,
-      icon: HiOutlineDocumentText,
-      color: "blue",
-      bgColor: "bg-blue-100",
-      iconColor: "text-blue-600",
-    },
-    {
-      title: "En attente de paiement",
-      value: stats.draft_count + stats.pending_count,
-      subtitle: `${stats.draft_count} brouillon(s), ${stats.pending_count} en attente`,
-      icon: HiOutlineChartBar,
-      color: "orange",
-      bgColor: "bg-orange-100",
-      iconColor: "text-orange-600",
-    },
-    {
-      title: "Payées",
-      value: stats.paid_count,
-      subtitle: `Total déductions: ${formatCurrency(stats.total_deductions)}`,
-      icon: HiOutlineCheckCircle,
-      color: "purple",
-      bgColor: "bg-purple-100",
-      iconColor: "text-purple-600",
-    },
-  ];
+  // ============================================
+  // MAIN RENDER
+  // ============================================
 
   return (
-    <div className="space-y-6">
-      {/* Modal des raccourcis */}
-      <ShortcutsHelpModal
-        isOpen={showShortcuts}
-        onClose={() => setShowShortcuts(false)}
-        shortcuts={shortcuts}
-        title="Raccourcis clavier - Paie"
+   <Can permission={COMMON_PERMISSIONS.HR.VIEW_PAYROLL} showMessage>
+     <div className="space-y-6">
+      {/* PDF Modal */}
+      <PDFPreviewModal
+        isOpen={pdfPreview.isOpen}
+        onClose={() => {
+          if (pdfPreview.pdfUrl) window.URL.revokeObjectURL(pdfPreview.pdfUrl);
+          setPdfPreview({ isOpen: false, pdfUrl: "", title: "", filename: "" });
+        }}
+        pdfUrl={pdfPreview.pdfUrl}
+        title={pdfPreview.title}
+        filename={pdfPreview.filename}
       />
 
+      {/* Messages */}
       {error && (
-        <Alert variant="error" className="flex items-center justify-between">
+        <Alert variant="error" className="flex justify-between items-center">
           <span>{error}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setError(null)}
-          >
-            <HiOutlineXMark className="size-4" />
+          <Button variant="ghost" size="sm" onClick={() => setError(null)}>
+            <HiOutlineXCircle className="size-4" />
           </Button>
         </Alert>
       )}
-
       {success && (
-        <Alert variant="success" className="flex items-center justify-between">
+        <Alert variant="success" className="flex justify-between items-center">
           <span>{success}</span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSuccess(null)}
-          >
-            <HiOutlineXMark className="size-4" />
+          <Button variant="ghost" size="sm" onClick={() => setSuccess(null)}>
+            <HiOutlineCheckCircle className="size-4" />
           </Button>
         </Alert>
       )}
@@ -618,800 +449,511 @@ export default function PayrollPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
             <HiOutlineBanknotes className="size-7" />
             Gestion de la Paie
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gérez les fiches de paie et suivez la masse salariale
+            {stats.totalPayslips} fiche(s) • {formatCurrency(stats.totalNet)} net total
           </p>
         </div>
-        <div className="flex gap-2 items-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowShortcuts(true)}
-            aria-label="Afficher les raccourcis clavier"
-            title="Raccourcis clavier (?)"
-          >
-            <HiOutlineQuestionMarkCircle className="size-4" />
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={loadData}>
+            <HiOutlineArrowPath className="size-4" />
           </Button>
-          <Can permission={`${ResourceType.EMPLOYEE}.${PermissionAction.CREATE}`}>
-            <Button variant="outline" asChild>
-              <Link href={`/apps/${slug}/hr/payroll/periods`}>
-                <HiOutlineCalendar className="size-4 mr-2" />
-                Périodes
-                <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">T</kbd>
-              </Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href={`/apps/${slug}/hr/payroll/advances`}>
-                <HiOutlineCurrencyDollar className="size-4 mr-2" />
-                Avances
-                <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">A</kbd>
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href={`/apps/${slug}/hr/payroll/create`}>
+          <Button onClick={handleGenerate} disabled={generating || !currentPeriod}>
+            {generating ? (
+              <>
+                <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                Génération...
+              </>
+            ) : (
+              <>
+                <HiOutlineSparkles className="size-4 mr-2" />
+                Générer les fiches
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4">
+          <div className="text-sm text-muted-foreground">Fiches de paie</div>
+          <div className="text-2xl font-bold">{stats.totalPayslips}</div>
+          <div className="text-xs text-muted-foreground">{stats.paidPayslips} payées</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-sm text-muted-foreground">Avances en attente</div>
+          <div className="text-2xl font-bold text-amber-600">{stats.pendingAdvances}</div>
+          <div className="text-xs text-muted-foreground">{stats.approvedAdvances} approuvées</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-sm text-muted-foreground">Périodes</div>
+          <div className="text-2xl font-bold">{stats.totalPeriods}</div>
+        </Card>
+        <Card className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+          <div className="text-sm text-muted-foreground">Masse salariale</div>
+          <div className="text-xl font-bold text-green-600">{formatCurrency(stats.totalNet)}</div>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="payslips" className="flex items-center gap-2">
+            <HiOutlineDocumentText className="size-4" />
+            <span className="hidden sm:inline">Fiches de paie</span>
+            <span className="sm:hidden">Fiches</span>
+            {stats.pendingPayslips > 0 && (
+              <Badge variant="warning" className="ml-1 size-5 p-0 justify-center text-xs">
+                {stats.pendingPayslips}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="advances" className="flex items-center gap-2">
+            <HiOutlineCurrencyDollar className="size-4" />
+            <span className="hidden sm:inline">Avances</span>
+            <span className="sm:hidden">Avances</span>
+            {stats.pendingAdvances > 0 && (
+              <Badge variant="warning" className="ml-1 size-5 p-0 justify-center text-xs">
+                {stats.pendingAdvances}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="periods" className="flex items-center gap-2">
+            <HiOutlineCalendar className="size-4" />
+            <span className="hidden sm:inline">Périodes</span>
+            <span className="sm:hidden">Périodes</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Search Bar */}
+        <div className="mt-4">
+          <div className="relative max-w-md">
+            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        {/* TAB: Payslips */}
+        <TabsContent value="payslips" className="mt-4">
+          <Card>
+            <div className="p-4 border-b flex justify-between items-center">
+              <div>
+                <h2 className="font-semibold">Fiches de paie</h2>
+                <p className="text-xs text-muted-foreground">{filteredPayslips.length} résultat(s)</p>
+              </div>
+              <Button size="sm" onClick={() => router.push(`/apps/${slug}/hr/payroll/create`)}>
                 <HiOutlinePlusCircle className="size-4 mr-2" />
                 Nouvelle fiche
-                <ShortcutBadge shortcut={shortcuts.find(s => s.key === "n")!} />
-              </Link>
-            </Button>
-          </Can>
-        </div>
-      </div>
+              </Button>
+            </div>
 
-      {/* Quick Actions Section */}
-      <Can permission={`${ResourceType.EMPLOYEE}.${PermissionAction.CREATE}`}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Quick Generate Card */}
-          <Card className="border shadow-sm">
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                    <HiOutlineSparkles className="size-5" />
-                    Génération Automatique
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Générez toutes les fiches de paie en 1 clic
-                  </p>
-                </div>
+            {filteredPayslips.length === 0 ? (
+              <div className="p-12 text-center text-muted-foreground">
+                <HiOutlineDocumentText className="size-12 mx-auto mb-4 opacity-50" />
+                <p>Aucune fiche de paie</p>
+                <p className="text-sm mt-2">Utilisez "Générer les fiches" pour créer les fiches de la période en cours</p>
               </div>
-
-              {currentPeriod ? (
-                <div className="space-y-4">
-                  <div className="bg-muted rounded-lg p-3">
-                    <p className="text-xs text-muted-foreground">Période actuelle</p>
-                    <p className="font-semibold text-sm mt-1">{currentPeriod.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(currentPeriod.start_date).toLocaleDateString('fr-FR')} - {new Date(currentPeriod.end_date).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2 text-sm">
-                    <p className="flex items-center gap-2 text-muted-foreground">
-                      • Salaires récupérés automatiquement
-                    </p>
-                    <p className="flex items-center gap-2 text-muted-foreground">
-                      • Avances déduites automatiquement
-                    </p>
-                    <p className="flex items-center gap-2 text-muted-foreground">
-                      • CNPS ({deductionConfig.cnps_percentage}%) et Impôts ({deductionConfig.tax_percentage}%) calculés
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={handleQuickGenerate}
-                      disabled={bulkGenerating}
-                      className="flex-1"
-                    >
-                      {bulkGenerating ? (
-                        <>
-                          <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                          Génération...
-                        </>
-                      ) : (
-                        <>
-                          <HiOutlineSparkles className="size-4 mr-2" />
-                          Générer Toutes les Paies
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setConfigDialog(true)}
-                      title="Configurer les déductions"
-                    >
-                      <HiOutlinePencil className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <Alert variant="warning">
-                    <p className="text-sm">Aucune période de paie active trouvée.</p>
-                  </Alert>
-                  <Button variant="outline" asChild className="w-full">
-                    <Link href={`/apps/${slug}/hr/payroll/periods`}>
-                      <HiOutlineCalendar className="size-4 mr-2" />
-                      Créer une période de paie
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Pending Advances Card */}
-          <Card className="border shadow-sm">
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                    <HiOutlineCurrencyDollar className="size-5" />
-                    Avances en Attente
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {pendingAdvances.length} demande(s) à traiter
-                  </p>
-                </div>
-                {pendingAdvances.length > 0 && (
-                  <Badge variant="default" className="text-lg px-3 py-1">
-                    {pendingAdvances.length}
-                  </Badge>
-                )}
-              </div>
-
-              {pendingAdvances.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="space-y-2 max-h-[180px] overflow-y-auto">
-                    {pendingAdvances.slice(0, 3).map((advance) => (
-                      <div
-                        key={advance.id}
-                        className="bg-muted rounded-lg p-3 flex items-center justify-between"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {advance.employee_name || 'N/A'}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatCurrency(advance.amount)}
-                          </p>
-                        </div>
-                        <Badge variant="default" className="ml-2 shrink-0">
-                          En attente
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-
-                  {pendingAdvances.length > 3 && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      + {pendingAdvances.length - 3} autre(s) demande(s)
-                    </p>
-                  )}
-
-                  <Button variant="outline" asChild className="w-full">
-                    <Link href={`/apps/${slug}/hr/payroll/advances`}>
-                      Gérer les avances
-                    </Link>
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <div className="flex size-12 items-center justify-center rounded-full bg-muted mb-3">
-                      <HiOutlineCheckCircle className="size-6" />
-                    </div>
-                    <p className="text-sm text-muted-foreground text-center">
-                      Aucune avance en attente
-                    </p>
-                  </div>
-                  <Button variant="outline" asChild className="w-full">
-                    <Link href={`/apps/${slug}/hr/payroll/advances`}>
-                      Voir toutes les avances
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </div>
-          </Card>
-        </div>
-      </Can>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsCards.map((stat) => (
-          <Card
-            key={stat.title}
-            className="p-6 border-0 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </p>
-                <p className="text-3xl font-bold text-foreground mt-2">
-                  {typeof stat.value === 'number' && stat.value > 999999
-                    ? stat.value
-                    : stat.value}
-                </p>
-                {stat.subtitle && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {stat.subtitle}
-                  </p>
-                )}
-              </div>
-              <div
-                className={`flex size-12 items-center justify-center rounded-xl ${stat.bgColor}`}
-              >
-                <stat.icon className={`size-6 ${stat.iconColor}`} />
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Filters & Search */}
-      <Card className="border-0 shadow-sm">
-        <div className="p-4 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                placeholder="Rechercher un employé (nom, matricule)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-20"
-                aria-label="Rechercher des fiches de paie"
-              />
-              <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs text-muted-foreground">
-                Ctrl+K
-              </kbd>
-            </div>
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <HiOutlineFunnel className="size-4 mr-2" />
-              <SelectValue placeholder="Tous les statuts" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous les statuts</SelectItem>
-              <SelectItem value="draft">Brouillon</SelectItem>
-              <SelectItem value="pending">En attente</SelectItem>
-              <SelectItem value="paid">Payé</SelectItem>
-              <SelectItem value="cancelled">Annulé</SelectItem>
-            </SelectContent>
-          </Select>
-          {(searchQuery || statusFilter !== "all") && (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setSearchQuery("");
-                setStatusFilter("all");
-              }}
-            >
-              <HiOutlineXMark className="size-4 mr-2" />
-              Réinitialiser
-              <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted px-1 font-mono text-xs">R</kbd>
-            </Button>
-          )}
-        </div>
-      </Card>
-
-      {/* Payslips Table */}
-      <Card className="border-0 shadow-sm">
-        <div className="border-b px-6 pt-6 pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">Fiches de paie</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                {filteredPayslips.length} fiche(s) trouvée(s)
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6">
-          {filteredPayslips.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-                  <HiOutlineDocumentText className="size-8 text-muted-foreground" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    {searchQuery || statusFilter !== "all"
-                      ? "Aucun résultat"
-                      : "Aucune fiche de paie"}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {searchQuery || statusFilter !== "all"
-                      ? "Essayez de modifier vos critères de recherche"
-                      : "Commencez par créer des fiches de paie pour vos employés"}
-                  </p>
-                </div>
-                {!searchQuery && statusFilter === "all" && (
-                  <Button asChild>
-                    <Link href={`/apps/${slug}/hr/payroll/create`}>
-                      <HiOutlinePlusCircle className="size-4 mr-2" />
-                      Créer une fiche de paie
-                    </Link>
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
+            ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Employé</TableHead>
-                    <TableHead>Période</TableHead>
-                    <TableHead className="text-right">Salaire de base</TableHead>
-                    <TableHead className="text-right">Salaire brut</TableHead>
-                    <TableHead className="text-right">Déductions</TableHead>
-                    <TableHead className="text-right">Salaire net</TableHead>
+                    <TableHead className="hidden md:table-cell">Période</TableHead>
+                    <TableHead className="text-right">Net</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedPayslips.map((payslip, index) => (
-                    <TableRow
-                      key={payslip.id}
-                      className={cn(
-                        "cursor-pointer transition-colors hover:bg-muted/50",
-                        selectedIndex === index && "bg-primary/10 ring-1 ring-primary"
-                      )}
-                      onClick={() => setSelectedIndex(index)}
-                      onDoubleClick={() => router.push(`/apps/${slug}/hr/payroll/${payslip.id}`)}
-                      tabIndex={0}
-                      role="row"
-                      aria-selected={selectedIndex === index}
-                    >
+                  {filteredPayslips.map((payslip) => (
+                    <TableRow key={payslip.id}>
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {payslip.employee_details?.full_name || 'N/A'}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {payslip.employee_details?.employee_id || 'N/A'}
-                          </span>
+                        <div>
+                          <p className="font-medium">{payslip.employee_name}</p>
+                          <p className="text-xs text-muted-foreground">{payslip.employee_id}</p>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div className="font-medium">
-                            {payslip.payroll_period_name || 'N/A'}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {payslip.start_date ? new Date(payslip.start_date).toLocaleDateString("fr-FR", { month: 'short', year: 'numeric' }) : 'N/A'}
-                          </div>
-                        </div>
+                      <TableCell className="hidden md:table-cell text-muted-foreground">
+                        {payslip.payroll_period_name}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-sm text-muted-foreground">
-                          {formatCurrency(payslip.base_salary)}
-                        </span>
+                      <TableCell className="text-right font-bold text-green-600">
+                        {formatCurrency(payslip.net_salary)}
                       </TableCell>
+                      <TableCell>{getPayslipStatusBadge(payslip.status)}</TableCell>
                       <TableCell className="text-right">
-                        <span className="text-sm font-medium">
-                          {formatCurrency(payslip.gross_salary)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-sm text-red-600">
-                          -{formatCurrency(payslip.total_deductions || 0)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-sm font-bold text-green-600">
-                          {formatCurrency(payslip.net_salary)}
-                        </span>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(payslip.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => router.push(`/apps/${slug}/hr/payroll/${payslip.id}`)}
+                            title="Voir les détails"
+                          >
+                            Détails
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePreviewPDF(payslip.id, payslip.employee_name || "")}
+                          >
+                            PDF
+                          </Button>
+                          {payslip.status !== "paid" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleMarkPaid(payslip.id)}
+                              disabled={processingId === payslip.id}
+                            >
+                              Payer
+                            </Button>
+                          )}
+                          {payslip.status === "draft" && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              disabled={processingId === payslip.id}
+                              className="text-destructive"
+                              onClick={() => handleDeletePayslip(payslip.id)}
                             >
-                              <HiOutlineEllipsisVertical className="size-4" />
+                              ×
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                              <Link href={`/apps/${slug}/hr/payroll/${payslip.id}`}>
-                                <HiOutlineEye className="size-4 mr-2" />
-                                Voir les détails
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handlePreviewPDF(
-                                  payslip.id,
-                                  payslip.employee_details?.full_name || 'Employee'
-                                )
-                              }
-                            >
-                              <HiOutlineEye className="size-4 mr-2" />
-                              Aperçu PDF
-                            </DropdownMenuItem>
-                            <Can permission={`${ResourceType.EMPLOYEE}.${PermissionAction.UPDATE}`}>
-                              <DropdownMenuItem asChild>
-                                <Link href={`/apps/${slug}/hr/payroll/${payslip.id}/edit`}>
-                                  <HiOutlinePencil className="size-4 mr-2" />
-                                  Modifier
-                                </Link>
-                              </DropdownMenuItem>
-                            </Can>
-                            {(payslip.status === "pending" || payslip.status === "draft") && (
-                              <Can permission={`${ResourceType.EMPLOYEE}.${PermissionAction.UPDATE}`}>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-green-600"
-                                  onClick={() =>
-                                    setMarkPaidDialog({ open: true, payslipId: payslip.id })
-                                  }
-                                >
-                                  <HiOutlineCheckCircle className="size-4 mr-2" />
-                                  Marquer comme payé
-                                </DropdownMenuItem>
-                              </Can>
-                            )}
-                            <Can permission={`${ResourceType.EMPLOYEE}.${PermissionAction.DELETE}`}>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() =>
-                                  setDeleteDialog({ open: true, payslipId: payslip.id })
-                                }
-                              >
-                                <HiOutlineTrash className="size-4 mr-2" />
-                                Supprimer
-                              </DropdownMenuItem>
-                            </Can>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+            )}
+          </Card>
+        </TabsContent>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    Page {currentPage} sur {totalPages} ({filteredPayslips.length} fiches)
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Précédent
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Suivant
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </Card>
+        {/* TAB: Advances */}
+        <TabsContent value="advances" className="mt-4">
+          <Card>
+            <div className="p-4 border-b flex justify-between items-center">
+              <div>
+                <h2 className="font-semibold">Avances sur salaire</h2>
+                <p className="text-xs text-muted-foreground">
+                  Les avances approuvées sont automatiquement déduites à la prochaine génération de paie
+                </p>
+              </div>
+              <Button size="sm" onClick={() => setShowAdvanceDialog(true)}>
+                <HiOutlinePlusCircle className="size-4 mr-2" />
+                Nouvelle avance
+              </Button>
+            </div>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, payslipId: null })}>
+            {filteredAdvances.length === 0 ? (
+              <div className="p-12 text-center text-muted-foreground">
+                <HiOutlineCurrencyDollar className="size-12 mx-auto mb-4 opacity-50" />
+                <p>Aucune demande d'avance</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employé</TableHead>
+                    <TableHead className="text-right">Montant</TableHead>
+                    <TableHead className="hidden md:table-cell">Raison</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAdvances.map((advance) => (
+                    <TableRow key={advance.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{advance.employee_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(advance.request_date).toLocaleDateString("fr-FR")}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
+                        {formatCurrency(advance.amount)}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell max-w-xs truncate text-muted-foreground">
+                        {advance.reason}
+                      </TableCell>
+                      <TableCell>{getAdvanceStatusBadge(advance.status)}</TableCell>
+                      <TableCell className="text-right">
+                        {advance.status === PayrollAdvanceStatus.PENDING && (
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              size="sm"
+                              onClick={() => handleApproveAdvance(advance)}
+                              disabled={processingId === advance.id}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <HiOutlineCheckCircle className="size-4 mr-1" />
+                              Approuver
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedAdvance(advance);
+                                setShowRejectDialog(true);
+                              }}
+                            >
+                              Rejeter
+                            </Button>
+                          </div>
+                        )}
+                        {advance.status === PayrollAdvanceStatus.APPROVED && (
+                          <span className="text-xs text-muted-foreground">
+                            Sera déduite à la prochaine paie
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+        </TabsContent>
+
+        {/* TAB: Periods */}
+        <TabsContent value="periods" className="mt-4">
+          <Card>
+            <div className="p-4 border-b flex justify-between items-center">
+              <div>
+                <h2 className="font-semibold">Périodes de paie</h2>
+                <p className="text-xs text-muted-foreground">{periods.length} période(s)</p>
+              </div>
+              <Button size="sm" onClick={initPeriodForm}>
+                <HiOutlinePlusCircle className="size-4 mr-2" />
+                Nouvelle période
+              </Button>
+            </div>
+
+            {periods.length === 0 ? (
+              <div className="p-12 text-center text-muted-foreground">
+                <HiOutlineCalendar className="size-12 mx-auto mb-4 opacity-50" />
+                <p>Aucune période de paie</p>
+                <Button className="mt-4" onClick={initPeriodForm}>
+                  Créer une période
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nom</TableHead>
+                    <TableHead>Période</TableHead>
+                    <TableHead className="hidden md:table-cell">Date paiement</TableHead>
+                    <TableHead>Fiches</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {periods.map((period) => (
+                    <TableRow key={period.id} className={cn(currentPeriod?.id === period.id && "bg-primary/5")}>
+                      <TableCell className="font-medium">
+                        {period.name}
+                        {currentPeriod?.id === period.id && (
+                          <Badge variant="default" className="ml-2">Active</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {new Date(period.start_date).toLocaleDateString("fr-FR")}
+                          <span className="text-muted-foreground"> → </span>
+                          {new Date(period.end_date).toLocaleDateString("fr-FR")}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground">
+                        {period.payment_date
+                          ? new Date(period.payment_date).toLocaleDateString("fr-FR")
+                          : "-"
+                        }
+                      </TableCell>
+                      <TableCell>{period.payslip_count || 0}</TableCell>
+                      <TableCell className="text-right">
+                        {(period.payslip_count || 0) === 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => handleDeletePeriod(period.id)}
+                          >
+                            Supprimer
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog: Create Period */}
+      <Dialog open={showPeriodDialog} onOpenChange={setShowPeriodDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogTitle>Nouvelle période de paie</DialogTitle>
             <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer cette fiche de paie ? Cette action est irréversible.
+              Créez une période pour générer les fiches de paie
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nom *</Label>
+              <Input
+                value={periodForm.name}
+                onChange={(e) => setPeriodForm({ ...periodForm, name: e.target.value })}
+                placeholder="Janvier 2026"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Date début *</Label>
+                <Input
+                  type="date"
+                  value={periodForm.start_date}
+                  onChange={(e) => setPeriodForm({ ...periodForm, start_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Date fin *</Label>
+                <Input
+                  type="date"
+                  value={periodForm.end_date}
+                  onChange={(e) => setPeriodForm({ ...periodForm, end_date: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Date de paiement (optionnel)</Label>
+              <Input
+                type="date"
+                value={periodForm.payment_date}
+                onChange={(e) => setPeriodForm({ ...periodForm, payment_date: e.target.value })}
+              />
+            </div>
+          </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialog({ open: false, payslipId: null })}
-            >
+            <Button variant="outline" onClick={() => setShowPeriodDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleCreatePeriod} disabled={processingId === "period"}>
+              {processingId === "period" ? "Création..." : "Créer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Create Advance */}
+      <Dialog open={showAdvanceDialog} onOpenChange={setShowAdvanceDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouvelle demande d'avance</DialogTitle>
+            <DialogDescription>
+              L'avance sera automatiquement déduite à la prochaine génération de paie après approbation
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Employé *</Label>
+              <Select
+                value={advanceForm.employee}
+                onValueChange={(v) => setAdvanceForm({ ...advanceForm, employee: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un employé" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.full_name} ({emp.employee_id})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Montant (GNF) *</Label>
+              <Input
+                type="number"
+                value={advanceForm.amount}
+                onChange={(e) => setAdvanceForm({ ...advanceForm, amount: e.target.value })}
+                placeholder="500000"
+              />
+            </div>
+            <div>
+              <Label>Raison *</Label>
+              <Textarea
+                value={advanceForm.reason}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAdvanceForm({ ...advanceForm, reason: e.target.value })}
+                placeholder="Raison de la demande d'avance..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAdvanceDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleCreateAdvance} disabled={processingId === "advance"}>
+              {processingId === "advance" ? "Création..." : "Créer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Reject Advance */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rejeter la demande d'avance</DialogTitle>
+            <DialogDescription>
+              Rejet de l'avance de {formatCurrency(selectedAdvance?.amount || 0)} pour {selectedAdvance?.employee_name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Raison du rejet *</Label>
+              <Textarea
+                value={rejectionReason}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRejectionReason(e.target.value)}
+                placeholder="Expliquez la raison du rejet..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowRejectDialog(false);
+              setSelectedAdvance(null);
+              setRejectionReason("");
+            }}>
               Annuler
             </Button>
             <Button
               variant="destructive"
-              onClick={() => deleteDialog.payslipId && handleDelete(deleteDialog.payslipId)}
-              disabled={processingId !== null}
+              onClick={handleRejectAdvance}
+              disabled={processingId === selectedAdvance?.id}
             >
-              {processingId ? "Suppression..." : "Supprimer"}
+              Rejeter
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Mark as Paid Confirmation Dialog */}
-      <Dialog open={markPaidDialog.open} onOpenChange={(open) => setMarkPaidDialog({ open, payslipId: null })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Marquer comme payé</DialogTitle>
-            <DialogDescription>
-              Confirmer que cette fiche de paie a été payée ? Le statut sera mis à jour en conséquence.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setMarkPaidDialog({ open: false, payslipId: null })}
-            >
-              Annuler
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => markPaidDialog.payslipId && handleMarkAsPaid(markPaidDialog.payslipId)}
-              disabled={processingId !== null}
-            >
-              {processingId ? "Traitement..." : "Confirmer"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Bulk Generate Dialog */}
-      <Dialog open={bulkGenerateDialog} onOpenChange={setBulkGenerateDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Génération groupée</DialogTitle>
-            <DialogDescription>
-              Pour générer des fiches de paie en masse, veuillez d'abord créer une période de paie dans l'onglet "Périodes de paie".
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setBulkGenerateDialog(false)}
-            >
-              Annuler
-            </Button>
-            <Button asChild>
-              <Link href={`/apps/${slug}/hr/payroll/periods`}>
-                <HiOutlineCalendar className="size-4 mr-2" />
-                Voir les périodes
-              </Link>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Deductions Configuration Dialog */}
-      <Dialog open={configDialog} onOpenChange={setConfigDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Configuration des Déductions</DialogTitle>
-            <DialogDescription>
-              Personnalisez les pourcentages de déduction et ajoutez des déductions personnalisées.
-              Ces paramètres seront utilisés lors de la génération automatique des fiches de paie.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            {/* Standard Deductions */}
-            <div className="space-y-4">
-              <h4 className="font-medium text-sm">Déductions Standards</h4>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cnps">CNPS (%)</Label>
-                  <Input
-                    id="cnps"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={deductionConfig.cnps_percentage}
-                    onChange={(e) =>
-                      setDeductionConfig({
-                        ...deductionConfig,
-                        cnps_percentage: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Pourcentage de cotisation CNPS
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tax">Impôts (%)</Label>
-                  <Input
-                    id="tax"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={deductionConfig.tax_percentage}
-                    onChange={(e) =>
-                      setDeductionConfig({
-                        ...deductionConfig,
-                        tax_percentage: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Pourcentage d'imposition sur le salaire
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Custom Deductions */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium text-sm">Déductions Personnalisées</h4>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setDeductionConfig({
-                      ...deductionConfig,
-                      custom_deductions: [
-                        ...deductionConfig.custom_deductions,
-                        { name: '', amount: 0 },
-                      ],
-                    })
-                  }
-                >
-                  <HiOutlinePlusCircle className="size-4 mr-2" />
-                  Ajouter
-                </Button>
-              </div>
-
-              {deductionConfig.custom_deductions.length === 0 ? (
-                <div className="p-8 text-center border-2 border-dashed rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    Aucune déduction personnalisée.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Cliquez sur "Ajouter" pour créer une déduction.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {deductionConfig.custom_deductions.map((deduction, index) => (
-                    <Card key={index} className="p-4">
-                      <div className="flex gap-3">
-                        <div className="flex-1 space-y-2">
-                          <Label htmlFor={`deduction-name-${index}`}>Nom</Label>
-                          <Input
-                            id={`deduction-name-${index}`}
-                            placeholder="Ex: Assurance santé"
-                            value={deduction.name}
-                            onChange={(e) => {
-                              const newDeductions = [...deductionConfig.custom_deductions];
-                              newDeductions[index].name = e.target.value;
-                              setDeductionConfig({
-                                ...deductionConfig,
-                                custom_deductions: newDeductions,
-                              });
-                            }}
-                          />
-                        </div>
-                        <div className="w-32 space-y-2">
-                          <Label htmlFor={`deduction-amount-${index}`}>Montant (GNF)</Label>
-                          <Input
-                            id={`deduction-amount-${index}`}
-                            type="number"
-                            min="0"
-                            value={deduction.amount}
-                            onChange={(e) => {
-                              const newDeductions = [...deductionConfig.custom_deductions];
-                              newDeductions[index].amount = parseFloat(e.target.value) || 0;
-                              setDeductionConfig({
-                                ...deductionConfig,
-                                custom_deductions: newDeductions,
-                              });
-                            }}
-                          />
-                        </div>
-                        <div className="flex items-end">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              const newDeductions = deductionConfig.custom_deductions.filter(
-                                (_, i) => i !== index
-                              );
-                              setDeductionConfig({
-                                ...deductionConfig,
-                                custom_deductions: newDeductions,
-                              });
-                            }}
-                          >
-                            <HiOutlineTrash className="size-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Preview */}
-            <div className="space-y-2">
-              <h4 className="font-medium text-sm">Aperçu</h4>
-              <Card className="p-4 bg-muted/50">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>CNPS:</span>
-                    <span className="font-medium">{deductionConfig.cnps_percentage}%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Impôts:</span>
-                    <span className="font-medium">{deductionConfig.tax_percentage}%</span>
-                  </div>
-                  {deductionConfig.custom_deductions.length > 0 && (
-                    <>
-                      <div className="border-t pt-2 mt-2">
-                        <p className="text-xs text-muted-foreground mb-2">Déductions fixes:</p>
-                        {deductionConfig.custom_deductions.map((ded, idx) => (
-                          <div key={idx} className="flex justify-between">
-                            <span>{ded.name || 'Sans nom'}:</span>
-                            <span className="font-medium">{formatCurrency(ded.amount)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </Card>
-              <p className="text-xs text-muted-foreground">
-                ⚠️ Note: Les déductions personnalisées seront appliquées à tous les employés lors de la génération automatique.
-                Pour des déductions spécifiques à un employé, créez la fiche de paie manuellement.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfigDialog(false)}>
-              Annuler
-            </Button>
-            <Button onClick={saveDeductionConfig}>
-              <HiOutlineCheckCircle className="size-4 mr-2" />
-              Enregistrer la configuration
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* PDF Preview Modal */}
-      <PDFPreviewModal
-        isOpen={pdfPreview.isOpen}
-        onClose={closePdfPreview}
-        title={pdfPreview.title}
-        pdfUrl={pdfPreview.pdfUrl}
-        filename={pdfPreview.filename}
-      />
-
-      {/* Hint */}
-      <KeyboardHint />
     </div>
+   </Can>
   );
 }

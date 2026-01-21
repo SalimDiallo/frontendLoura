@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card, Button, Alert, Badge } from '@/components/ui';
+import { Card, Button, Alert, Badge, Input } from '@/components/ui';
 import {
   Table,
   TableBody,
@@ -13,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { getDepartment, deleteDepartment, activateDepartment, deactivateDepartment } from '@/lib/services/hr/department.service';
-import { getEmployees } from '@/lib/services/hr/employee.service';
+import { getEmployees, patchEmployee } from '@/lib/services/hr/employee.service';
 import type { Department, EmployeeListItem } from '@/lib/types/hr';
 import {
   HiOutlineArrowLeft,
@@ -25,9 +25,14 @@ import {
   HiOutlineCheckCircle,
   HiOutlineXCircle,
   HiOutlineCog,
+  HiOutlinePlusCircle,
+  HiOutlineMinusCircle,
+  HiOutlineXMark,
+  HiOutlineMagnifyingGlass,
 } from 'react-icons/hi2';
 import { Can } from '@/components/apps/common';
 import { COMMON_PERMISSIONS } from '@/lib/types/shared';
+import { MinusCircle, Plus, PlusCircle } from 'lucide-react';
 
 export default function DepartmentDetailPage() {
   const params = useParams();
@@ -43,6 +48,14 @@ export default function DepartmentDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [toggling, setToggling] = useState(false);
 
+  // État pour la modale de gestion des employés
+  const [showManageModal, setShowManageModal] = useState(false);
+  const [allEmployees, setAllEmployees] = useState<EmployeeListItem[]>([]);
+  const [loadingAllEmployees, setLoadingAllEmployees] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [updatingEmployee, setUpdatingEmployee] = useState<string | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+
   useEffect(() => {
     loadDepartmentDetails();
     loadDepartmentEmployees();
@@ -54,6 +67,8 @@ export default function DepartmentDetailPage() {
       setError(null);
       const data = await getDepartment(departmentId);
       setDepartment(data);
+      console.log(data);
+      
     } catch (err: any) {
       console.error('Error loading department:', err);
       setError(err.message || 'Erreur lors du chargement du département');
@@ -67,6 +82,7 @@ export default function DepartmentDetailPage() {
       setLoadingEmployees(true);
       // Charger les employés du département
       const data = await getEmployees(slug, { department: departmentId });
+      
       setEmployees(data.results || []);
     } catch (err: any) {
       console.error('Error loading employees:', err);
@@ -74,6 +90,86 @@ export default function DepartmentDetailPage() {
       setLoadingEmployees(false);
     }
   };
+
+  const loadAllEmployees = async () => {
+    try {
+      setLoadingAllEmployees(true);
+      // Charger tous les employés de l'organisation
+      const data = await getEmployees(slug, { is_active: true });
+      setAllEmployees(data.results || []);
+    } catch (err: any) {
+      console.error('Error loading all employees:', err);
+    } finally {
+      setLoadingAllEmployees(false);
+    }
+  };
+
+  const openManageModal = async () => {
+    setShowManageModal(true);
+    setSearchQuery('');
+    setModalError(null);
+    await loadAllEmployees();
+  };
+
+  const closeManageModal = () => {
+    setShowManageModal(false);
+    setSearchQuery('');
+    setModalError(null);
+  };
+
+  const handleAddEmployee = async (employeeId: string) => {
+    try {
+      setUpdatingEmployee(employeeId);
+      setModalError(null);
+      console.log('[handleAddEmployee] Ajout employé', employeeId, 'au département', departmentId);
+      const result = await patchEmployee(employeeId, { department: departmentId });
+      console.log('[handleAddEmployee] Résultat:', result);
+      // Recharger les données
+      await Promise.all([loadDepartmentEmployees(), loadAllEmployees()]);
+      console.log('[handleAddEmployee] Données rechargées');
+    } catch (err: any) {
+      console.error('Error adding employee:', err);
+      setModalError('Erreur lors de l\'ajout de l\'employé');
+    } finally {
+      setUpdatingEmployee(null);
+    }
+  };
+
+  const handleRemoveEmployee = async (employeeId: string) => {
+    try {
+      setUpdatingEmployee(employeeId);
+      setModalError(null);
+      console.log('[handleRemoveEmployee] Retrait employé', employeeId, 'du département');
+      const result = await patchEmployee(employeeId, { department: null });
+      console.log('[handleRemoveEmployee] Résultat:', result);
+      // Recharger les données
+      await Promise.all([loadDepartmentEmployees(), loadAllEmployees()]);
+      console.log('[handleRemoveEmployee] Données rechargées');
+    } catch (err: any) {
+      console.error('Error removing employee:', err);
+      setModalError('Erreur lors du retrait de l\'employé');
+    } finally {
+      setUpdatingEmployee(null);
+    }
+  };
+
+  // Filtrer les employés pour la modale
+  const filteredAllEmployees = allEmployees.filter((emp) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      emp.full_name.toLowerCase().includes(searchLower) ||
+      emp.email.toLowerCase().includes(searchLower) ||
+      (emp.employee_id && emp.employee_id.toLowerCase().includes(searchLower))
+    );
+  });
+
+  // Séparer les employés du département et les autres
+  const employeesInDepartment = filteredAllEmployees.filter(
+    (emp) => emp.department === departmentId
+  );
+  const employeesNotInDepartment = filteredAllEmployees.filter(
+    (emp) => emp.department !== departmentId
+  );
 
   const handleDelete = async () => {
     if (!department) return;
@@ -325,13 +421,11 @@ export default function DepartmentDetailPage() {
        <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Employés du Département</h2>
-          <Can permission={COMMON_PERMISSIONS.HR.CREATE_EMPLOYEES}>
-            <Link href={`/apps/${slug}/hr/employees/create?department=${departmentId}`}>
-              <Button size="sm">
-                <HiOutlineUsers className="size-4 mr-2" />
-                Ajouter un employé
-              </Button>
-            </Link>
+          <Can permission={COMMON_PERMISSIONS.HR.UPDATE_DEPARTMENTS}>
+            <Button size="sm" onClick={openManageModal}>
+              <HiOutlineUsers className="size-4 mr-2" />
+              Gérer les employés
+            </Button>
           </Can>
         </div>
 
@@ -344,12 +438,10 @@ export default function DepartmentDetailPage() {
           <div className="text-center py-12">
             <HiOutlineUsers className="size-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">Aucun employé dans ce département</p>
-            <Can permission={COMMON_PERMISSIONS.HR.CREATE_EMPLOYEES}>
-              <Link href={`/apps/${slug}/hr/employees/create?department=${departmentId}`}>
-                <Button variant="outline" size="sm" className="mt-4">
-                  Ajouter le premier employé
-                </Button>
-              </Link>
+            <Can permission={COMMON_PERMISSIONS.HR.UPDATE_DEPARTMENTS}>
+              <Button variant="outline" size="sm" className="mt-4" onClick={openManageModal}>
+                Ajouter des employés
+              </Button>
             </Can>
           </div>
         ) : (
@@ -410,6 +502,167 @@ export default function DepartmentDetailPage() {
       </Card>
      </Can>
     </div>
+
+    {/* Modale de gestion des employés */}
+    {showManageModal && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-background rounded-lg shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+          {/* Header de la modale */}
+          <div className="flex items-center justify-between p-6 border-b">
+            <div>
+              <h3 className="text-xl font-semibold">Gérer les employés</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Département: {department?.name}
+              </p>
+            </div>
+            <button
+              onClick={closeManageModal}
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
+            >
+              <HiOutlineXMark className="size-5" />
+            </button>
+          </div>
+
+          {/* Barre de recherche */}
+          <div className="p-4 border-b">
+            <div className="relative">
+              <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher par nom, email ou matricule..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          {modalError && (
+            <div className="px-4 pt-4">
+              <Alert variant="error" onClose={() => setModalError(null)}>
+                {modalError}
+              </Alert>
+            </div>
+          )}
+
+          {/* Contenu de la modale */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {loadingAllEmployees ? (
+              <div className="text-center py-8">
+                <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-current border-r-transparent" />
+                <p className="mt-2 text-sm text-muted-foreground">Chargement des employés...</p>
+              </div>
+            ) : (
+              <>
+                {/* Employés dans le département */}
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <HiOutlineUsers className="size-4" />
+                    Dans ce département ({employeesInDepartment.length})
+                  </h4>
+                  {employeesInDepartment.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">
+                      Aucun employé dans ce département
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {employeesInDepartment.map((emp) => (
+                        <div
+                          key={emp.id}
+                          className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{emp.full_name}</p>
+                            <p className="text-sm text-muted-foreground truncate">{emp.email}</p>
+                            {emp.employee_id && (
+                              <p className="text-xs text-muted-foreground">
+                                Matricule: {emp.employee_id}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-14 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/30 ml-3"
+                            onClick={() => handleRemoveEmployee(emp.id)}
+                            disabled={updatingEmployee === emp.id}
+                          >
+                            {updatingEmployee === emp.id ? (
+                              <div className="h-6 w-6 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                            ) : (
+                              <MinusCircle className='w-40 4-30' />
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Employés disponibles */}
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <HiOutlineUserGroup className="size-4" />
+                    Employés disponibles ({employeesNotInDepartment.length})
+                  </h4>
+                  {employeesNotInDepartment.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">
+                      {searchQuery ? 'Aucun employé trouvé' : 'Tous les employés sont déjà dans ce département'}
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {employeesNotInDepartment.map((emp) => (
+                        <div
+                          key={emp.id}
+                          className="flex items-center justify-between p-3 bg-muted/30 border rounded-lg hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{emp.full_name}</p>
+                            <p className="text-sm text-muted-foreground truncate">{emp.email}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {emp.employee_id && (
+                                <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                                  {emp.employee_id}
+                                </span>
+                              )}
+                              {emp.department_name && (
+                                <span className="text-xs text-muted-foreground">
+                                  Actuel: {emp.department_name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-14 text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900/30 ml-3"
+                            onClick={() => handleAddEmployee(emp.id)}
+                            disabled={updatingEmployee === emp.id}
+                          >
+                            {updatingEmployee === emp.id ? (
+                              <div className="h-6 w-6 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                            ) : (
+                              <PlusCircle className="w-40 h-40" />
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Footer de la modale */}
+          <div className="flex justify-end gap-2 p-4 border-t">
+            <Button variant="outline" onClick={closeManageModal}>
+              Fermer
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
     </Can>
   );
 }

@@ -16,6 +16,7 @@ import {
   Alert,
 } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import Logo from '@/components/ui/Logo';
 
 // Schéma de validation Zod
 const loginSchema = z.object({
@@ -29,7 +30,6 @@ const loginSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
-type UserType = 'admin' | 'employee';
 
 export default function UnifiedLoginPage() {
   const router = useRouter();
@@ -91,6 +91,13 @@ export default function UnifiedLoginPage() {
     try {
       setError(null);
       const response = await authService.login(data);
+      console.log("-----------------");
+      
+      console.log(response.user_type);
+
+      console.log('-----------------');
+      
+      
       
       // Obtenir l'URL de redirection
       const destination = getRedirectUrl(response.user_type, response.user);
@@ -118,16 +125,7 @@ export default function UnifiedLoginPage() {
       <div className="max-w-md w-full space-y-6">
         {/* Logo / Brand */}
         <div className="text-center">
-          <Link href="/" className="inline-block">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20 mb-4 hover:scale-105 transition-transform">
-              <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </div>
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Loura
-          </h1>
+          <Logo />
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
             Connexion à votre espace
           </p>

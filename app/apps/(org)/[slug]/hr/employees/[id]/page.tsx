@@ -11,8 +11,8 @@ import {
 } from "@/components/ui";
 import { EmploymentStatusBadge } from "@/components/hr";
 import { getEmployee, deleteEmployee, activateEmployee, deactivateEmployee } from "@/lib/services/hr/employee.service";
-import { contractService } from "@/lib/services/hr";
-import type { Employee, Contract } from "@/lib/types/hr";
+import { contractService, getPayrolls } from "@/lib/services/hr";
+import type { Employee, Contract, Payroll } from "@/lib/types/hr";
 import {
   HiOutlineArrowLeft,
   HiOutlinePencil,
@@ -51,10 +51,13 @@ export default function EmployeeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [payslips, setPayslips] = useState<Payroll[]>([]);
+  const [loadingPayslips, setLoadingPayslips] = useState(false);
 
   useEffect(() => {
     loadEmployee();
     loadContracts();
+    loadPayslips();
   }, [id]);
 
   const loadEmployee = async () => {
@@ -75,11 +78,27 @@ export default function EmployeeDetailPage() {
     try {
       setLoadingContracts(true);
       const data = await contractService.getEmployeeContracts(slug, id);
+      console.log("---------------------------------");
+      console.log(data);
+      console.log("---------------------------------");
+      
       setContracts(data);
     } catch (err) {
       console.error('Error loading contracts:', err);
     } finally {
       setLoadingContracts(false);
+    }
+  };
+
+  const loadPayslips = async () => {
+    try {
+      setLoadingPayslips(true);
+      const data = await getPayrolls(slug, { employee: id, page_size: 50 });
+      setPayslips(data.results);
+    } catch (err) {
+      console.error('Error loading payslips:', err);
+    } finally {
+      setLoadingPayslips(false);
     }
   };
 
@@ -282,21 +301,30 @@ export default function EmployeeDetailPage() {
         </div>
       </Card>
 
+
       {/* Tabs with Details */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
           <TabsTrigger value="employment">Emploi</TabsTrigger>
+          <Can permission={COMMON_PERMISSIONS.HR.VIEW_CONTRACTS}>
+
           <TabsTrigger value="contracts">
             Contrats
             {contracts.length > 0 && (
               <Badge className="ml-2 bg-primary/10 text-primary">{contracts.length}</Badge>
             )}
           </TabsTrigger>
+          </Can>
           <Can permission={COMMON_PERMISSIONS.HR.MANAGE_EMPLOYEE_PERMISSIONS}>
               <TabsTrigger value="permissions">Rôles & Permissions</TabsTrigger>
           </Can>
-          <TabsTrigger value="compensation">Compensation</TabsTrigger>
+          <TabsTrigger value="payroll">
+            Paie
+            {payslips.length > 0 && (
+              <Badge className="ml-2 bg-green-100 text-green-700">{payslips.length}</Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
@@ -638,34 +666,6 @@ export default function EmployeeDetailPage() {
           </div>
         </TabsContent>
 
-        {/* Compensation Tab */}
-        <TabsContent value="compensation" className="space-y-4">
-          <Can permission={COMMON_PERMISSIONS.HR.VIEW_PAYROLL}>
-            <Card className="p-6 border-0 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <HiOutlineBanknotes className="size-5 text-primary" />
-                Salaire et compensation
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <div className="text-sm text-muted-foreground">Salaire de base</div>
-                  <div className="text-2xl font-bold text-foreground">
-                    {employee.salary
-                      ? `${employee.salary.toLocaleString()} ${employee.currency || "GNF"}`
-                      : "Non renseigné"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Devise</div>
-                  <div className="text-base font-medium">
-                    {employee.currency || "GNF"}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </Can>
-        </TabsContent>
-
         {/* Contracts Tab */}
         <TabsContent value="contracts" className="space-y-4">
           <div className="flex justify-between items-center">
@@ -929,6 +929,89 @@ export default function EmployeeDetailPage() {
               </div>
             </div>
           </Card>
+        </TabsContent>
+
+        {/* Payroll Tab */}
+        <TabsContent value="payroll" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold">Fiches de paie</h3>
+              <p className="text-sm text-muted-foreground">
+                Historique des fiches de paie de l'employé
+              </p>
+            </div>
+            <Button asChild size="sm">
+              <Link href={`/apps/${slug}/hr/payroll/create?employee=${id}`}>
+                <HiOutlinePlusCircle className="size-4 mr-2" />
+                Nouvelle fiche
+              </Link>
+            </Button>
+          </div>
+
+          {loadingPayslips ? (
+            <Card className="p-8 border-0 shadow-sm">
+              <div className="animate-pulse space-y-4">
+                <div className="h-16 bg-muted rounded"></div>
+                <div className="h-16 bg-muted rounded"></div>
+              </div>
+            </Card>
+          ) : payslips.length === 0 ? (
+            <Card className="p-12 text-center border-0 shadow-sm">
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex size-16 items-center justify-center rounded-full bg-muted">
+                  <HiOutlineBanknotes className="size-8 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">Aucune fiche de paie</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Cet employé n'a pas encore de fiche de paie
+                  </p>
+                </div>
+                <Button asChild>
+                  <Link href={`/apps/${slug}/hr/payroll/create?employee=${id}`}>
+                    <HiOutlinePlusCircle className="size-4 mr-2" />
+                    Créer une fiche de paie
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {payslips.map((payslip) => {
+                const statusConfig: Record<string, { label: string; className: string }> = {
+                  draft: { label: "Brouillon", className: "bg-gray-100 text-gray-800" },
+                  pending: { label: "En attente", className: "bg-amber-100 text-amber-800" },
+                  paid: { label: "Payé", className: "bg-green-100 text-green-800" },
+                  cancelled: { label: "Annulé", className: "bg-red-100 text-red-800" },
+                };
+                const config = statusConfig[payslip.status] || { label: payslip.status, className: "" };
+
+                return (
+                  <Card key={payslip.id} className="p-4 border-0 shadow-sm hover:bg-muted/20 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">{payslip.payroll_period_name}</span>
+                          <Badge className={config.className}>{config.label}</Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          Salaire net: <span className="font-semibold text-green-600">{payslip.net_salary?.toLocaleString('fr-FR')} GNF</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/apps/${slug}/hr/payroll/${payslip.id}`}>
+                            <HiOutlineEye className="size-4 mr-1" />
+                            Détails
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

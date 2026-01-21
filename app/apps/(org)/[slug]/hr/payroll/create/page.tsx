@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,9 @@ import { PayrollAdvancesSummary } from "@/components/hr/payroll-advances-summary
 export default function CreatePayrollPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
+  const preselectedEmployeeId = searchParams.get('employee');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,6 +87,16 @@ export default function CreatePayrollPage() {
     loadEmployees();
     loadPayrollPeriods();
   }, [slug]);
+
+  // Pre-select employee if provided in URL
+  useEffect(() => {
+    if (preselectedEmployeeId && employees.length > 0 && !formData.employee) {
+      const employeeExists = employees.some(emp => emp.id === preselectedEmployeeId);
+      if (employeeExists) {
+        handleEmployeeChange(preselectedEmployeeId);
+      }
+    }
+  }, [preselectedEmployeeId, employees]);
 
   const loadEmployees = async () => {
     try {
@@ -189,7 +201,7 @@ export default function CreatePayrollPage() {
     }
   };
 
-  // Load advances for selected employee (PAID status, not yet linked to payroll)
+  // Load advances for selected employee (APPROVED status = ready to be deducted)
   const loadEmployeeAdvances = async (employeeId: string) => {
     try {
       setLoadingAdvances(true);
@@ -199,7 +211,7 @@ export default function CreatePayrollPage() {
       const advances = await getPayrollAdvances({
         organization_subdomain: slug,
         employee: employeeId,
-        status: 'paid', // Use lowercase string instead of enum
+        status: 'approved', // Avances approuvées prêtes à être déduites
       });
 
       console.log('All advances received:', advances);

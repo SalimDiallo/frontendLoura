@@ -28,8 +28,10 @@ export function PayrollAdvancesSummary({
     return null;
   }
 
-  const paidAdvances = advances.filter((a) => a.status === "paid");
-  const totalAdvancesAmount = paidAdvances.reduce((sum, a) => sum + a.amount, 0);
+  // Dans le workflow simplifié, on filtre sur les avances "approved"
+  // qui seront déduites automatiquement lors de la génération de paie
+  const approvedAdvances = advances.filter((a) => a.status === "approved");
+  const totalAdvancesAmount = approvedAdvances.reduce((sum, a) => sum + a.amount, 0);
 
   const toggleAdvanceSelection = (advanceId: string) => {
     if (!onAdvanceSelect) return;
@@ -42,7 +44,7 @@ export function PayrollAdvancesSummary({
     onAdvanceSelect(newSelection);
   };
 
-  if (paidAdvances.length === 0) {
+  if (approvedAdvances.length === 0) {
     return null;
   }
 
@@ -59,14 +61,14 @@ export function PayrollAdvancesSummary({
             </h3>
             {employeeName && (
               <p className="text-sm text-amber-700 dark:text-amber-300 mt-0.5">
-                {employeeName} a {paidAdvances.length} avance(s) payée(s) en attente de déduction
+                {employeeName} a {approvedAdvances.length} avance(s) approuvée(s) en attente de déduction
               </p>
             )}
           </div>
         </div>
 
         <div className="space-y-2">
-          {paidAdvances.map((advance) => {
+          {approvedAdvances.map((advance) => {
             const isSelected = selectedAdvanceIds.includes(advance.id);
 
             return (
@@ -119,7 +121,7 @@ export function PayrollAdvancesSummary({
             <div className="flex-1">
               <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
                 Total à déduire : {formatCurrency(
-                  paidAdvances
+                  approvedAdvances
                     .filter(a => selectedAdvanceIds.includes(a.id))
                     .reduce((sum, a) => sum + a.amount, 0)
                 )}

@@ -10,9 +10,27 @@ import {
   canViewAttendance,
   type AttendanceFeatures,
 } from '@/lib/utils/attendance-permissions';
+import { UserPermissionContext } from '@/lib/types/shared';
 
 export function useAttendancePermissions() {
-  const { permissionContext, can, cannot, hasPermission, isLoading } = usePermissionContext();
+  const { 
+    hasPermission, 
+    hasAnyPermission,
+    hasAllPermissions,
+    isAdmin, 
+    userId,
+    organizationId,
+    permissions,
+    isLoading 
+  } = usePermissionContext();
+
+  // Construit un contexte compatible avec les utilitaires
+  const permissionContext: UserPermissionContext = useMemo(() => ({
+    userId: userId || '',
+    organizationId: organizationId || '',
+    permissions,
+    isAdmin,
+  }), [userId, organizationId, permissions, isAdmin]);
 
   // Calculer les fonctionnalités disponibles
   const features: AttendanceFeatures = useMemo(
@@ -57,7 +75,7 @@ export function useAttendancePermissions() {
    */
   const canApprove = (attendanceEmployeeId?: string) => {
     // On ne peut pas approuver son propre pointage
-    if (attendanceEmployeeId === permissionContext?.userId) return false;
+    if (attendanceEmployeeId === userId) return false;
 
     return features.canApprove;
   };
@@ -72,9 +90,9 @@ export function useAttendancePermissions() {
     viewScope,
 
     // Permission checks
-    can,
-    cannot,
     hasPermission,
+    hasAnyPermission,
+    hasAllPermissions,
 
     // Attendance-specific checks
     canView,

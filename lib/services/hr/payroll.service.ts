@@ -94,13 +94,15 @@ export async function deletePayroll(id: string): Promise<void> {
 }
 
 /**
- * Génération automatique de toutes les fiches de paie pour une période
- * Avec déduction automatique des avances
+ * Génération automatique de fiches de paie pour une période
+ * Avec déduction automatique des avances et sélection d'employés
  */
 export async function generateBulkPayslips(
   payrollPeriodId: string,
   options?: {
     auto_deduct_advances?: boolean;
+    auto_approve?: boolean;
+    employee_ids?: string[];
     employee_filters?: {
       department?: string;
       position?: string;
@@ -119,6 +121,8 @@ export async function generateBulkPayslips(
     {
       payroll_period: payrollPeriodId,
       auto_deduct_advances: options?.auto_deduct_advances ?? true,
+      auto_approve: options?.auto_approve ?? false,
+      employee_ids: options?.employee_ids ?? [],
       employee_filters: options?.employee_filters ?? {},
     }
   );

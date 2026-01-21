@@ -12,13 +12,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, Button, Card, Input, Badge } from "@/components/ui";
 import { getDepartments, deleteDepartment } from "@/lib/services/hr/department.service";
@@ -27,20 +25,19 @@ import type { Department, Position } from "@/lib/types/hr";
 import {
   HiOutlinePlusCircle,
   HiOutlineMagnifyingGlass,
-  HiOutlineEllipsisVertical,
   HiOutlineEye,
   HiOutlinePencil,
   HiOutlineTrash,
   HiOutlineBriefcase,
   HiOutlineXMark,
   HiOutlineUserGroup,
+  HiOutlineQuestionMarkCircle,
 } from "react-icons/hi2";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/shared";
 import { cn } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
-import { HiOutlineQuestionMarkCircle } from "react-icons/hi2";
 
 export default function DepartmentsPage() {
   const params = useParams();
@@ -97,10 +94,22 @@ export default function DepartmentsPage() {
 
     try {
       setDeleting(id);
+      setError(null);
       await deleteDepartment(id);
       await loadData();
-    } catch (err) {
-      alert("Erreur lors de la suppression");
+    } catch (err: unknown) {
+      // Extraire le message d'erreur du backend (ApiError)
+      let errorMessage = "Erreur lors de la suppression";
+      if (err && typeof err === 'object') {
+        // ApiError a une propriété data qui contient la réponse du backend
+        const apiErr = err as { data?: { error?: string }; message?: string };
+        if (apiErr.data?.error) {
+          errorMessage = apiErr.data.error;
+        } else if (apiErr.message) {
+          errorMessage = apiErr.message;
+        }
+      }
+      setError(errorMessage);
       console.error(err);
     } finally {
       setDeleting(null);
@@ -420,49 +429,58 @@ export default function DepartmentsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={deleting === department.id}
-                            >
-                              <HiOutlineEllipsisVertical className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                             <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
-                                <DropdownMenuItem asChild>
-                              <Link href={`/apps/${slug}/hr/departments/${department.id}`}>
-                                <HiOutlineEye className="size-4 mr-2" />
-                                Voir les détails
-                              </Link>
-                            </DropdownMenuItem>
-                             </Can>
-                            <Can permission={COMMON_PERMISSIONS.HR.UPDATE_DEPARTMENTS}>
-                               <DropdownMenuItem asChild>
-                              <Link
-                                href={`/apps/${slug}/hr/departments/${department.id}/edit`}
-                              >
-                                <HiOutlinePencil className="size-4 mr-2" />
-                                Modifier
-                              </Link>
-                            </DropdownMenuItem>
+                        <TooltipProvider delayDuration={300}>
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Voir les détails */}
+                            <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="size-8" asChild>
+                                    <Link href={`/apps/${slug}/hr/departments/${department.id}`}>
+                                      <HiOutlineEye className="size-4" />
+                                    </Link>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Voir les détails</TooltipContent>
+                              </Tooltip>
                             </Can>
-                            <DropdownMenuSeparator />
-                           <Can permission={COMMON_PERMISSIONS.HR.DELETE_DEPARTMENTS}>
-                             <DropdownMenuItem
-                               className="text-destructive"
-                               onClick={() => handleDeleteDepartment(department.id)}
-                             >
-                               <HiOutlineTrash className="size-4 mr-2" />
-                               Supprimer
-                             </DropdownMenuItem>
-                           </Can>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+
+                            {/* Modifier */}
+                            <Can permission={COMMON_PERMISSIONS.HR.UPDATE_DEPARTMENTS}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="size-8" asChild>
+                                    <Link href={`/apps/${slug}/hr/departments/${department.id}/edit`}>
+                                      <HiOutlinePencil className="size-4" />
+                                    </Link>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Modifier</TooltipContent>
+                              </Tooltip>
+                            </Can>
+
+                            {/* Supprimer */}
+                            <Can permission={COMMON_PERMISSIONS.HR.DELETE_DEPARTMENTS}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8 text-destructive hover:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteDepartment(department.id);
+                                    }}
+                                    disabled={deleting === department.id}
+                                  >
+                                    <HiOutlineTrash className="size-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Supprimer</TooltipContent>
+                              </Tooltip>
+                            </Can>
+                          </div>
+                        </TooltipProvider>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -534,37 +552,50 @@ export default function DepartmentsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              disabled={deleting === position.id}
-                            >
-                              <HiOutlineEllipsisVertical className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
+                        <TooltipProvider delayDuration={300}>
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Modifier */}
                             <Can permission={COMMON_PERMISSIONS.HR.UPDATE_POSITIONS}>
-                              <DropdownMenuItem onClick={() => openPositionModal(position)}>
-                                <HiOutlinePencil className="size-4 mr-2" />
-                                Modifier
-                              </DropdownMenuItem>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openPositionModal(position);
+                                    }}
+                                  >
+                                    <HiOutlinePencil className="size-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Modifier</TooltipContent>
+                              </Tooltip>
                             </Can>
-                            <DropdownMenuSeparator />
+
+                            {/* Supprimer */}
                             <Can permission={COMMON_PERMISSIONS.HR.DELETE_POSITIONS}>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => handleDeletePosition(position.id)}
-                              >
-                                <HiOutlineTrash className="size-4 mr-2" />
-                                Supprimer
-                              </DropdownMenuItem>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8 text-destructive hover:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeletePosition(position.id);
+                                    }}
+                                    disabled={deleting === position.id}
+                                  >
+                                    <HiOutlineTrash className="size-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Supprimer</TooltipContent>
+                              </Tooltip>
                             </Can>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          </div>
+                        </TooltipProvider>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -107,55 +107,18 @@ export interface CanProps {
 // PERMISSION NORMALIZER
 // ============================================================================
 
+import { normalizePermissionCode } from '@/lib/constants/permissions';
+
 /**
- * Convertit une permission backend (can_view_employee) vers format frontend (employee.view)
+ * Normalise une permission vers le format backend (hr.view_employees)
+ * Supporte les anciens formats :
+ * - can_view_employee → hr.view_employees
+ * - employee.view → hr.view_employees
+ * - hr.view_employees → hr.view_employees (déjà correct)
  */
 function normalizePermission(code: string): string {
-  if (!code.startsWith('can_')) return code;
-
-  const mapping: Record<string, string> = {
-    'can_view_employee': 'employee.view',
-    'can_create_employee': 'employee.create',
-    'can_update_employee': 'employee.update',
-    'can_delete_employee': 'employee.delete',
-    'can_activate_employee': 'employee.activate',
-    'can_view_department': 'department.view',
-    'can_create_department': 'department.create',
-    'can_update_department': 'department.update',
-    'can_delete_department': 'department.delete',
-    'can_view_position': 'position.view',
-    'can_create_position': 'position.create',
-    'can_update_position': 'position.update',
-    'can_delete_position': 'position.delete',
-    'can_view_role': 'role.view',
-    'can_create_role': 'role.create',
-    'can_update_role': 'role.update',
-    'can_assign_role': 'role.assign',
-    'can_view_contract': 'contract.view',
-    'can_create_contract': 'contract.create',
-    'can_update_contract': 'contract.update',
-    'can_delete_contract': 'contract.delete',
-    'can_view_leave': 'leave_request.view',
-    'can_create_leave': 'leave_request.create',
-    'can_update_leave': 'leave_request.update',
-    'can_delete_leave': 'leave_request.delete',
-    'can_approve_leave': 'leave_request.approve',
-    'can_view_payroll': 'payroll.view',
-    'can_create_payroll': 'payroll.create',
-    'can_update_payroll': 'payroll.update',
-    'can_delete_payroll': 'payroll.delete',
-    'can_process_payroll': 'payroll.process',
-    'can_view_attendance': 'attendance.view',
-    'can_view_all_attendance': 'attendance.view_all',
-    'can_create_attendance': 'attendance.create',
-    'can_update_attendance': 'attendance.update',
-    'can_delete_attendance': 'attendance.delete',
-    'can_approve_attendance': 'attendance.approve',
-    'can_manual_checkin': 'attendance.manual_checkin',
-    'can_create_qr_session': 'attendance.create_qr_session',
-  };
-
-  return mapping[code] || code;
+  // Utiliser le normaliseur central qui gère tous les formats
+  return normalizePermissionCode(code);
 }
 
 // ============================================================================
@@ -273,7 +236,7 @@ export function Can({
   invert = false,
 }: CanProps) {
   const router = useRouter();
-  const { hasPermission, permissionContext, isLoading } = usePermissionContext();
+  const { hasPermission, isAdmin, isLoading } = usePermissionContext();
 
   // Pendant le chargement
   if (isLoading) {
@@ -285,7 +248,7 @@ export function Can({
 
   if (adminOnly) {
     // Vérifier si admin
-    hasAccess = permissionContext?.isAdmin || permissionContext?.isSuperuser || false;
+    hasAccess = isAdmin;
   } else if (permission) {
     // Permission unique
     const normalizedPerm = normalizePermission(permission);
@@ -366,7 +329,7 @@ export function Cannot(props: Omit<CanProps, 'invert'>) {
  * Hook pour vérifier les permissions de manière programmatique
  */
 export function useCanAccess() {
-  const { hasPermission, permissionContext, isLoading } = usePermissionContext();
+  const { hasPermission, isAdmin: isAdminUser, isLoading } = usePermissionContext();
 
   const can = (permission: string): boolean => {
     if (isLoading) return false;
@@ -384,7 +347,7 @@ export function useCanAccess() {
   };
 
   const isAdmin = (): boolean => {
-    return permissionContext?.isAdmin || permissionContext?.isSuperuser || false;
+    return isAdminUser;
   };
 
   return {

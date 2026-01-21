@@ -81,38 +81,6 @@ export async function rejectPayrollAdvance(id: string, reason: string): Promise<
   );
 }
 
-/**
- * Marque une avance comme payée
- */
-export async function markAdvanceAsPaid(id: string, paymentDate?: string): Promise<PayrollAdvance> {
-  return apiClient.post<PayrollAdvance>(
-    API_ENDPOINTS.HR.PAYROLL_ADVANCES.MARK_PAID(id),
-    { payment_date: paymentDate }
-  );
-}
+// Les fonctions markAdvanceAsPaid et deductAdvanceFromPayslip ont été supprimées
+// car le workflow simplifié déduit automatiquement les avances approuvées lors de la génération de paie
 
-/**
- * Déduit une avance d'une fiche de paie (ferme l'avance)
- */
-export async function deductAdvanceFromPayslip(id: string, payslipId: string): Promise<PayrollAdvance> {
-  console.log('deductAdvanceFromPayslip called with:', { id, payslipId });
-
-  if (!id || !payslipId) {
-    throw new Error('ID de l\'avance et ID de la fiche de paie sont requis');
-  }
-
-  const payload = { payslip_id: payslipId };
-  console.log('Sending payload:', payload);
-
-  try {
-    const result = await apiClient.post<PayrollAdvance>(
-      API_ENDPOINTS.HR.PAYROLL_ADVANCES.DEDUCT_FROM_PAYSLIP(id),
-      payload
-    );
-    console.log('Deduction successful:', result);
-    return result;
-  } catch (error) {
-    console.error('Deduction failed:', error);
-    throw error;
-  }
-}

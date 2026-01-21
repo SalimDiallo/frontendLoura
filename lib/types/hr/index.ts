@@ -149,12 +149,20 @@ export interface EmployeeListItem {
   email: string;
   full_name: string;
   employee_id: string;
+  department?: string; // Department ID
   department_name?: string;
   position_title?: string;
   role_name?: string;
   gender?: Gender;
   employment_status: EmploymentStatus;
   is_active: boolean;
+  // Salary fields from active contract
+  base_salary?: number;
+  currency?: string;
+  salary_period?: 'hourly' | 'daily' | 'monthly' | 'annual';
+  salary_period_display?: string;
+  contract_type?: ContractType;
+  contract_type_display?: string;
 }
 
 // ============================================
@@ -273,7 +281,7 @@ export interface EmployeeUpdate {
   city?: string;
   country?: string;
 
-  department?: string;
+  department?: string | null;
   position?: string;
   hire_date?: string;
   termination_date?: string;
@@ -482,8 +490,7 @@ export enum PayrollAdvanceStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected',
-  PAID = 'paid',
-  DEDUCTED = 'deducted',
+  DEDUCTED = 'deducted', // Simplifié: plus de statut PAID intermédiaire
 }
 
 export interface PayrollAdvance {
@@ -704,8 +711,6 @@ export interface Attendance {
   is_approved: boolean;
   approved_by?: string;
   approved_by_name?: string;
-  approved_by_admin?: string;
-  approved_by_admin_name?: string;
   approval_date?: string; // ISO datetime
   rejection_reason?: string;
   notes?: string;
@@ -716,7 +721,7 @@ export interface Attendance {
 }
 
 export interface AttendanceCreate {
-  employee: string;
+  user: string;  // ID de l'utilisateur (Employee ou AdminUser)
   date: string;
   check_in?: string;
   check_in_location?: string;

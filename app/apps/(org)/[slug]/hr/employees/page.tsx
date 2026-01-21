@@ -12,20 +12,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { EmploymentStatusBadge } from "@/components/hr";
 import { getEmployees, deleteEmployee, activateEmployee, deactivateEmployee } from "@/lib/services/hr";
 import type { EmployeeListItem } from "@/lib/types/hr";
 import {
   HiOutlinePlusCircle,
   HiOutlineMagnifyingGlass,
-  HiOutlineEllipsisVertical,
   HiOutlineEye,
   HiOutlinePencil,
   HiOutlineTrash,
@@ -39,6 +36,7 @@ import {
   HiOutlineBriefcase,
   HiOutlineShieldCheck,
   HiOutlineQuestionMarkCircle,
+  HiOutlineBanknotes,
 } from "react-icons/hi2";
 import { LuUsers, LuCalendarOff, LuPause, LuBan } from "react-icons/lu";
 import { Alert, Button, Card, Input } from "@/components/ui";
@@ -48,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
 import { SmartFilters, FilterConfig } from "@/components/ui/smart-filters";
+import { useAuthStore } from "@/lib/store";
 
 // ============================================
 // Types & Constants
@@ -104,6 +103,10 @@ export default function EmployeesPage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Current user
+  const currentUser = useAuthStore((state) => state.user);
+  const currentUserId = currentUser?.id;
 
   // ============================================
   // Data Loading
@@ -362,14 +365,27 @@ export default function EmployeesPage() {
   // Stats
   // ============================================
 
-  const stats = useMemo(() => ({
-    total: totalCount,
-    active: employees.filter((e) => e.employment_status === "active").length,
-    onLeave: employees.filter((e) => e.employment_status === "on_leave").length,
-    inactive: employees.filter(
-      (e) => e.employment_status === "suspended" || e.employment_status === "terminated"
-    ).length,
-  }), [totalCount, employees]);
+  const stats = useMemo(() => {
+    const totalSalary = employees.reduce((sum, e) => sum + (e.base_salary || 0), 0);
+    return {
+      total: totalCount,
+      active: employees.filter((e) => e.employment_status === "active").length,
+      onLeave: employees.filter((e) => e.employment_status === "on_leave").length,
+      inactive: employees.filter(
+        (e) => e.employment_status === "suspended" || e.employment_status === "terminated"
+      ).length,
+      totalSalary,
+    };
+  }, [totalCount, employees]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "XOF",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   // ============================================
   // Render
@@ -436,7 +452,7 @@ export default function EmployeesPage() {
         </div>
 
         {/* Stats Cards - Compact */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Card 
             className={cn(
               "p-4 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-primary/20",
@@ -490,6 +506,15 @@ export default function EmployeesPage() {
             </div>
             <div className="text-xl font-bold mt-0.5 text-orange-600 dark:text-orange-400">
               {stats.inactive}
+            </div>
+          </Card>
+          <Card className="p-4 border-0 shadow-sm">
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <HiOutlineBanknotes className="size-3 text-emerald-500" />
+              Masse Salariale
+            </div>
+            <div className="text-lg font-bold mt-0.5 text-emerald-600 dark:text-emerald-400 truncate" title={formatCurrency(stats.totalSalary)}>
+              {formatCurrency(stats.totalSalary)}
             </div>
           </Card>
         </div>
@@ -560,27 +585,35 @@ export default function EmployeesPage() {
                   <TableHead className="hidden md:table-cell">Matricule</TableHead>
                   <TableHead className="hidden lg:table-cell">Département</TableHead>
                   <TableHead className="hidden lg:table-cell">Poste</TableHead>
+                  <TableHead className="hidden xl:table-cell">Paiement</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEmployees.map((employee, index) => (
+                {filteredEmployees.map((employee, index) => {
+                  const isCurrentUser = employee.id === currentUserId;
+                  return (
                   <TableRow
                     key={employee.id}
                     className={cn(
-                      "cursor-pointer transition-colors",
-                      selectedIndex === index && "bg-primary/10 ring-1 ring-primary"
+                      "transition-colors",
+                      !isCurrentUser && "cursor-pointer",
+                      selectedIndex === index && "bg-primary/10 ring-1 ring-primary",
+                      isCurrentUser && "bg-accent/50 border-l-2 border-l-primary"
                     )}
-                    onClick={() => setSelectedIndex(index)}
-                    onDoubleClick={() => routerNav.push(`/apps/${slug}/hr/employees/${employee.id}`)}
-                    tabIndex={0}
+                    onClick={() => !isCurrentUser && setSelectedIndex(index)}
+                    onDoubleClick={() => !isCurrentUser && routerNav.push(`/apps/${slug}/hr/employees/${employee.id}`)}
+                    tabIndex={isCurrentUser ? -1 : 0}
                     role="row"
                     aria-selected={selectedIndex === index}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold text-sm shrink-0">
+                        <div className={cn(
+                          "flex size-10 items-center justify-center rounded-full font-semibold text-sm shrink-0",
+                          isCurrentUser ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+                        )}>
                           {employee.full_name
                             ? employee.full_name
                                 .split(" ")
@@ -592,7 +625,14 @@ export default function EmployeesPage() {
                             : "?"}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-medium truncate">{employee.full_name || "Sans nom"}</div>
+                          <div className="font-medium truncate flex items-center gap-1.5">
+                            {employee.full_name || "Sans nom"}
+                            {isCurrentUser && (
+                              <span className="text-xs font-normal text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                                Vous
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-muted-foreground flex items-center gap-1 truncate">
                             <HiOutlineEnvelope className="size-3 shrink-0" />
                             <span className="truncate">{employee.email}</span>
@@ -612,67 +652,122 @@ export default function EmployeesPage() {
                     <TableCell className="hidden lg:table-cell">
                       <span className="text-sm text-muted-foreground">{employee.position_title || "-"}</span>
                     </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      {employee.base_salary ? (
+                        <div className="text-sm">
+                          <div className="font-medium text-green-600 dark:text-green-400">
+                            {formatCurrency(employee.base_salary)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {employee.salary_period_display || employee.salary_period}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <EmploymentStatusBadge status={employee.employment_status} />
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" disabled={deleting === employee.id}>
-                            <HiOutlineEllipsisVertical className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <Can permission={COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES}>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/apps/${slug}/hr/employees/${employee.id}`}>
-                                <HiOutlineEye className="size-4 mr-2" />
-                                Voir le profil
-                              </Link>
-                            </DropdownMenuItem>
-                          </Can>
-                          <Can permission={COMMON_PERMISSIONS.HR.UPDATE_EMPLOYEES}>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/apps/${slug}/hr/employees/${employee.id}/edit`}>
-                                <HiOutlinePencil className="size-4 mr-2" />
-                                Modifier
-                              </Link>
-                            </DropdownMenuItem>
-                          </Can>
-                          <Can permission={COMMON_PERMISSIONS.HR.UPDATE_EMPLOYEES}>
-                            <DropdownMenuItem
-                              onClick={() => handleToggleStatus(employee.id, employee.is_active)}
-                            >
-                              {employee.is_active ? (
-                                <>
-                                  <HiOutlineXCircle className="size-4 mr-2" />
-                                  Désactiver
-                                </>
-                              ) : (
-                                <>
-                                  <HiOutlineCheckCircle className="size-4 mr-2" />
-                                  Activer
-                                </>
-                              )}
-                            </DropdownMenuItem>
-                          </Can>
-                          <Can permission={COMMON_PERMISSIONS.HR.DELETE_EMPLOYEES}>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleDelete(employee.id)}
-                            >
-                              <HiOutlineTrash className="size-4 mr-2" />
-                              Supprimer
-                            </DropdownMenuItem>
-                          </Can>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <TooltipProvider delayDuration={300}>
+                        <div className="flex items-center justify-end gap-1">
+                          {/* Utilisateur courant: uniquement bouton Mon profil */}
+                          {isCurrentUser ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="size-8" asChild>
+                                  <Link href={`/apps/${slug}/dashboard/profile`}>
+                                    <HiOutlineUserCircle className="size-4 text-primary" />
+                                  </Link>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Mon profil</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <>
+                              {/* Voir le profil */}
+                              <Can permission={COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="size-8" asChild>
+                                      <Link href={`/apps/${slug}/hr/employees/${employee.id}`}>
+                                        <HiOutlineEye className="size-4" />
+                                      </Link>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Voir le profil</TooltipContent>
+                                </Tooltip>
+                              </Can>
+
+                              {/* Modifier */}
+                              <Can permission={COMMON_PERMISSIONS.HR.UPDATE_EMPLOYEES}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="size-8" asChild>
+                                      <Link href={`/apps/${slug}/hr/employees/${employee.id}/edit`}>
+                                        <HiOutlinePencil className="size-4" />
+                                      </Link>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Modifier</TooltipContent>
+                                </Tooltip>
+                              </Can>
+
+                              {/* Activer/Désactiver */}
+                              <Can permission={COMMON_PERMISSIONS.HR.UPDATE_EMPLOYEES}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="size-8"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleStatus(employee.id, employee.is_active);
+                                      }}
+                                    >
+                                      {employee.is_active ? (
+                                        <HiOutlineXCircle className="size-4 text-orange-500" />
+                                      ) : (
+                                        <HiOutlineCheckCircle className="size-4 text-green-500" />
+                                      )}
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {employee.is_active ? "Désactiver" : "Activer"}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </Can>
+
+                              {/* Supprimer */}
+                              <Can permission={COMMON_PERMISSIONS.HR.DELETE_EMPLOYEES}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="size-8 text-destructive hover:text-destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(employee.id);
+                                      }}
+                                      disabled={deleting === employee.id}
+                                    >
+                                      <HiOutlineTrash className="size-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Supprimer</TooltipContent>
+                                </Tooltip>
+                              </Can>
+                            </>
+                          )}
+                        </div>
+                      </TooltipProvider>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}

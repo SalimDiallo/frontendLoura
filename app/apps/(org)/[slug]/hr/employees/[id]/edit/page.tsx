@@ -92,18 +92,43 @@ export default function EditEmployeePage() {
   const loadFormData = useCallback(async () => {
     try {
       setLoadingData(true);
-      const [employeeData, depts, positionsData, employeesData, rolesData] = await Promise.all([
-        getEmployee(id),
-        getDepartments({ is_active: true, organization_subdomain: slug }),
-        getPositions({ is_active: true }),
-        getEmployees(slug),
-        getRoles({ is_active: true, organization_subdomain: slug }),
+      
+      // L'employé est obligatoire
+      const employeeData = await getEmployee(id);
+      if (!employeeData) {
+        setError("Employé non trouvé");
+        return;
+      }
+      setEmployee(employeeData);
+
+      // Charger les données de référence en parallèle avec gestion d'erreur individuelle
+      // Si une API échoue (permissions), on continue avec une liste vide
+      const [depts, positionsData, employeesData, rolesData] = await Promise.all([
+        getDepartments({ is_active: true, organization_subdomain: slug })
+          .catch((err) => {
+            console.warn("Impossible de charger les départements (permissions?):", err);
+            return [];
+          }),
+        getPositions({ is_active: true })
+          .catch((err) => {
+            console.warn("Impossible de charger les postes (permissions?):", err);
+            return [];
+          }),
+        getEmployees(slug)
+          .catch((err) => {
+            console.warn("Impossible de charger les managers (permissions?):", err);
+            return { results: [] };
+          }),
+        getRoles({ is_active: true, organization_subdomain: slug })
+          .catch((err) => {
+            console.warn("Impossible de charger les rôles (permissions?):", err);
+            return [];
+          }),
       ]);
 
-      setEmployee(employeeData);
       setDepartments(depts);
       setPositions(positionsData);
-      setManagers(employeesData.results.filter(e => e.id !== id)); // Exclure l'employé actuel
+      setManagers((employeesData?.results || []).filter(e => e.id !== id)); // Exclure l'employé actuel
       setRoles(rolesData);
 
       // Set existing custom permissions (using codes)

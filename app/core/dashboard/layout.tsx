@@ -1,7 +1,7 @@
 "use client";
 
 import { PropsWithChildren, useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Sparkles,
   Bell,
@@ -19,15 +19,27 @@ import { AppSidebar } from "@/components/core/app-sidebar";
 import { ChatSidebar } from "@/components/core/chat-sidebar";
 import { ThemeToggle } from "@/components/ui";
 import { cn } from "@/lib/utils";
+import { useUser } from "@/lib/hooks";
 
 export default function DashboardCoreLayout({ children }: PropsWithChildren) {
   const pathname = usePathname();
   const [chatOpen, setChatOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-
+  const router = useRouter();
+  const user = useUser();
+  
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+      if (!user) return
+
+      if (user.user_type === "employee") {
+        router.push(`/apps/${user.organization?.subdomain}/dashboard`)
+      }
+      setIsMounted(true);
+  }, [user , router]);
+
+   if (user?.user_type == "employee") {
+      return null;
+   }
 
   // Générer le titre de la page actuelle basé sur le pathname
   const getPageTitle = () => {

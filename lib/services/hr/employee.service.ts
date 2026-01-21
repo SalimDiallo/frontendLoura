@@ -112,5 +112,5 @@ export async function deleteEmployee(id: string): Promise<void> {
  * Récupère les informations de l'employé actuellement connecté
  */
 export async function getCurrentEmployee(): Promise<Employee> {
-  return apiClient.get<Employee>(API_ENDPOINTS.HR.AUTH.ME);
+  return apiClient.get<Employee>(API_ENDPOINTS.AUTH.ME);
 }

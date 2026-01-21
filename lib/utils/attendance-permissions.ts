@@ -73,12 +73,12 @@ export function getAttendanceViewScope(context: UserPermissionContext | null): '
   }
 
   // Permission VIEW_ALL permet de voir tous les pointages
-  if (canViewAllAttendance(context.permissionCodes)) {
+  if (canViewAllAttendance(context.permissions)) {
     return 'all';
   }
 
   // Permission VIEW permet de voir ses propres pointages
-  if (context.permissionCodes.includes(ATTENDANCE_PERMISSIONS.VIEW)) {
+  if (context.permissions.includes(ATTENDANCE_PERMISSIONS.VIEW)) {
     return 'own';
   }
 
@@ -143,11 +143,11 @@ export function getAttendanceFeatures(context: UserPermissionContext | null): At
   return {
     canViewOwn: scope === 'own' || scope === 'all',
     canViewAll: scope === 'all',
-    canScan: context.permissionCodes.includes(ATTENDANCE_PERMISSIONS.VIEW), // Tout employé avec VIEW peut scanner
-    canCreateQR: canCreateQRSession(context.permissionCodes) || context.isAdmin || false,
-    canApprove: canApproveAttendance(context.permissionCodes) || context.isAdmin || false,
-    canManualCheckin: canManualCheckin(context.permissionCodes) || context.isAdmin || false,
-    canUpdate: canUpdateAttendance(context.permissionCodes) || context.isAdmin || false,
-    canDelete: canDeleteAttendance(context.permissionCodes) || context.isAdmin || false,
+    canScan: context.permissions.includes(ATTENDANCE_PERMISSIONS.VIEW), // Tout employé avec VIEW peut scanner
+    canCreateQR: canCreateQRSession(context.permissions) || context.isAdmin || false,
+    canApprove: canApproveAttendance(context.permissions) || context.isAdmin || false,
+    canManualCheckin: canManualCheckin(context.permissions) || context.isAdmin || false,
+    canUpdate: canUpdateAttendance(context.permissions) || context.isAdmin || false,
+    canDelete: canDeleteAttendance(context.permissions) || context.isAdmin || false,
   };
 }
