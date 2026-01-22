@@ -188,13 +188,13 @@
   --card-foreground: #182132;
   --popover: #ffffff;
   --popover-foreground: #222d3b;
-  --primary: #ca6500; 
+  --primary: #e2b100; 
   --primary-foreground: #f6f6f4;
   --secondary: #8da29d; /* Vert sauge doux, moins saturé que le bleu */
   --secondary-foreground: #f6f6f4;
   --muted: #ece8e2;
   --muted-foreground: #766c60;
-  --accent: #e89c69; /* Orange pastel pour accent */
+  --accent: #e9e9e9; /* Orange pastel pour accent */
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
@@ -225,13 +225,13 @@
   --card-foreground: #edece6;
   --popover: #24232e;
   --popover-foreground: #edece6;
-  --primary: #bd5e00; /* Même couleur que clair, chaleur sobre */
+  --primary: #e2b100bb; /* Même couleur que clair, chaleur sobre */
   --primary-foreground: #191922;
   --secondary: #6b8173; /* Sombre, neutre, moins bleu */
   --secondary-foreground: #edece6;
   --muted: #262727;
   --muted-foreground: #b8b0a0;
-  --accent: #e89c69;
+  --accent: #3b3b3b;
   --accent-foreground: #191922;
   --destructive: #ea6868;
   --destructive-foreground: #191922;
