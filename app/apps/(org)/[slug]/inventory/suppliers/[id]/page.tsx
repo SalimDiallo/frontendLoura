@@ -21,8 +21,13 @@ import {
   Clock,
   ShoppingCart,
   Eye,
+  Code2,
+  Navigation2,
 } from "lucide-react";
 import Link from "next/link";
+import { formatCurrency } from "@/lib";
+import { formatDate } from "@/lib/utils";
+import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 
 export default function SupplierDetailPage() {
   const params = useParams();
@@ -66,9 +71,11 @@ export default function SupplierDetailPage() {
       setOrdersLoading(false);
     }
   };
-
+  console.log(supplier);
+  
   const handleDelete = async () => {
     if (!supplier) return;
+
 
     if (!confirm(`Êtes-vous sûr de vouloir supprimer le fournisseur "${supplier.name}" ?`)) {
       return;
@@ -82,33 +89,6 @@ export default function SupplierDetailPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "XOF",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { variant: "default" | "secondary" | "outline" | "destructive"; label: string }> = {
-      draft: { variant: "secondary", label: "Brouillon" },
-      pending: { variant: "outline", label: "En attente" },
-      confirmed: { variant: "default", label: "Confirmée" },
-      received: { variant: "default", label: "Reçue" },
-      cancelled: { variant: "destructive", label: "Annulée" },
-    };
-    const config = statusConfig[status] || { variant: "secondary", label: status };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
 
   if (loading) {
     return (
@@ -171,7 +151,7 @@ export default function SupplierDetailPage() {
         <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-              <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <ShoppingCart className="h-5 w-5 text-foreground dark:text-blue-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Commandes</p>
@@ -218,7 +198,7 @@ export default function SupplierDetailPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="p-6">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <User className="h-5 w-5 text-blue-600" />
+            <User className="h-5 w-5 text-foreground" />
             Informations de contact
           </h3>
           <div className="space-y-3 text-sm">
@@ -253,9 +233,21 @@ export default function SupplierDetailPage() {
                 </div>
               </div>
             )}
-            {!supplier.contact_person && !supplier.email && !supplier.phone && (
+               {supplier.website && (
+                    <div className="flex items-start gap-2">
+                      <Navigation2 className="h-4 w-4 text-muted-foreground mt-0.5" />
+                      <div>
+                        <p className="text-muted-foreground text-xs">Email</p>
+                        <a href={`${supplier.website}`} className="font-medium hover:text-primary">
+                          {supplier.website}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+            {!supplier.contact_person && !supplier.email && !supplier.phone && !supplier.website && (
               <p className="text-muted-foreground italic">Aucune information de contact</p>
             )}
+           
           </div>
         </Card>
 
@@ -266,12 +258,42 @@ export default function SupplierDetailPage() {
           </h3>
           <div className="text-sm text-muted-foreground space-y-1">
             {supplier.address && <p>{supplier.address}</p>}
+            {supplier.postal_code && <p>{supplier.postal_code}</p>}
             {supplier.city && <p>{supplier.city}</p>}
             {supplier.country && <p>{supplier.country}</p>}
-            {!supplier.address && !supplier.city && !supplier.country && (
+            {!supplier.address && !supplier.postal_code && !supplier.city && !supplier.country && (
               <p className="italic">Aucune adresse renseignée</p>
             )}
-          </div>
+            {/* Google Maps iframe if address or city/country is present */}
+            {(
+              supplier.address ||
+              supplier.city ||
+              supplier.country
+            ) && (
+              <div className="mt-2 rounded-md overflow-hidden border bg-muted">
+                <iframe
+                  title="Carte"
+                  width="100%"
+                  height="200"
+                  frameBorder="0"
+                  className="w-full"
+                  style={{ border: 0 }}
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(
+                    [
+                      supplier.address,
+                      supplier.city,
+                      supplier.postal_code,
+                      supplier.country,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")
+                  )}&output=embed`}
+                  allowFullScreen
+                  loading="lazy"
+                ></iframe>
+              </div>
+            )}
+          </div>  
         </Card>
       </div>
 
@@ -365,7 +387,7 @@ export default function SupplierDetailPage() {
                     <td className="py-3 text-sm">{order.warehouse_name || "-"}</td>
                     <td className="py-3 text-sm">{order.item_count || 0}</td>
                     <td className="py-3 text-sm font-medium">{formatCurrency(order.total_amount)}</td>
-                    <td className="py-3">{getStatusBadge(order.status)}</td>
+                    <td className="py-3">{getStatusBadgeNode(order.status)}</td>
                     <td className="py-3">
                       <Link href={`/apps/${slug}/inventory/orders/${order.id}`}>
                         <Button variant="ghost" size="sm">

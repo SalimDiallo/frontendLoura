@@ -1,500 +1,488 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, Alert, Button } from "@/components/ui";
-import { Badge } from "@/components/ui/badge";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-} from "@/components/ui/chart";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Cell, Legend, ResponsiveContainer } from "recharts";
 import {
   HiOutlineArrowLeft,
   HiOutlineCalendar,
   HiOutlineCheckCircle,
   HiOutlineXCircle,
-  HiOutlineClock,
-  HiOutlineChartBar,
-  HiOutlineUsers,
+  HiOutlineMinusCircle,
+  HiOutlineAdjustmentsHorizontal,
+  HiOutlineUserGroup,
 } from "react-icons/hi2";
 import { getLeaveRequests } from "@/lib/services/hr/leave.service";
-import { getLeaveTypes } from "@/lib/services/hr/leave-type.service";
-import type { LeaveRequest, LeaveType } from "@/lib/types/hr";
 import { formatLeaveDays } from "@/lib/utils/leave";
+
+const ReactApexChart = dynamic(
+  () => import("react-apexcharts").then((mod) => mod.default as any),
+  { ssr: false }
+);
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "Tous", icon: HiOutlineCalendar, color: "text-neutral-800", bg: "bg-neutral-100" },
+  { value: "approved", label: "Validées", icon: HiOutlineCheckCircle, color: "text-green-600", bg: "bg-green-50" },
+  { value: "pending", label: "En attente", icon: HiOutlineMinusCircle, color: "text-yellow-500", bg: "bg-yellow-50" },
+  { value: "rejected", label: "Refusées", icon: HiOutlineXCircle, color: "text-red-500", bg: "bg-red-50" },
+];
+
+const STATUS_COLORS = {
+  approved: "#22c55e",
+  pending: "#eab308",
+  rejected: "#ef4444",
+};
+
+const STATUS_ICONS = {
+  approved: HiOutlineCheckCircle,
+  pending: HiOutlineMinusCircle,
+  rejected: HiOutlineXCircle,
+  all: HiOutlineCalendar,
+};
+
+function getUniqueUsers(reqs: any[]) {
+  const users = new Set(reqs.map((r) => r.user?.id ?? r.user));
+  return users.size;
+}
 
 export default function LeaveStatsPage() {
   const params = useParams();
   const slug = params.slug as string;
 
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toISOString().slice(0, 7) // YYYY-MM
-  );
+
+  // Filtres
+  const currentYear = new Date().getFullYear();
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
+  // On page d'accueil: sélectionner/désélectionner status multiples pour graphe
+  const [selectedStatuses, setSelectedStatuses] = useState(["approved", "pending", "rejected", "all"]);
+
+  const availableYears = useMemo(() => {
+    const years = leaveRequests.length > 0
+      ? leaveRequests.map((r) => new Date(r.start_date).getFullYear())
+      : [currentYear];
+    const min = Math.min(...years);
+    const max = Math.max(...years, currentYear);
+    return Array.from({ length: max - min + 1 }, (_, i) => (min + i).toString()).reverse();
+  }, [leaveRequests]);
+
+  // Gestion de la plage d'années pour le graphe (multi années)
+  const [yearFrom, setYearFrom] = useState<string>(availableYears[availableYears.length - 1] || currentYear.toString());
+  const [yearTo, setYearTo] = useState<string>(availableYears[0] || currentYear.toString());
 
   useEffect(() => {
-    loadData();
-  }, [selectedMonth]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [requestsResponse, typesResponse] = await Promise.all([
-        getLeaveRequests(),
-        getLeaveTypes({ is_active: true }),
-      ]);
-
-      setLeaveRequests(requestsResponse.results || []);
-      setLeaveTypes(typesResponse);
-    } catch (err: any) {
-      console.error("Erreur lors du chargement:", err);
-      setError(err.message || "Erreur lors du chargement des statistiques");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Filter requests for selected month
-  const filterRequestsForMonth = (requests: LeaveRequest[]) => {
-    return requests.filter((request) => {
-      const startDate = new Date(request.start_date);
-      const endDate = new Date(request.end_date);
-      const selectedDate = new Date(selectedMonth + "-01");
-      const monthStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-      const monthEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
-
-      return (
-        (startDate >= monthStart && startDate <= monthEnd) ||
-        (endDate >= monthStart && endDate <= monthEnd) ||
-        (startDate <= monthStart && endDate >= monthEnd)
-      );
-    });
-  };
-
-  const monthRequests = filterRequestsForMonth(leaveRequests);
-
-  // Calculate statistics
-  const stats = {
-    total: monthRequests.length,
-    pending: monthRequests.filter((r) => r.status === "pending").length,
-    approved: monthRequests.filter((r) => r.status === "approved").length,
-    rejected: monthRequests.filter((r) => r.status === "rejected").length,
-    totalDays: monthRequests
-      .filter((r) => r.status === "approved")
-      .reduce((sum, r) => sum + r.total_days, 0),
-  };
-
-  // Group by leave type
-  const statsByType = leaveTypes.map((type) => {
-    const typeRequests = monthRequests.filter(
-      (r) => r.leave_type === type.id && r.status === "approved"
-    );
-    return {
-      type,
-      count: typeRequests.length,
-      totalDays: typeRequests.reduce((sum, r) => sum + r.total_days, 0),
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const requestsResponse = await getLeaveRequests();
+        setLeaveRequests(requestsResponse.results || []);
+      } catch (err: any) {
+        setError(err?.message || "Erreur lors du chargement des statistiques");
+      } finally {
+        setLoading(false);
+      }
     };
-  });
+    loadData();
+  }, []);
 
-  // Top employees by leave days
-  const employeeStats = monthRequests
-    .filter((r) => r.status === "approved")
-    .reduce((acc: any[], request) => {
-      const employeeName = request.employee_name || "N/A";
-      const existing = acc.find((e) => e.name === employeeName);
+  const monthList = useMemo(() => {
+    let yFrom = Number(yearFrom);
+    let yTo = Number(yearTo);
+    if (yFrom > yTo) [yFrom, yTo] = [yTo, yFrom];
+    const months: string[] = [];
+    for (let y = yFrom; y <= yTo; ++y) {
+      for (let m = 1; m <= 12; ++m) {
+        months.push(`${y}-${("0" + m).slice(-2)}`);
+      }
+    }
+    return months;
+  }, [yearFrom, yearTo]);
 
-      if (existing) {
-        existing.days += request.total_days;
-        existing.count += 1;
-      } else {
-        acc.push({
-          name: employeeName,
-          days: request.total_days,
-          count: 1,
-        });
+  const filteredRequests = useMemo(() => {
+    return leaveRequests.filter((req) => {
+      const reqStart = new Date(req.start_date);
+      const reqEnd = new Date(req.end_date);
+
+      let byDate = true;
+      if (yearFrom && yearTo) {
+        const start = new Date(`${yearFrom}-01-01`);
+        const end = new Date(`${yearTo}-12-31`);
+        byDate =
+          (reqStart >= start && reqStart <= end) ||
+          (reqEnd >= start && reqEnd <= end) ||
+          (reqStart <= start && reqEnd >= end);
       }
 
-      return acc;
-    }, [])
-    .sort((a, b) => b.days - a.days)
-    .slice(0, 5);
+      // Search (utilisateur ou raison)
+      let bySearch = true;
+      if (searchTerm) {
+        const val = searchTerm.toLowerCase();
+        const userStr =
+          typeof req.user === "string"
+            ? req.user
+            : [req.user?.first_name, req.user?.last_name, req.user?.email]
+                .filter(Boolean)
+                .join(" ");
+        const reason = req.reason ?? "";
+        bySearch =
+          (userStr ?? "")
+            .toLowerCase()
+            .includes(val) ||
+          reason.toLowerCase().includes(val);
+      }
 
+      return byDate && bySearch;
+    });
+  }, [leaveRequests, yearFrom, yearTo, searchTerm]);
+
+  // Statistiques globales (modèle page.tsx : mini-cards à l'affichage horizontal avec petit label et couleur image-like)
+  const stats = useMemo(() => {
+    return {
+      total: filteredRequests.length,
+      approved: filteredRequests.filter((r) => r.status === "approved").length,
+      rejected: filteredRequests.filter((r) => r.status === "rejected").length,
+      pending: filteredRequests.filter((r) => r.status === "pending").length,
+      uniqueUsers: getUniqueUsers(filteredRequests),
+    };
+  }, [filteredRequests]);
+
+  // Statistique mini-cards data et component (pattern du page.tsx : stacked, plus gros, couleur de background icon)
+  const statCards = [
+    {
+      label: "Employé" + (stats.uniqueUsers !== 1 ? "s" : "") + " concernés",
+      value: stats.uniqueUsers,
+      icon: HiOutlineUserGroup,
+      iconBg: "bg-violet-100",
+      iconColor: "text-violet-700"
+    },
+    {
+      label: "Demandes",
+      value: stats.total,
+      icon: HiOutlineCalendar,
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600"
+    },
+    {
+      label: "Validées",
+      value: stats.approved,
+      icon: HiOutlineCheckCircle,
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600"
+    },
+    {
+      label: "En attente",
+      value: stats.pending,
+      icon: HiOutlineMinusCircle,
+      iconBg: "bg-yellow-100",
+      iconColor: "text-yellow-600"
+    },
+    {
+      label: "Refusées",
+      value: stats.rejected,
+      icon: HiOutlineXCircle,
+      iconBg: "bg-red-100",
+      iconColor: "text-red-600"
+    },
+  ];
+
+  // Choix des statuts visibles sur graphe (avec "all" = total, ou on peut sélectionner plusieurs, pattern comme un toggle group style horizontal filter pill)
+  function handleToggleStatus(status: string) {
+    if (status === "all") {
+      setSelectedStatuses(["all"]);
+    } else {
+      let copy = selectedStatuses.includes("all")
+        ? []
+        : [...selectedStatuses];
+      if (copy.includes(status)) {
+        copy = copy.filter((s) => s !== status);
+      } else {
+        copy.push(status);
+      }
+      // Always at least 1 selected
+      if (copy.length === 0) copy = ["all"];
+      setSelectedStatuses(copy);
+    }
+  }
+
+  // Data pour graphe (plusieurs séries si multi statuts, "all" = total)
+  const chartSeries = useMemo(() => {
+    if (!filteredRequests.length) {
+      return [];
+    }
+    // Helper to count requests by status/mois
+    function getCountByMonth(statusFilter?: string) {
+      const counts: Record<string, number> = {};
+      filteredRequests.forEach((req) => {
+        if (statusFilter && req.status !== statusFilter) return;
+        let d = new Date(req.start_date);
+        const y = d.getFullYear();
+        const m = ("0" + (d.getMonth() + 1)).slice(-2);
+        const key = `${y}-${m}`;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      // Map all monthList
+      return monthList.map((key) => counts[key] || 0);
+    }
+
+    // "all" = tout confondu
+    if (selectedStatuses.includes("all")) {
+      return [{
+        name: "Total",
+        data: getCountByMonth(),
+        color: "#6366f1"
+      }];
+    }
+    // sinon, une série par status sélectionné
+    return selectedStatuses.map((status) => ({
+      name:
+        STATUS_OPTIONS.find((opt) => opt.value === status)?.label ??
+        status,
+      data: getCountByMonth(status),
+      color: (STATUS_COLORS as Record<string, string>)[status] ?? "#6366f1",
+    }));
+  }, [filteredRequests, selectedStatuses, monthList]);
+
+  const chartCategories = monthList;
+
+  // Loader
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 px-4 pt-10">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="grid grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-32 bg-muted rounded"></div>
+          <div className="h-6 rounded bg-neutral-100 dark:bg-neutral-900 w-2/5 mb-2" />
+          <div className="flex gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="h-14 w-40 rounded-lg bg-neutral-100 dark:bg-neutral-900 flex-1"
+              />
             ))}
           </div>
-          <div className="h-96 bg-muted rounded"></div>
+          <div className="h-80 bg-neutral-100 dark:bg-neutral-900 rounded-xl mt-6" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href={`/apps/${slug}/hr/leaves`}>
-                <HiOutlineArrowLeft className="size-4" />
-              </Link>
-            </Button>
-            <HiOutlineChartBar className="size-6 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold mb-1">
-            Statistiques des Congés
-          </h1>
-          <p className="text-muted-foreground">
-            Analyse et métriques des demandes de congés
-          </p>
-        </div>
+    <main className="space-y-8 px-2 md:px-8 py-6 w-full max-w-screen-2xl mx-auto">
 
-        {/* Month Selector */}
-        <div className="flex items-center gap-3">
-          <HiOutlineCalendar className="size-5 text-muted-foreground" />
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">
-              Période
-            </label>
+      {/* Header */}
+      <header className="flex items-center gap-2 mb-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          asChild
+          className="p-1 border border-transparent hover:border-primary rounded-lg hover:bg-primary/10 transition-colors"
+        >
+          <Link href={`/apps/${slug}/hr/leaves`}>
+            <HiOutlineArrowLeft className="size-5" />
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight">
+          Statistiques congés
+        </h1>
+      </header>
+
+      {/* Stat cards à la page.tsx pattern */}
+      <section className="flex w-full flex-wrap gap-4">
+        {statCards.map((card, i) => (
+          <Card
+            key={card.label}
+            className="flex items-center gap-3 min-w-[160px] px-6 py-4 flex-1 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 shadow-none"
+          >
+            <div
+              className={`flex items-center justify-center size-12 rounded-full ${card.iconBg} ${card.iconColor} bg-opacity-70 border`}
+            >
+              <card.icon className={`size-7 ${card.iconColor}`} />
+            </div>
+            <div>
+              <div className="text-[2rem] leading-none font-extrabold text-neutral-900 dark:text-neutral-100">{card.value}</div>
+              <span className="text-xs text-neutral-500">{card.label}</span>
+            </div>
+          </Card>
+        ))}
+      </section>
+
+      {/* Filtres */}
+      <section className="flex flex-wrap gap-4 items-end justify-between border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-950 px-4 py-3">
+        <div className="flex gap-3 flex-wrap items-end">
+          {/* Plage d'années */}
+          <label className="flex flex-col gap-1 text-xs text-neutral-700 dark:text-neutral-300">
+            De
+            <select
+              value={yearFrom}
+              onChange={(e) => setYearFrom(e.target.value)}
+              className="px-2 py-1 border border-neutral-200 dark:border-neutral-700 rounded text-sm font-medium bg-transparent text-neutral-900 dark:text-neutral-100 min-w-[82px] appearance-none"
+              aria-label="Année de début"
+            >
+              {availableYears.slice().reverse().map((y) => (
+                <option value={y} key={y}>{y}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-neutral-700 dark:text-neutral-300">
+            à
+            <select
+              value={yearTo}
+              onChange={(e) => setYearTo(e.target.value)}
+              className="px-2 py-1 border border-neutral-200 dark:border-neutral-700 rounded text-sm font-medium bg-transparent text-neutral-900 dark:text-neutral-100 min-w-[82px] appearance-none"
+              aria-label="Année de fin"
+            >
+              {availableYears.slice().reverse().map((y) => (
+                <option value={y} key={y}>{y}</option>
+              ))}
+            </select>
+          </label>
+          {/* Statut pour le graphe : bouton toggle filter pills */}
+          <div className="flex items-end gap-2">
+            <span className="text-xs text-neutral-700 dark:text-neutral-300 mb-1">Statuts sur le graphe</span>
+            <div className="flex gap-1 flex-wrap">
+              {STATUS_OPTIONS.map((opt) => {
+                // show 'all' as a pill, and if "all" is ON, no other can be ON
+                const isActive =
+                  opt.value === "all"
+                    ? selectedStatuses.includes("all")
+                    : selectedStatuses.includes(opt.value) && !selectedStatuses.includes("all");
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleToggleStatus(opt.value)}
+                    className={
+                      `inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition
+                      ${
+                        isActive
+                          ? "bg-primary text-white border-primary"
+                          : "bg-neutral-50 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300"
+                      }
+                      `
+                    }
+                  >
+                    <opt.icon className={`mr-1 h-4 w-4 ${isActive ? "" : "opacity-60"}`} />
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {/* Recherche */}
+          <label className="flex flex-col gap-1 text-xs text-neutral-700 dark:text-neutral-300">
+            Recherche
             <input
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="px-3 py-1.5 border rounded-lg text-sm font-medium focus:ring-2 focus:ring-primary focus:border-transparent"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Employé ou motif…"
+              className="px-2 py-1 border border-neutral-200 dark:border-neutral-700 rounded text-sm font-medium bg-transparent text-neutral-900 dark:text-neutral-100 min-w-[160px]"
+            />
+          </label>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="rounded border border-transparent px-3 py-1 text-xs hover:border-primary/50"
+          onClick={() => {
+            setYearFrom(availableYears[availableYears.length - 1] || currentYear.toString());
+            setYearTo(availableYears[0] || currentYear.toString());
+            setSelectedStatuses(["approved", "pending", "rejected", "all"]);
+            setSearchTerm("");
+          }}
+        >
+          Réinitialiser
+        </Button>
+      </section>
+
+      {/* Message erreur */}
+      {error && (
+        <Alert variant="error" className="mt-1 mb-1">
+          {error}
+        </Alert>
+      )}
+
+      {/* Graph bar multi status */}
+      <section className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-2 md:px-6 py-5 w-full mt-1">
+        <div className="flex items-center gap-2 mb-2">
+          <HiOutlineCalendar className="size-5 text-primary/70" />
+          <span className="font-semibold text-base text-neutral-900 dark:text-neutral-100 tracking-tight">
+            Nombre de demandes de congé par mois ({yearFrom} - {yearTo})
+          </span>
+        </div>
+        {chartCategories.length === 0 || chartSeries.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="flex size-12 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800 mx-auto mb-2">
+              <HiOutlineCalendar className="size-7 text-neutral-300 dark:text-neutral-500" />
+            </div>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              Aucune donnée selon le filtre choisi.
+            </p>
+          </div>
+        ) : (
+          <div className="w-full overflow-x-auto pb-2">
+            <ReactApexChart
+              type="bar"
+              height={390}
+              width="100%"
+              options={{
+                chart: {
+                  type: "bar",
+                  toolbar: { show: false },
+                  background: "transparent",
+                  fontFamily: "inherit",
+                  animations: { enabled: true, easing: "easeinout" }
+                },
+                plotOptions: {
+                  bar: {
+                    columnWidth: "50%",
+                    borderRadius: 6,
+                  },
+                },
+                dataLabels: { enabled: false },
+                stroke: { show: true, width: 2, colors: ["transparent"] },
+                xaxis: {
+                  categories: chartCategories,
+                  labels: {
+                    style: { fontSize: "13px", color: "#646473" },
+                    rotate: -45,
+                    rotateAlways: false
+                  },
+                  tickPlacement: "on",
+                  axisTicks: { show: false },
+                  axisBorder: { show: false },
+                },
+                yaxis: {
+                  labels: {
+                    style: { fontSize: "13px", color: "#646473" },
+                  },
+                  min: 0,
+                  forceNiceScale: true,
+                  title: { text: "" },
+                },
+                colors: chartSeries.map((serie) => serie.color),
+                tooltip: {
+                  enabled: true,
+                  shared: true,
+                  intersect: false, // <-- Fix: disable intersect to allow shared tooltips
+                  y: {
+                    formatter: function (val: any) {
+                      return `${val} demande${val === 1 ? "" : "s"}`;
+                    }
+                  }
+                },
+                grid: { strokeDashArray: 2, borderColor: "#ececf2" },
+                legend: { show: chartSeries.length > 1 },
+              }}
+              series={chartSeries}
             />
           </div>
-        </div>
-      </div>
-
-      {error && <Alert variant="error">{error}</Alert>}
-
-      {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <HiOutlineCalendar className="size-6" />
-            </div>
-            <Badge variant="secondary">
-              {new Date(selectedMonth).toLocaleDateString('fr-FR', { month: 'long' })}
-            </Badge>
-          </div>
-          <p className="text-sm font-medium text-muted-foreground mb-2">
-            Total demandes
-          </p>
-          <p className="text-4xl font-bold">
-            {stats.total}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Toutes les demandes ce mois
-          </p>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-orange-500 text-white">
-              <HiOutlineClock className="size-6" />
-            </div>
-            <Badge variant="secondary">
-              En attente
-            </Badge>
-          </div>
-          <p className="text-sm font-medium text-muted-foreground mb-2">
-            À traiter
-          </p>
-          <p className="text-4xl font-bold text-orange-600">
-            {stats.pending}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Nécessitent une validation
-          </p>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-green-500 text-white">
-              <HiOutlineCheckCircle className="size-6" />
-            </div>
-            <Badge variant="secondary">
-              Validées
-            </Badge>
-          </div>
-          <p className="text-sm font-medium text-muted-foreground mb-2">
-            Approuvées
-          </p>
-          <p className="text-4xl font-bold text-green-600">
-            {stats.approved}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Demandes acceptées
-          </p>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex size-12 items-center justify-center rounded-lg bg-purple-500 text-white">
-              <HiOutlineCalendar className="size-6" />
-            </div>
-            <Badge variant="secondary">
-              Jours
-            </Badge>
-          </div>
-          <p className="text-sm font-medium text-muted-foreground mb-2">
-            Jours approuvés
-          </p>
-          <p className="text-4xl font-bold text-purple-600">
-            {formatLeaveDays(stats.totalDays)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Total des jours validés
-          </p>
-        </Card>
-      </div>
-
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* By Leave Type - Pie Chart */}
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <HiOutlineChartBar className="size-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">
-                Répartition par type
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Distribution des jours de congé
-              </p>
-            </div>
-          </div>
-          {statsByType.length === 0 || statsByType.every(s => s.totalDays === 0) ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Aucune donnée pour cette période
-            </p>
-          ) : (
-            <ChartContainer
-              config={statsByType.reduce((acc, { type }) => ({
-                ...acc,
-                [type.id]: {
-                  label: type.name,
-                  color: type.color,
-                },
-              }), {} as ChartConfig)}
-              className="h-[300px]"
-            >
-              <PieChart>
-                <Pie
-                  data={statsByType.filter(s => s.totalDays > 0).map(({ type, totalDays }) => ({
-                    name: type.name,
-                    value: totalDays,
-                    fill: type.color,
-                  }))}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label={({ name, value }) => `${name}: ${formatLeaveDays(value)}j`}
-                >
-                  {statsByType.filter(s => s.totalDays > 0).map(({ type }) => (
-                    <Cell key={type.id} fill={type.color} />
-                  ))}
-                </Pie>
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Legend />
-              </PieChart>
-            </ChartContainer>
-          )}
-        </Card>
-
-        {/* Top Employees */}
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <HiOutlineUsers className="size-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">
-                Top 5 Employés
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Employés avec le plus de congés
-              </p>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {employeeStats.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="flex size-16 items-center justify-center rounded-full bg-muted mx-auto mb-3">
-                  <HiOutlineUsers className="size-8 text-muted-foreground" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Aucune donnée pour cette période
-                </p>
-              </div>
-            ) : (
-              employeeStats.map((employee, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`flex size-10 items-center justify-center rounded-lg font-bold text-white ${
-                      index === 0 ? 'bg-yellow-500' :
-                      index === 1 ? 'bg-gray-400' :
-                      index === 2 ? 'bg-orange-500' :
-                      'bg-blue-500'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">{employee.name}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <HiOutlineCalendar className="size-3" />
-                        {employee.count} {employee.count > 1 ? "demandes" : "demande"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-2xl">
-                      {formatLeaveDays(employee.days)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">jours</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* Charts Grid - Full Width */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Status Distribution Bar Chart */}
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <HiOutlineChartBar className="size-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">
-                Répartition par statut
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Vue d'ensemble des demandes
-              </p>
-            </div>
-          </div>
-        <ChartContainer
-          config={{
-            pending: {
-              label: "En attente",
-              color: "hsl(var(--chart-1))",
-            },
-            approved: {
-              label: "Approuvées",
-              color: "hsl(var(--chart-2))",
-            },
-            rejected: {
-              label: "Rejetées",
-              color: "hsl(var(--chart-3))",
-            },
-          }}
-          className="h-[300px]"
-        >
-          <BarChart
-            data={[
-              {
-                status: "Statut",
-                pending: stats.pending,
-                approved: stats.approved,
-                rejected: stats.rejected,
-              },
-            ]}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="status" />
-            <YAxis />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <ChartLegend content={<ChartLegendContent />} />
-            <Bar dataKey="pending" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="approved" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="rejected" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ChartContainer>
-      </Card>
-
-        {/* Top Employees Bar Chart */}
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <HiOutlineUsers className="size-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold">
-                Top 5 Employés
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Classement par jours de congé
-              </p>
-            </div>
-          </div>
-          {employeeStats.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="flex size-16 items-center justify-center rounded-full bg-muted mx-auto mb-3">
-                <HiOutlineUsers className="size-8 text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Aucune donnée pour cette période
-              </p>
-            </div>
-          ) : (
-          <ChartContainer
-            config={employeeStats.reduce((acc, employee, index) => ({
-              ...acc,
-              [`employee${index}`]: {
-                label: employee.name,
-                color: `hsl(var(--chart-${(index % 5) + 1}))`,
-              },
-            }), {} as ChartConfig)}
-            className="h-[300px]"
-          >
-            <BarChart
-              data={employeeStats.map((employee) => ({
-                name: employee.name.length > 15 ? employee.name.substring(0, 15) + '...' : employee.name,
-                days: employee.days,
-              }))}
-              layout="vertical"
-              margin={{ left: 100 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="name" type="category" width={100} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="days" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ChartContainer>
-          )}
-        </Card>
-      </div>
-    </div>
+        )}
+      </section>
+    </main>
   );
 }

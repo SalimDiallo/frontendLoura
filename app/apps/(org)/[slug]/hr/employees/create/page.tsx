@@ -359,8 +359,7 @@ export default function CreateEmployeePage() {
                 required
                 options={[
                   { value: EmploymentStatus.ACTIVE, label: "Actif" },
-                  { value: EmploymentStatus.ON_LEAVE, label: "En congé" },
-                  { value: EmploymentStatus.TERMINATED, label: "Terminé" },
+                  { value: EmploymentStatus.SUSPENDED, label: "Inactif" },
                 ]}
               />
               <FormInputField name="hire_date" label="Date d'embauche *" type="date" required />

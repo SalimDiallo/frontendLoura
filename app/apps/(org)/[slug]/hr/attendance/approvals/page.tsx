@@ -24,6 +24,7 @@ import type { Attendance } from "@/lib/types/hr";
 import { ApprovalStatus } from "@/lib/types/hr";
 import { usePermissions, useAttendancePermissions } from "@/lib/hooks";
 import { Can } from "@/components/apps/common/protected-route";
+import { formatDate, formatDuration, formatTime } from "@/lib/utils";
 
 export default function AttendanceApprovalsPage() {
   const params = useParams();
@@ -204,29 +205,7 @@ export default function AttendanceApprovalsPage() {
     }
   };
 
-  const formatTime = (dateString?: string) => {
-    if (!dateString) return "-";
-    try {
-      return format(new Date(dateString), "HH:mm", { locale: fr });
-    } catch {
-      return "-";
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), "dd/MM/yyyy", { locale: fr });
-    } catch {
-      return dateString;
-    }
-  };
-
-  const formatDuration = (hours?: number) => {
-    if (!hours) return "-";
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    return `${h}h ${m}m`;
-  };
+  
 
   if (loading) {
     return (

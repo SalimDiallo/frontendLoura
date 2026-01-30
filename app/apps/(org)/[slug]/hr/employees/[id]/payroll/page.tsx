@@ -25,6 +25,7 @@ import {
 import { getEmployeePayrolls, getEmployee, downloadPayrollPDF } from "@/lib/services/hr";
 import type { Payroll, Employee, PayrollStatus } from "@/lib/types/hr";
 import { formatCurrency } from "@/lib/utils";
+import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 
 export default function EmployeePayrollHistoryPage() {
   const params = useParams();
@@ -75,17 +76,6 @@ export default function EmployeePayrollHistoryPage() {
     }
   };
 
-  const getStatusBadge = (status: PayrollStatus) => {
-    const statusConfig = {
-      draft: { label: "Brouillon", variant: "default" as const },
-      pending: { label: "En attente", variant: "warning" as const },
-      paid: { label: "Payé", variant: "success" as const },
-      cancelled: { label: "Annulé", variant: "error" as const },
-    };
-
-    const config = statusConfig[status] || { label: status, variant: "default" as const };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
 
   // Calculer les statistiques
   const totalGross = payrolls.reduce((sum, p) => sum + p.gross_salary, 0);
@@ -231,7 +221,7 @@ export default function EmployeePayrollHistoryPage() {
                         {formatCurrency(payroll.net_salary)}
                       </span>
                     </TableCell>
-                    <TableCell>{getStatusBadge(payroll.status)}</TableCell>
+                    <TableCell>{getStatusBadgeNode(payroll.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button variant="ghost" size="sm" asChild>

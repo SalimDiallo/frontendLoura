@@ -43,6 +43,39 @@ export async function getLeaveRequests(params?: {
 }
 
 /**
+ * Liste l'historique de toutes les demandes de congé
+ */
+import type { LeaveRequestHistoryApiResponse } from '@/lib/types/hr';
+
+export async function getLeaveRequestsHistory(params?: {
+  employee?: string;
+  status?: string;
+  leave_type?: string;
+  start_date?: string;
+  end_date?: string;
+  page?: number;
+  page_size?: number;
+}): Promise<{ results: LeaveRequestHistoryApiResponse[]; count: number; next?: string | null; previous?: string | null }> {
+  const searchParams = new URLSearchParams();
+
+  if (params?.employee) searchParams.append('employee', params.employee);
+  if (params?.status) searchParams.append('status', params.status);
+  if (params?.leave_type) searchParams.append('leave_type', params.leave_type);
+  if (params?.start_date) searchParams.append('start_date', params.start_date);
+  if (params?.end_date) searchParams.append('end_date', params.end_date);
+  if (params?.page) searchParams.append('page', String(params.page));
+  if (params?.page_size) searchParams.append('page_size', String(params.page_size));
+
+  const queryString = searchParams.toString();
+  const url = queryString
+    ? `${API_ENDPOINTS.HR.LEAVE_REQUESTS.HISTORY}?${queryString}`
+    : API_ENDPOINTS.HR.LEAVE_REQUESTS.HISTORY;
+
+  return apiClient.get<{ results: LeaveRequestHistoryApiResponse[]; count: number; next?: string | null; previous?: string | null }>(url);
+}
+
+
+/**
  * Récupère les détails d'une demande de congé
  */
 export async function getLeaveRequest(id: string): Promise<LeaveRequest> {

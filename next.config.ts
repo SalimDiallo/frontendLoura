@@ -14,6 +14,11 @@ const nextConfig: NextConfig = {
         hostname: '*.loura.app',
         pathname: '/**',
       },
+      {
+        protocol:'https',
+        hostname: "randomuser.me",
+        pathname:"/*",
+      }
     ],
   },
 };

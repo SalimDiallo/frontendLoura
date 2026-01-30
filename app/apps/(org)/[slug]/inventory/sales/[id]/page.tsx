@@ -21,7 +21,8 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
+import { getBadgeWIthOutIconAdLabel, getStatusIcon } from "@/lib/utils/BadgeStatus";
 
 export default function SaleDetailPage() {
   const params = useParams();
@@ -73,12 +74,6 @@ export default function SaleDetailPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-GN", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-    }).format(amount) + " GNF";
-  };
 
   if (loading) {
     return (
@@ -108,17 +103,7 @@ export default function SaleDetailPage() {
     );
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "paid":
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case "partial":
-        return <Clock className="h-5 w-5 text-orange-600" />;
-      default:
-        return <Clock className="h-5 w-5 text-yellow-600" />;
-    }
-  };
-
+ 
   return (
     <div className="p-6 space-y-6">
       {/* Payment Modal */}
@@ -188,22 +173,8 @@ export default function SaleDetailPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold">{sale.sale_number}</h1>
-              <div className="flex items-center gap-1">
-                {getStatusIcon(sale.payment_status)}
-                <Badge
-                  variant={
-                    sale.payment_status === "paid"
-                      ? "success"
-                      : sale.payment_status === "partial"
-                      ? "warning"
-                      : sale.payment_status === "cancelled"
-                      ? "error"
-                      : "default"
-                  }
-                >
-                  {sale.payment_status_display}
-                </Badge>
-              </div>
+                {getBadgeWIthOutIconAdLabel({ status: sale.payment_status, label: sale.payment_status_display ?? "" })}
+              
               {sale.is_credit && <Badge variant="info">À crédit</Badge>}
             </div>
             <p className="text-muted-foreground">
@@ -232,7 +203,7 @@ export default function SaleDetailPage() {
         <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-              <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <ShoppingCart className="h-5 w-5 text-foreground dark:text-blue-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total brut</p>

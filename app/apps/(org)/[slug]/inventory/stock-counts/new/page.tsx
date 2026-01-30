@@ -352,7 +352,7 @@ export default function NewStockCountPage() {
       {/* Help */}
       <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
         <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+          <Info className="h-5 w-5 text-foreground mt-0.5" />
           <div>
             <h3 className="font-semibold mb-2">💡 Comment ça fonctionne</h3>
             <ul className="text-sm text-muted-foreground space-y-2">

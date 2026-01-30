@@ -21,7 +21,7 @@ import {
   Receipt,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 
 export default function CreditSaleDetailPage() {
   const params = useParams();
@@ -73,20 +73,7 @@ export default function CreditSaleDetailPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-GN", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-    }).format(amount) + " GNF";
-  };
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -272,7 +259,7 @@ export default function CreditSaleDetailPage() {
         <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-              <Banknote className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Banknote className="h-5 w-5 text-foreground dark:text-blue-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Montant total</p>

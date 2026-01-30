@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 
 export default function StockCountDetailPage() {
   const params = useParams();
@@ -453,26 +454,6 @@ export default function StockCountDetailPage() {
     } catch (err: any) {
       setError(err.message || "Erreur lors de la mise à jour");
     }
-  };
-
-  const getStatusBadge = (status: StockCountStatus) => {
-    const variants: Record<string, { variant: "success" | "error" | "warning" | "info" | "default" | "outline"; icon: any; label: string }> = {
-      planned: { variant: "outline", icon: <Clock className="h-3 w-3" />, label: "Planifié" },
-      draft: { variant: "outline", icon: <Clock className="h-3 w-3" />, label: "Brouillon" },
-      in_progress: { variant: "warning", icon: <Clock className="h-3 w-3" />, label: "En cours" },
-      completed: { variant: "info", icon: <CheckCircle className="h-3 w-3" />, label: "Complété" },
-      validated: { variant: "success", icon: <CheckCircle className="h-3 w-3" />, label: "Validé" },
-      cancelled: { variant: "error", icon: <XCircle className="h-3 w-3" />, label: "Annulé" },
-    };
-
-    const config = variants[status] || variants.planned;
-
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1 w-fit">
-        {config.icon}
-        {config.label}
-      </Badge>
-    );
   };
 
   // Filtrer les produits pour la recherche
@@ -922,7 +903,7 @@ export default function StockCountDetailPage() {
                 <Clipboard className="h-8 w-8" aria-hidden="true" />
                 {stockCount.count_number}
               </h1>
-              {getStatusBadge(stockCount.status)}
+              {getStatusBadgeNode(stockCount.status)}
             </div>
             <p className="text-muted-foreground mt-1 flex items-center gap-4">
               <span className="flex items-center gap-1">

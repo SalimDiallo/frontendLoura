@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { Alert, Button, Card, Badge } from "@/components/ui";
 import { getTodayAttendance, checkIn, checkOut, startBreak, endBreak } from "@/lib/services/hr";
-import type { Attendance, AttendanceCheckIn, AttendanceCheckOut } from "@/lib/types/hr";
+import type { Attendance } from "@/lib/types/hr";
 import { Can } from "@/components/apps/common/protected-route";
 import { cn } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut } from "@/lib/hooks/use-keyboard-shortcuts";
@@ -159,8 +159,8 @@ export default function AttendancePage() {
       description: "Vous êtes actuellement en pause",
     },
     checked_out: {
-      color: "bg-blue-500",
-      textColor: "text-blue-600",
+      color: "bg-foreground",
+      textColor: "text-foreground",
       label: "Journée terminée",
       description: "Vous avez terminé votre journée",
     },
@@ -271,7 +271,7 @@ export default function AttendancePage() {
           "absolute inset-0 opacity-5",
           state === "checked_in" && "bg-gradient-to-br from-green-500 to-emerald-600",
           state === "on_break" && "bg-gradient-to-br from-amber-500 to-orange-600",
-          state === "checked_out" && "bg-gradient-to-br from-blue-500 to-indigo-600",
+          state === "checked_out" && "bg-gradient-to-br from-foreground to-indigo-600",
           state === "not_started" && "bg-gradient-to-br from-slate-500 to-slate-600"
         )} />
         
@@ -384,7 +384,7 @@ export default function AttendancePage() {
                     </Button>
                     <Button
                       size="lg"
-                      className="gap-2 bg-blue-600 hover:bg-blue-700 h-12"
+                      className="gap-2 bg-foreground hover:bg-blue-700 h-12"
                       onClick={() => handleAction("check_out")}
                       disabled={actionLoading === "check_out"}
                     >
@@ -445,7 +445,7 @@ export default function AttendancePage() {
 
             {/* Check-out Time */}
             <div className="p-4 rounded-xl bg-muted/50 text-center">
-              <LogOut className="size-5 text-blue-500 mx-auto mb-2" />
+              <LogOut className="size-5 text-foreground mx-auto mb-2" />
               <p className="text-xs text-muted-foreground mb-1">Départ</p>
               <p className="text-lg font-bold">
                 {attendance.check_out 
@@ -546,8 +546,8 @@ export default function AttendancePage() {
             href={`/apps/${slug}/hr/attendance/all`}
             className="p-4 rounded-xl bg-muted/30 hover:bg-muted/60 transition-colors flex items-center gap-3"
           >
-            <div className="size-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Users className="size-5 text-blue-500" />
+            <div className="size-10 rounded-lg bg-foreground/10 flex items-center justify-center">
+              <Users className="size-5 text-foreground" />
             </div>
             <div>
               <p className="font-medium">Tous les pointages</p>

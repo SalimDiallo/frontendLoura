@@ -369,16 +369,16 @@ export default function ContractsPage() {
           
           <Card 
             className={`p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md ${
-              filterType === 'permanent' ? 'ring-2 ring-blue-500' : ''
+              filterType === 'permanent' ? 'ring-2 ring-foreground' : ''
             }`}
             onClick={() => setFilterType(filterType === 'permanent' ? null : 'permanent')}
           >
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100">
-                <span className="text-sm font-bold text-blue-600">CDI</span>
+                <span className="text-sm font-bold text-foreground">CDI</span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-foreground">
                   {contracts.filter((c) => c.contract_type === 'permanent').length}
                 </div>
                 <div className="text-xs text-muted-foreground">Permanents</div>

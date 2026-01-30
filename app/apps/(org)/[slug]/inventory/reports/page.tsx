@@ -319,7 +319,7 @@ function OverviewTab({ stats, topProducts, categoryStock, formatCurrency, format
         {/* Graphique Top Produits */}
         <Card className="p-5">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-blue-600" />
+            <BarChart3 className="h-5 w-5 text-foreground" />
             Top 5 produits par valeur
           </h3>
           {topProductsData.length > 0 ? (
@@ -586,9 +586,9 @@ function MovementsTab({ data, days, setDays, formatNumber }: any) {
           <p className="text-2xl font-bold text-red-600">{formatNumber(totalOut)}</p>
           <p className="text-xs text-muted-foreground">Sorties</p>
         </Card>
-        <Card className="p-4 border-l-4 border-blue-500">
-          <RotateCw className="h-6 w-6 text-blue-500 mb-2" />
-          <p className="text-2xl font-bold text-blue-600">{formatNumber(totalAdj)}</p>
+        <Card className="p-4 border-l-4 border-foreground">
+          <RotateCw className="h-6 w-6 text-foreground mb-2" />
+          <p className="text-2xl font-bold text-foreground">{formatNumber(totalAdj)}</p>
           <p className="text-xs text-muted-foreground">Ajustements</p>
         </Card>
         <Card className="p-4 border-l-4 border-purple-500">
@@ -756,7 +756,7 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
     purple: "bg-purple-100 dark:bg-purple-900/30",
   };
   const textColors: Record<string, string> = {
-    blue: "text-blue-600",
+    blue: "text-foreground",
     green: "text-green-600",
     orange: "text-orange-600",
     red: "text-red-600",

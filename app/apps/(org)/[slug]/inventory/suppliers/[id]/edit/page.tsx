@@ -80,7 +80,7 @@ export default function EditSupplierPage() {
   };
 
   const handleGenerateCode = () => {
-    const code = generateSupplierCode(formData.name);
+    const code = generateSupplierCode(formData.name ?? "");
     if (code) {
       setFormData(prev => ({ ...prev, code }));
     }

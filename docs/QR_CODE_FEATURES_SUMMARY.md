@@ -406,9 +406,9 @@ class QRCodeSession(models.Model):
 - Icône : text-orange-600
 
 /* FAB */
-- Gradient : from-blue-600 to-indigo-600
+- Gradient : from-foreground to-indigo-600
 - Border : 4px white (dark: gray-800)
-- Glow : blue-500 to indigo-500 (blur-lg)
+- Glow : foreground to indigo-500 (blur-lg)
 - Badge : bg-green-500
 ```
 

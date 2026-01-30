@@ -132,7 +132,7 @@ export default function MovementDetailPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="p-6">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Package className="h-5 w-5 text-blue-600" />
+            <Package className="h-5 w-5 text-foreground" />
             Produit et quantité
           </h3>
           <div className="space-y-3 text-sm">

@@ -389,8 +389,8 @@ export default function EditEmployeePage() {
                 required
                 options={[
                   { value: EmploymentStatus.ACTIVE, label: "Actif" },
-                  { value: EmploymentStatus.INACTIVE, label: "Inactif" },
-                  { value: EmploymentStatus.ON_LEAVE, label: "En congé" },
+                  { value: EmploymentStatus.ON_LEAVE, label: "Demission" },
+                  { value: EmploymentStatus.SUSPENDED, label: "Suspendu" },
                   { value: EmploymentStatus.TERMINATED, label: "Terminé" },
                 ]}
               />
@@ -646,7 +646,7 @@ export default function EditEmployeePage() {
                                   <p className="text-xs text-muted-foreground font-mono mt-1">{permission.code}</p>
                                 )}
                                 {isFromRole && (
-                                  <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                  <span className="text-xs text-foreground dark:text-blue-400 font-medium">
                                     (du rôle)
                                   </span>
                                 )}

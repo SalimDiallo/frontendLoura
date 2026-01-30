@@ -38,7 +38,7 @@ const colorClasses = {
     border: "border-blue-200 dark:border-blue-800",
     bg: "bg-blue-50/50 dark:bg-blue-900/20",
     iconBg: "bg-blue-100 dark:bg-blue-900/50",
-    iconText: "text-blue-600",
+    iconText: "text-foreground",
     text: "text-blue-700 dark:text-blue-400",
   },
   orange: {

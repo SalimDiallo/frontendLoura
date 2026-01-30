@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Alert, Card, Input, Label } from "@/components/ui";
-import { createCustomer } from "@/lib/services/inventory";
-import type { CustomerCreate } from "@/lib/types/inventory";
+import { getCustomer, updateCustomer } from "@/lib/services/inventory";
+import type { Customer } from "@/lib/types/inventory";
 import {
   ArrowLeft,
   AlertTriangle,
@@ -17,50 +17,72 @@ import {
   CreditCard,
 } from "lucide-react";
 import Link from "next/link";
-import { generateCodeFromName } from "@/lib/utils/code-generator"; // Ajout import pour générer le code
+import { generateCodeFromName } from "@/lib/utils/code-generator";
 
-export default function NewCustomerPage() {
+export default function EditCustomerPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
+  const customerId = params.id as string;
 
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Customer | null>(null);
 
-  const [formData, setFormData] = useState<CustomerCreate>({
-    name: "",
-    code: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    country: "Guinée",
-    credit_limit: 0,
-    notes: "",
-    tax_id: "",
-    is_active: true,
-  });
+  useEffect(() => {
+    async function fetchCustomer() {
+      try {
+        setFetching(true);
+        setError(null);
+        const data = await getCustomer(customerId);
+        setFormData(data);
+      } catch (err: any) {
+        setError(
+          err?.message || "Erreur lors du chargement des données du client."
+        );
+      } finally {
+        setFetching(false);
+      }
+    }
+    fetchCustomer();
+  }, [customerId]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
+    if (!formData) return;
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "number" ? parseFloat(value) || 0 : value,
-    }));
+    setFormData((prev) =>
+      prev
+        ? {
+            ...prev,
+            [name]: type === "number" ? parseFloat(value) || 0 : value,
+          }
+        : prev
+    );
   };
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCheckboxChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!formData) return;
     const { name, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: checked,
-    }));
+    setFormData((prev) =>
+      prev
+        ? {
+            ...prev,
+            [name]: checked,
+          }
+        : prev
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData) return;
 
     if (!formData.name.trim()) {
       setError("Le nom du client est requis");
@@ -72,24 +94,34 @@ export default function NewCustomerPage() {
       setError(null);
 
       let code = formData?.code?.trim();
-      // Si aucun code renseigné, générer automatiquement depuis le nom
       if (!code) {
-        // On prefixe "CLT-" puis code généré depuis nom
-        // Le suffixe peut être laissé vide ou remplacé par une logique d'incrément si nécessaire
         code = `CLT-${generateCodeFromName(formData.name, 3)}`;
       }
 
       const dataToSubmit = { ...formData, code };
 
-       await createCustomer(dataToSubmit);
-        router.push(`/apps/${slug}/inventory/customers`);
-      console.log(dataToSubmit);
+      await updateCustomer(customerId, dataToSubmit);
+      router.push(`/apps/${slug}/inventory/customers/${customerId}`);
     } catch (err: any) {
-      setError(err.message || "Erreur lors de la création du client");
+      setError(
+        err?.message || "Erreur lors de la mise à jour du client"
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  if (fetching || !formData) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 rounded bg-neutral-100 dark:bg-neutral-900 w-2/5 mb-2" />
+          <div className="h-10 rounded bg-neutral-100 dark:bg-neutral-900 mb-2" />
+          <div className="h-96 bg-neutral-100 dark:bg-neutral-900 rounded-xl mt-6" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -101,9 +133,9 @@ export default function NewCustomerPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Nouveau client</h1>
+          <h1 className="text-2xl font-bold">Modification client</h1>
           <p className="text-muted-foreground">
-            Créez un nouveau client dans votre base
+            Modifiez les informations du client sélectionné
           </p>
         </div>
       </div>
@@ -121,7 +153,7 @@ export default function NewCustomerPage() {
 
       <form onSubmit={handleSubmit}>
         <div className="space-y-6">
-          {/* Informations de base */}
+          {/* Informations générales */}
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <User className="h-5 w-5" />
@@ -308,12 +340,12 @@ export default function NewCustomerPage() {
               {loading ? (
                 <div className="flex items-center gap-2">
                   <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                  Création...
+                  Enregistrement...
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Save className="h-4 w-4" />
-                  Créer le client
+                  Mettre à jour
                 </div>
               )}
             </Button>

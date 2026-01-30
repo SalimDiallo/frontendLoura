@@ -55,7 +55,7 @@ const MODULE_CONFIG = {
     bgColor: "bg-blue-50 dark:bg-blue-950/30",
     borderColor: "border-blue-200 dark:border-blue-800",
     textColor: "text-blue-700 dark:text-blue-300",
-    iconColor: "text-blue-500",
+    iconColor: "text-foreground",
   },
   inventory: {
     label: "Inventaire & Ventes",
@@ -108,7 +108,7 @@ function PermissionCheckbox({
           "shrink-0 rounded border-2 flex items-center justify-center transition-all",
           compact ? "size-4" : "size-5",
           isFromRole
-            ? "bg-blue-500 border-blue-500 text-white"
+            ? "bg-foreground border-foreground text-white"
             : isSelected
               ? "bg-primary border-primary text-white"
               : "border-muted-foreground/30"
@@ -131,7 +131,7 @@ function PermissionCheckbox({
           {permission.label}
         </p>
         {isFromRole && (
-          <span className="text-[10px] text-blue-600 dark:text-blue-400 flex items-center gap-1">
+          <span className="text-[10px] text-foreground dark:text-blue-400 flex items-center gap-1">
             <LuLock className="size-2.5" />
             Du rôle
           </span>
@@ -385,7 +385,7 @@ export function PermissionSelector({
             <span className="text-muted-foreground">actives</span>
           </div>
           {stats.fromRole > 0 && (
-            <div className="flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400">
+            <div className="flex items-center gap-1.5 text-sm text-foreground dark:text-blue-400">
               <LuLock className="size-3" />
               <span>{stats.fromRole} du rôle</span>
             </div>

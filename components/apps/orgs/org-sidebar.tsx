@@ -68,6 +68,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useState, useEffect } from "react";
 import { authService, CurrentUser } from "@/lib/services/auth/auth.service";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 // Types
 interface MenuItem {
@@ -144,7 +145,7 @@ export function OrganisationSideBar() {
   // Menu items
   const generalMenuItems: MenuItem[] = [
     {
-      title: "Tableau de bord",
+      title: "Accueil",
       url: `/apps/${orgSlug}/dashboard`,
       icon: LayoutDashboard,
     },
@@ -329,17 +330,16 @@ export function OrganisationSideBar() {
               className="hover:bg-transparent active:bg-transparent px-2"
             >
               <Link href={`/apps/${orgSlug}/dashboard`} className="gap-3">
-                <div className={cn(
-                  "flex aspect-square items-center justify-center rounded-xl font-bold text-sm shadow-sm transition-all",
-                  "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground",
-                  isCollapsed ? "size-10" : "size-10"
-                )}>
-                  {orgSlug?.[0]?.toUpperCase() || "O"}
-                </div>
+
+
+              {/* logo sera ici de lentreprise  */}
+
+              <Image src={"/images/logo.png"} alt="logo de lentreprise" width={25} height={25} />
+
                 {!isCollapsed && (
-                  <div className="grid flex-1 text-left leading-tight">
-                    <span className="truncate font-bold text-sm capitalize">
-                      {user?.organization_name || "Organisation"}
+                  <div className="grid flex-1 text-left leading-tight hover:text-primary">
+                    <span className="truncate font-bold text-sm capitalize hover:text-primary">
+                      {user?.organization?.name || "Organisation"}
                     </span>
                     <span className="truncate text-[11px] text-muted-foreground">
                       Espace de travail
@@ -459,7 +459,7 @@ export function OrganisationSideBar() {
                   size="lg"
                   tooltip={getDisplayName(user)}
                   className={cn(
-                    "w-full data-[state=open]:bg-accent",
+                    "w-full data-[state=open]:bg-primary",
                     isCollapsed && "justify-center px-0"
                   )}
                 >

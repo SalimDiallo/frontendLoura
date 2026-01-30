@@ -63,7 +63,7 @@ export default function MovementsPage() {
     switch (type) {
       case 'in': return <ArrowDownCircle className="h-4 w-4 text-green-600" />;
       case 'out': return <ArrowUpCircle className="h-4 w-4 text-red-600" />;
-      case 'transfer': return <ArrowRightLeft className="h-4 w-4 text-blue-600" />;
+      case 'transfer': return <ArrowRightLeft className="h-4 w-4 text-foreground" />;
       case 'adjustment': return <Settings className="h-4 w-4 text-orange-600" />;
       default: return <Package className="h-4 w-4" />;
     }
@@ -147,11 +147,11 @@ export default function MovementsPage() {
           onClick={() => setFilterType(filterType === "transfer" ? undefined : "transfer")}
           className={cn(
             "p-3 rounded-lg border transition-all text-left",
-            filterType === "transfer" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "hover:border-blue-300"
+            filterType === "transfer" ? "border-foreground bg-blue-50 dark:bg-blue-900/20" : "hover:border-blue-300"
           )}
         >
           <div className="flex items-center gap-2">
-            <ArrowRightLeft className="h-5 w-5 text-blue-600" />
+            <ArrowRightLeft className="h-5 w-5 text-foreground" />
             <span className="text-2xl font-bold">{totalTransfer}</span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">Transferts</p>
@@ -226,7 +226,7 @@ export default function MovementsPage() {
                       </p>
                     )}
                     {m.customer_name && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                      <p className="text-xs text-foreground dark:text-blue-400 mt-0.5">
                         👤 Client: {m.customer_name}
                       </p>
                     )}

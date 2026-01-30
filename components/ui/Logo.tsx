@@ -19,7 +19,7 @@ export default function Logo({
           </Link>
          {
             showTitle &&  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-           <span className="text-blue-500">Loura</span>Tech
+           <span className="text-">Loura</span>Tech
           </h1>
          }
     </div>

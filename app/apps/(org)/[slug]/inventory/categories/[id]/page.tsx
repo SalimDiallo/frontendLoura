@@ -139,7 +139,7 @@ export default function CategoryDetailPage() {
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Package className="h-5 w-5 text-blue-600" />
+              <Package className="h-5 w-5 text-foreground" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Produits</p>

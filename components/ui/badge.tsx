@@ -17,10 +17,10 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
         "border border-secondary/20",
       ].join(" "),
       secondary:[
-        "bg-gradient-to-r from-blue-500/15 to-indigo-500/15",
+        "bg-gradient-to-r from-foreground/15 to-indigo-500/15",
         "text-blue-700 dark:text-blue-300",
-        "border border-blue-500/30 dark:border-blue-400/30",
-        "shadow-sm shadow-blue-500/10",
+        "border border-foreground/30 dark:border-blue-400/30",
+        "shadow-sm shadow-foreground/10",
       ].join(),
       success: [
         "bg-gradient-to-r from-emerald-500/15 to-green-500/15",
@@ -41,10 +41,10 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
         "shadow-sm shadow-amber-500/10",
       ].join(" "),
       info: [
-        "bg-gradient-to-r from-blue-500/15 to-indigo-500/15",
+        "bg-gradient-to-r from-foreground/15 to-indigo-500/15",
         "text-blue-700 dark:text-blue-300",
-        "border border-blue-500/30 dark:border-blue-400/30",
-        "shadow-sm shadow-blue-500/10",
+        "border border-foreground/30 dark:border-blue-400/30",
+        "shadow-sm shadow-foreground/10",
       ].join(" "),
       outline: [
         "bg-transparent",

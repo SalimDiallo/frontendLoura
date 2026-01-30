@@ -349,7 +349,7 @@ import Link from 'next/link';
   subtitle={
     <>
       Ou{' '}
-      <Link href="/core/register" className="text-blue-600 hover:text-blue-500">
+      <Link href="/core/register" className="text-foreground hover:text-foreground">
         créer un nouveau compte
       </Link>
     </>
@@ -364,7 +364,7 @@ import Link from 'next/link';
   subtitle={
     <>
       Ou{' '}
-      <Link href="/core/login" className="text-blue-600 hover:text-blue-500">
+      <Link href="/core/login" className="text-foreground hover:text-foreground">
         se connecter
       </Link>
     </>
@@ -450,7 +450,7 @@ export default function LoginPage() {
       subtitle={
         <>
           Ou{' '}
-          <Link href="/core/register" className="text-blue-600 hover:text-blue-500">
+          <Link href="/core/register" className="text-foreground hover:text-foreground">
             créer un compte
           </Link>
         </>

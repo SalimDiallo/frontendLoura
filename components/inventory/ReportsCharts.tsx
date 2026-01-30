@@ -129,7 +129,7 @@ export function MovementsChart({
         </div>
         <div className="p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/50 dark:to-blue-900/30 border border-blue-200/50">
           <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-blue-600" />
+            <Activity className="h-4 w-4 text-foreground" />
             <span className="text-xs text-blue-700 dark:text-blue-300">Transferts</span>
           </div>
           <p className="text-2xl font-bold mt-1 text-blue-900 dark:text-blue-100">
@@ -277,7 +277,7 @@ export function CategoriesChart({
       {/* Graphique en barres */}
       <Card className="p-4">
         <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-blue-500" />
+          <BarChart3 className="h-4 w-4 text-foreground" />
           Quantité par catégorie
         </h4>
         <div className="h-[250px]">

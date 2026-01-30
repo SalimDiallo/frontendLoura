@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
@@ -47,17 +47,29 @@ import {
   HiOutlineDocumentText,
   HiOutlineCheck,
   HiOutlineCurrencyDollar,
+  HiChevronDown,
+  HiChevronUp,
+  HiOutlineTrash,
+  HiOutlinePlus,
+  HiOutlineBanknotes,
 } from "react-icons/hi2";
 import { formatCurrency, cn } from "@/lib/utils";
-import { getPayrollPeriods, createPayrollPeriod, generateBulkPayslips, contractService } from "@/lib/services/hr";
+import { getPayrollPeriods, createPayrollPeriod, generateBulkPayslips, contractService, getPayrollAdvances } from "@/lib/services/hr";
 import { getEmployees } from "@/lib/services/hr/employee.service";
 import { getDepartments } from "@/lib/services/hr/department.service";
 import { getPositions } from "@/lib/services/hr/position.service";
-import type { PayrollPeriod, EmployeeListItem, Department, Position, Contract } from "@/lib/types/hr";
+import type { PayrollPeriod, EmployeeListItem, Department, Position, Contract, PayrollAdvance } from "@/lib/types/hr";
 
 // ============================================
 // Types
 // ============================================
+
+interface PayrollItem {
+  id: string;
+  name: string;
+  amount: number;
+  is_deduction: boolean;
+}
 
 interface EmployeeWithContract extends EmployeeListItem {
   selected: boolean;
@@ -65,6 +77,17 @@ interface EmployeeWithContract extends EmployeeListItem {
   loadingContract: boolean;
   error: string | null;
   hasExistingPayslip?: boolean;
+  // Personnalisation par employé
+  customBaseSalary: number | null;  // Si null, utilise le salaire du contrat
+  notes: string;  // Note/description pour cet employé
+  // Primes et déductions personnalisées
+  allowances: PayrollItem[];
+  deductions: PayrollItem[];
+  // Avances sur salaire
+  advances: PayrollAdvance[];
+  selectedAdvanceIds: string[];
+  loadingAdvances: boolean;
+  showDetails: boolean;
 }
 
 // ============================================
@@ -94,6 +117,113 @@ const Checkbox = ({ checked, onChange, id, className, disabled }: {
     {checked && <HiOutlineCheck className="size-3.5" />}
   </button>
 );
+
+// ============================================
+// AddItemButton component for adding allowances/deductions
+// ============================================
+const AddItemButton = ({ 
+  onAdd, 
+  type 
+}: { 
+  onAdd: (name: string, amount: number) => void; 
+  type: 'allowance' | 'deduction';
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
+
+  const handleSubmit = () => {
+    if (name && amount && Number(amount) > 0) {
+      onAdd(name, Number(amount));
+      setName('');
+      setAmount('');
+      setIsOpen(false);
+    }
+  };
+
+  const suggestions = type === 'allowance' 
+    ? ['Prime de transport', 'Prime de logement', 'Prime de performance', 'Prime de risque', 'Indemnité repas']
+    : ['Prêt employé', 'Pénalité retard', 'Cotisation syndicale', 'Assurance complémentaire'];
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className={cn(
+          "flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors",
+          type === 'allowance' 
+            ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400"
+            : "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400"
+        )}
+      >
+        <HiOutlinePlus className="size-3" />
+        Ajouter
+      </button>
+    );
+  }
+
+  return (
+    <div className="p-3 bg-white dark:bg-gray-800 border rounded-lg shadow-lg absolute z-20 right-0 min-w-[250px]">
+      <div className="space-y-3">
+        <div>
+          <Label className="text-xs">Libellé</Label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={type === 'allowance' ? "Ex: Prime de transport" : "Ex: Prêt employé"}
+            className="h-8 text-sm mt-1"
+          />
+          <div className="flex flex-wrap gap-1 mt-1">
+            {suggestions.slice(0, 3).map(s => (
+              <button
+                key={s}
+                onClick={() => setName(s)}
+                className="text-xs px-2 py-0.5 bg-muted rounded hover:bg-muted/80"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">Montant (GNF)</Label>
+          <Input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Ex: 100000"
+            className="h-8 text-sm mt-1"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setIsOpen(false);
+              setName('');
+              setAmount('');
+            }}
+            className="flex-1 h-7 text-xs"
+          >
+            Annuler
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSubmit}
+            disabled={!name || !amount || Number(amount) <= 0}
+            className={cn(
+              "flex-1 h-7 text-xs",
+              type === 'allowance' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+            )}
+          >
+            Ajouter
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ============================================
 // Main Component
@@ -168,6 +298,14 @@ export default function GeneratePayslipsPage() {
         contract: null,
         loadingContract: true,
         error: null,
+        customBaseSalary: null,
+        notes: "",
+        allowances: [],
+        deductions: [],
+        advances: [],
+        selectedAdvanceIds: [],
+        loadingAdvances: false,
+        showDetails: false,
       }));
       
       setEmployees(employeesWithContracts);
@@ -213,6 +351,93 @@ export default function GeneratePayslipsPage() {
     setEmployees(updatedEmployees);
   };
 
+  // Load advances for a specific employee
+  const loadAdvancesForEmployee = async (employeeId: string) => {
+    // Mark as loading
+    setEmployees(prev => prev.map(emp => 
+      emp.id === employeeId ? { ...emp, loadingAdvances: true } : emp
+    ));
+
+    try {
+      const advances = await getPayrollAdvances({
+        organization_subdomain: slug,
+        employee: employeeId,
+        status: "approved",
+      });
+      // Only keep advances not already linked to a payslip
+      const availableAdvances = advances.filter((adv: PayrollAdvance) => !adv.payslip);
+      
+      setEmployees(prev => prev.map(emp => 
+        emp.id === employeeId 
+          ? { ...emp, advances: availableAdvances, loadingAdvances: false }
+          : emp
+      ));
+    } catch (err) {
+      console.error("Error loading advances:", err);
+      setEmployees(prev => prev.map(emp => 
+        emp.id === employeeId ? { ...emp, advances: [], loadingAdvances: false } : emp
+      ));
+    }
+  };
+
+  // Toggle advance selection for an employee (with net salary check)
+  const toggleAdvanceSelection = (employeeId: string, advanceId: string) => {
+    setEmployees(prev => prev.map(emp => {
+      if (emp.id !== employeeId) return emp;
+      
+      const isSelected = emp.selectedAdvanceIds.includes(advanceId);
+      
+      // Si on désélectionne, pas de problème
+      if (isSelected) {
+        return { ...emp, selectedAdvanceIds: emp.selectedAdvanceIds.filter(id => id !== advanceId) };
+      }
+      
+      // Si on sélectionne, vérifier que le net ne devient pas négatif
+      const advance = emp.advances.find(a => a.id === advanceId);
+      if (!advance) return emp;
+      
+      const baseSalary = getEffectiveBaseSalary(emp);
+      const totalAllowances = emp.allowances.reduce((sum, a) => sum + a.amount, 0);
+      const totalDeductions = emp.deductions.reduce((sum, d) => sum + d.amount, 0);
+      const currentAdvances = emp.advances
+        .filter(a => emp.selectedAdvanceIds.includes(a.id))
+        .reduce((sum, a) => sum + Number(a.amount), 0);
+      
+      const gross = baseSalary + totalAllowances;
+      const currentNet = gross - totalDeductions - currentAdvances;
+      const newAdvanceAmount = Number(advance.amount);
+      
+      // Vérifier si l'ajout de cette avance rendrait le net négatif
+      if (currentNet - newAdvanceAmount < 0) {
+        // Ne pas sélectionner cette avance
+        return emp;
+      }
+      
+      return { ...emp, selectedAdvanceIds: [...emp.selectedAdvanceIds, advanceId] };
+    }));
+  };
+
+  // Check if an advance can be selected (won't make net negative)
+  const canSelectAdvance = (emp: EmployeeWithContract, advanceId: string): boolean => {
+    const advance = emp.advances.find(a => a.id === advanceId);
+    if (!advance) return false;
+    
+    // If already selected, can always toggle off
+    if (emp.selectedAdvanceIds.includes(advanceId)) return true;
+    
+    const baseSalary = getEffectiveBaseSalary(emp);
+    const totalAllowances = emp.allowances.reduce((sum, a) => sum + a.amount, 0);
+    const totalDeductions = emp.deductions.reduce((sum, d) => sum + d.amount, 0);
+    const currentAdvances = emp.advances
+      .filter(a => emp.selectedAdvanceIds.includes(a.id))
+      .reduce((sum, a) => sum + Number(a.amount), 0);
+    
+    const gross = baseSalary + totalAllowances;
+    const currentNet = gross - totalDeductions - currentAdvances;
+    
+    return currentNet - Number(advance.amount) >= 0;
+  };
+
   // ============================================
   // Filtered employees
   // ============================================
@@ -244,7 +469,7 @@ export default function GeneratePayslipsPage() {
   // Selected employees count
   const selectedCount = employees.filter(emp => emp.selected && emp.contract).length;
   const selectedTotal = employees.filter(emp => emp.selected && emp.contract)
-    .reduce((sum, emp) => sum + (emp.contract?.base_salary || 0), 0);
+    .reduce((sum, emp) => sum + getEffectiveBaseSalary(emp), 0);
 
   // ============================================
   // Actions
@@ -268,15 +493,128 @@ export default function GeneratePayslipsPage() {
     }));
   };
 
-  const handleGenerate = async () => {
-    if (!selectedPeriod) {
-      setError("Veuillez sélectionner une période de paie");
-      return;
+  // Toggle details panel for an employee
+  const toggleDetails = (id: string) => {
+    const employee = employees.find(e => e.id === id);
+    
+    // If opening details and advances not loaded yet, load them
+    if (employee && !employee.showDetails && employee.advances.length === 0 && !employee.loadingAdvances) {
+      loadAdvancesForEmployee(id);
     }
+    
+    setEmployees(prev => prev.map(emp => 
+      emp.id === id ? { ...emp, showDetails: !emp.showDetails } : emp
+    ));
+  };
 
-    const selectedEmployeeIds = employees
-      .filter(emp => emp.selected && emp.contract)
-      .map(emp => emp.id);
+  // Update custom base salary for an employee
+  const updateCustomBaseSalary = (employeeId: string, value: number | null) => {
+    setEmployees(prev => prev.map(emp => 
+      emp.id === employeeId ? { ...emp, customBaseSalary: value } : emp
+    ));
+  };
+
+  // Update notes for an employee
+  const updateNotes = (employeeId: string, notes: string) => {
+    setEmployees(prev => prev.map(emp => 
+      emp.id === employeeId ? { ...emp, notes } : emp
+    ));
+  };
+
+  // Get effective base salary (custom or from contract)
+  const getEffectiveBaseSalary = (emp: EmployeeWithContract): number => {
+    return emp.customBaseSalary !== null ? emp.customBaseSalary : (emp.contract?.base_salary || 0);
+  };
+
+  // Add an allowance to an employee
+  const addAllowance = (employeeId: string, name: string, amount: number) => {
+    setEmployees(prev => prev.map(emp => {
+      if (emp.id === employeeId) {
+        return {
+          ...emp,
+          allowances: [...emp.allowances, { 
+            id: crypto.randomUUID(), 
+            name, 
+            amount, 
+            is_deduction: false 
+          }]
+        };
+      }
+      return emp;
+    }));
+  };
+
+  // Add a deduction to an employee (with net check)
+  const addDeduction = (employeeId: string, name: string, amount: number) => {
+    setEmployees(prev => prev.map(emp => {
+      if (emp.id === employeeId) {
+        // Vérifier que l'ajout ne rend pas le net négatif
+        const baseSalary = getEffectiveBaseSalary(emp);
+        const totalAllowances = emp.allowances.reduce((sum, a) => sum + a.amount, 0);
+        const currentDeductions = emp.deductions.reduce((sum, d) => sum + d.amount, 0);
+        const currentAdvances = emp.advances
+          .filter(a => emp.selectedAdvanceIds.includes(a.id))
+          .reduce((sum, a) => sum + Number(a.amount), 0);
+        
+        const gross = baseSalary + totalAllowances;
+        const currentNet = gross - currentDeductions - currentAdvances;
+        
+        if (currentNet - amount < 0) {
+          // Ne pas ajouter cette déduction
+          return emp;
+        }
+        
+        return {
+          ...emp,
+          deductions: [...emp.deductions, { 
+            id: crypto.randomUUID(), 
+            name, 
+            amount, 
+            is_deduction: true 
+          }]
+        };
+      }
+      return emp;
+    }));
+  };
+
+  // Remove an item (allowance or deduction) from an employee
+  const removeItem = (employeeId: string, itemId: string, isDeduction: boolean) => {
+    setEmployees(prev => prev.map(emp => {
+      if (emp.id === employeeId) {
+        if (isDeduction) {
+          return { ...emp, deductions: emp.deductions.filter(d => d.id !== itemId) };
+        } else {
+          return { ...emp, allowances: emp.allowances.filter(a => a.id !== itemId) };
+        }
+      }
+      return emp;
+    }));
+  };
+
+  // Calculate totals for an employee
+  const calculateEmployeeTotals = (emp: EmployeeWithContract) => {
+    const baseSalary = getEffectiveBaseSalary(emp);
+    const totalAllowances = emp.allowances.reduce((sum, a) => sum + a.amount, 0);
+    const totalDeductions = emp.deductions.reduce((sum, d) => sum + d.amount, 0);
+    
+    // Avances sélectionnées
+    const totalAdvances = emp.advances
+      .filter(a => emp.selectedAdvanceIds.includes(a.id))
+      .reduce((sum, a) => sum + Number(a.amount), 0);
+    
+    const gross = baseSalary + totalAllowances;
+    const totalDed = totalDeductions + totalAdvances;
+    const net = gross - totalDed;
+    
+    return { gross, totalDeductions: totalDed, net, totalAdvances, baseSalary };
+  };
+
+  const handleGenerate = async () => {
+    // La période est maintenant optionnelle
+
+    const selectedEmployees = employees.filter(emp => emp.selected && emp.contract);
+    const selectedEmployeeIds = selectedEmployees.map(emp => emp.id);
 
     if (selectedEmployeeIds.length === 0) {
       setError("Veuillez sélectionner au moins un employé");
@@ -287,10 +625,55 @@ export default function GeneratePayslipsPage() {
       setGenerating(true);
       setError(null);
 
-      const result = await generateBulkPayslips(selectedPeriod, {
+      // Construire les données personnalisées par employé
+      const employeeCustomData: Record<string, {
+        base_salary?: number;
+        notes?: string;
+        allowances?: { name: string; amount: number }[];
+        deductions?: { name: string; amount: number }[];
+        advance_ids?: string[];
+      }> = {};
+
+      for (const emp of selectedEmployees) {
+        const hasCustomData = 
+          emp.customBaseSalary !== null ||
+          emp.notes !== "" ||
+          emp.allowances.length > 0 ||
+          emp.deductions.length > 0 ||
+          emp.selectedAdvanceIds.length > 0;
+
+        if (hasCustomData) {
+          employeeCustomData[emp.id] = {};
+          
+          if (emp.customBaseSalary !== null) {
+            employeeCustomData[emp.id].base_salary = emp.customBaseSalary;
+          }
+          if (emp.notes) {
+            employeeCustomData[emp.id].notes = emp.notes;
+          }
+          if (emp.allowances.length > 0) {
+            employeeCustomData[emp.id].allowances = emp.allowances.map(a => ({
+              name: a.name,
+              amount: a.amount
+            }));
+          }
+          if (emp.deductions.length > 0) {
+            employeeCustomData[emp.id].deductions = emp.deductions.map(d => ({
+              name: d.name,
+              amount: d.amount
+            }));
+          }
+          if (emp.selectedAdvanceIds.length > 0) {
+            employeeCustomData[emp.id].advance_ids = emp.selectedAdvanceIds;
+          }
+        }
+      }
+
+      const result = await generateBulkPayslips(selectedPeriod || null, {
         auto_deduct_advances: autoDeductAdvances,
         auto_approve: autoApprove,
         employee_ids: selectedEmployeeIds,
+        employee_custom_data: employeeCustomData,
       });
 
       let message = `✅ ${result.created} fiche(s) de paie créée(s)`;
@@ -302,6 +685,9 @@ export default function GeneratePayslipsPage() {
       }
       if (result.auto_approved) {
         message += ` • Auto-approuvées`;
+      }
+      if (result.ad_hoc_mode) {
+        message += ` • Mode ad-hoc`;
       }
       if (result.errors.length > 0) {
         message += `\n⚠️ Erreurs: ${result.errors.join(', ')}`;
@@ -424,45 +810,65 @@ export default function GeneratePayslipsPage() {
           <Card className="p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <HiOutlineCalendar className="size-5" />
-              Période de paie
+              Configuration de la paie
             </h2>
 
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner une période" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {periods.map((period) => (
-                      <SelectItem key={period.id} value={period.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{period.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            ({new Date(period.start_date).toLocaleDateString("fr-FR")} - {new Date(period.end_date).toLocaleDateString("fr-FR")})
-                          </span>
-                          <Badge variant={period.status === "draft" ? "secondary" : period.status === "processing" ? "default" : "outline"} className="ml-2 text-xs">
-                            {period.status}
-                          </Badge>
-                        </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Période */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Période de paie <span className="text-xs text-muted-foreground">(optionnel)</span>
+                </Label>
+                <div className="flex gap-2">
+                  <Select 
+                    value={selectedPeriod} 
+                    onValueChange={(value) => setSelectedPeriod(value === "_none" ? "" : value)}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Sans période (ad-hoc)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">
+                        <span className="text-muted-foreground">📝 Sans période (ad-hoc)</span>
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      {periods.length > 0 && (
+                        <div className="py-1 px-2 text-xs text-muted-foreground border-t mt-1">
+                          Périodes disponibles
+                        </div>
+                      )}
+                      {periods.map((period) => (
+                        <SelectItem key={period.id} value={period.id}>
+                          <div className="flex items-center gap-2">
+                            <span>{period.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ({new Date(period.start_date).toLocaleDateString("fr-FR")} - {new Date(period.end_date).toLocaleDateString("fr-FR")})
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" onClick={openPeriodDialog} title="Créer une nouvelle période">
+                    <HiOutlinePlusCircle className="size-4" />
+                  </Button>
+                </div>
               </div>
-              <Button variant="outline" onClick={openPeriodDialog}>
-                <HiOutlinePlusCircle className="size-4 mr-2" />
-                Nouvelle période
-              </Button>
             </div>
 
-            {periods.length === 0 && (
+            {!selectedPeriod && (
               <Alert variant="info" className="mt-4">
-                <HiOutlineExclamationTriangle className="size-4" />
-                Aucune période de paie disponible. Créez une nouvelle période pour commencer.
+                <HiOutlineDocumentText className="size-4" />
+                <div className="ml-2">
+                  <p className="font-medium">Mode ad-hoc (sans période)</p>
+                  <p className="text-sm mt-1">
+                    Les fiches de paie seront créées sans rattachement à une période. 
+                    Vous pouvez ajouter des notes personnalisées pour chaque employé.
+                  </p>
+                </div>
               </Alert>
             )}
           </Card>
+
 
           {/* Filters */}
           <Card className="p-6">
@@ -541,84 +947,317 @@ export default function GeneratePayslipsPage() {
 
             {/* Employees Table */}
             <div className="border rounded-lg overflow-hidden">
-              <div className="max-h-[400px] overflow-auto">
+              <div className="max-h-[500px] overflow-auto">
                 <Table>
                   <TableHeader className="sticky top-0 bg-background z-10">
                     <TableRow>
                       <TableHead className="w-12"></TableHead>
                       <TableHead>Employé</TableHead>
-                      <TableHead>Département</TableHead>
-                      <TableHead>Poste</TableHead>
-                      <TableHead className="text-right">Salaire de base</TableHead>
+                      <TableHead className="hidden md:table-cell">Département</TableHead>
+                      <TableHead className="text-right">Base</TableHead>
+                      <TableHead className="text-right">Net estimé</TableHead>
                       <TableHead className="w-32">Statut</TableHead>
+                      <TableHead className="w-20 text-center">Détails</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredEmployees.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                           Aucun employé trouvé
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredEmployees.map((employee) => (
-                        <TableRow 
-                          key={employee.id}
-                          className={cn(
-                            employee.error && "bg-orange-50 dark:bg-orange-950/20",
-                            employee.selected && "bg-primary/5"
-                          )}
-                        >
-                          <TableCell>
-                            <Checkbox
-                              checked={employee.selected}
-                              onChange={() => toggleEmployee(employee.id)}
-                              disabled={!!employee.error || employee.loadingContract}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{employee.full_name}</p>
-                              <p className="text-xs text-muted-foreground">{employee.employee_id}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {employee.department_name || "-"}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {employee.position_title || "-"}
-                          </TableCell>
-                          <TableCell className="text-right font-mono">
-                            {employee.loadingContract ? (
-                              <span className="text-muted-foreground text-xs">Chargement...</span>
-                            ) : employee.contract ? (
-                              <span className="font-medium">
-                                {formatCurrency(employee.contract.base_salary, employee.contract.currency || "GNF")}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
+                      filteredEmployees.map((employee) => {
+                        const totals = calculateEmployeeTotals(employee);
+                        const hasCustomItems = employee.allowances.length > 0 || employee.deductions.length > 0;
+                        
+                        return (
+                          <React.Fragment key={employee.id}>
+                            <TableRow 
+                              className={cn(
+                                employee.error && "bg-orange-50 dark:bg-orange-950/20",
+                                employee.selected && "bg-primary/5",
+                                employee.showDetails && "border-b-0"
+                              )}
+                            >
+                              <TableCell>
+                                <Checkbox
+                                  checked={employee.selected}
+                                  onChange={() => toggleEmployee(employee.id)}
+                                  disabled={!!employee.error || employee.loadingContract}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{employee.full_name}</p>
+                                  <p className="text-xs text-muted-foreground">{employee.position_title || employee.employee_id}</p>
+                                </div>
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                                {employee.department_name || "-"}
+                              </TableCell>
+                              <TableCell className="text-right font-mono text-sm">
+                                {employee.loadingContract ? (
+                                  <span className="text-muted-foreground text-xs">...</span>
+                                ) : employee.contract ? (
+                                  formatCurrency(employee.contract.base_salary)
+                                ) : "-"}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {employee.contract && (
+                                  <div>
+                                    <span className="font-bold text-green-600">{formatCurrency(totals.net)}</span>
+                                    {(hasCustomItems || employee.selectedAdvanceIds.length > 0) && (
+                                      <div className="text-xs text-muted-foreground">
+                                        {employee.allowances.length > 0 && <span className="text-blue-500">+{employee.allowances.length}</span>}
+                                        {employee.deductions.length > 0 && <span className="text-red-500 ml-1">-{employee.deductions.length}</span>}
+                                        {employee.selectedAdvanceIds.length > 0 && <span className="text-amber-500 ml-1">📌{employee.selectedAdvanceIds.length}</span>}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {employee.loadingContract ? (
+                                  <Badge variant="secondary" className="text-xs">
+                                    <div className="size-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
+                                    ...
+                                  </Badge>
+                                ) : employee.error ? (
+                                  <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                    <HiOutlineXCircle className="size-3 mr-1" />
+                                    Non éligible
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="default" className="text-xs bg-green-500">
+                                    <HiOutlineCheckCircle className="size-3 mr-1" />
+                                    OK
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {employee.contract && !employee.error && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleDetails(employee.id)}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    {employee.showDetails ? (
+                                      <HiChevronUp className="size-4" />
+                                    ) : (
+                                      <HiChevronDown className="size-4" />
+                                    )}
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                            
+                            {/* Expandable Details Row */}
+                            {employee.showDetails && employee.contract && (
+                              <TableRow className="bg-muted/30">
+                                <TableCell colSpan={7} className="p-4">
+                                  {/* Salaire de base et Notes */}
+                                  <div className="grid md:grid-cols-2 gap-4 mb-4 pb-4 border-b">
+                                    <div className="space-y-2">
+                                      <Label className="text-sm font-medium">Salaire de base</Label>
+                                      <div className="flex items-center gap-2">
+                                        <Input
+                                          type="number"
+                                          value={employee.customBaseSalary !== null ? employee.customBaseSalary : employee.contract.base_salary}
+                                          onChange={(e) => {
+                                            const val = e.target.value === "" ? null : parseFloat(e.target.value);
+                                            updateCustomBaseSalary(employee.id, val);
+                                          }}
+                                          className="w-40"
+                                        />
+                                        {employee.customBaseSalary !== null && (
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm"
+                                            onClick={() => updateCustomBaseSalary(employee.id, null)}
+                                            title="Réinitialiser au salaire du contrat"
+                                          >
+                                            <HiOutlineTrash className="size-4 text-muted-foreground" />
+                                          </Button>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">
+                                        Contrat: {formatCurrency(employee.contract.base_salary)}
+                                        {employee.customBaseSalary !== null && (
+                                          <span className="text-amber-600 ml-2">• Modifié</span>
+                                        )}
+                                      </p>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label className="text-sm font-medium">Notes / Description</Label>
+                                      <Input
+                                        value={employee.notes}
+                                        onChange={(e) => updateNotes(employee.id, e.target.value)}
+                                        placeholder="Ex: Prime exceptionnelle, Régularisation..."
+                                      />
+                                      <p className="text-xs text-muted-foreground">
+                                        Cette note apparaîtra sur la fiche de paie
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="grid md:grid-cols-3 gap-4">
+                                    {/* Primes */}
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <h4 className="text-sm font-medium text-green-700 dark:text-green-400">
+                                          Primes (+)
+                                        </h4>
+                                        <AddItemButton
+                                          onAdd={(name, amount) => addAllowance(employee.id, name, amount)}
+                                          type="allowance"
+                                        />
+                                      </div>
+                                      {employee.allowances.length === 0 ? (
+                                        <p className="text-xs text-muted-foreground italic">Aucune prime ajoutée</p>
+                                      ) : (
+                                        <div className="space-y-1">
+                                          {employee.allowances.map(item => (
+                                            <div key={item.id} className="flex items-center justify-between text-sm bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
+                                              <span>{item.name}</span>
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-medium text-green-600">+{formatCurrency(item.amount)}</span>
+                                                <button 
+                                                  onClick={() => removeItem(employee.id, item.id, false)}
+                                                  className="text-red-500 hover:text-red-700"
+                                                >
+                                                  <HiOutlineTrash className="size-3" />
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Déductions */}
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <h4 className="text-sm font-medium text-red-700 dark:text-red-400">
+                                          Déductions (-)
+                                        </h4>
+                                        <AddItemButton 
+                                          onAdd={(name, amount) => addDeduction(employee.id, name, amount)}
+                                          type="deduction"
+                                        />
+                                      </div>
+                                      {/* Standard deductions */}
+                                      {employee.deductions.length === 0 ? (
+                                        <p className="text-xs text-muted-foreground italic">Aucune déduction supplémentaire</p>
+                                      ) : (
+                                        <div className="space-y-1">
+                                          {employee.deductions.map(item => (
+                                            <div key={item.id} className="flex items-center justify-between text-sm bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
+                                              <span>{item.name}</span>
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-medium text-red-600">-{formatCurrency(item.amount)}</span>
+                                                <button 
+                                                  onClick={() => removeItem(employee.id, item.id, true)}
+                                                  className="text-red-500 hover:text-red-700"
+                                                >
+                                                  <HiOutlineTrash className="size-3" />
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Avances sur salaire */}
+                                    <div className="space-y-2">
+                                      <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400 flex items-center gap-2">
+                                        <HiOutlineBanknotes className="size-4" />
+                                        Avances à déduire
+                                      </h4>
+                                      {employee.loadingAdvances ? (
+                                        <p className="text-xs text-muted-foreground italic">Chargement...</p>
+                                      ) : employee.advances.length === 0 ? (
+                                        <p className="text-xs text-muted-foreground italic">Aucune avance en attente</p>
+                                      ) : (
+                                        <div className="space-y-1">
+                                          {employee.advances.map(advance => {
+                                            const isSelected = employee.selectedAdvanceIds.includes(advance.id);
+                                            const canSelect = canSelectAdvance(employee, advance.id);
+                                            return (
+                                              <label 
+                                                key={advance.id} 
+                                                className={cn(
+                                                  "flex items-center justify-between text-sm px-2 py-1.5 rounded transition-colors",
+                                                  isSelected 
+                                                    ? "bg-amber-100 dark:bg-amber-900/30 border border-amber-300 cursor-pointer" 
+                                                    : canSelect 
+                                                      ? "bg-muted/50 hover:bg-muted cursor-pointer"
+                                                      : "bg-muted/30 opacity-50 cursor-not-allowed"
+                                                )}
+                                              >
+                                                <div className="flex items-center gap-2">
+                                                  <Checkbox
+                                                    checked={isSelected}
+                                                    onChange={() => canSelect && toggleAdvanceSelection(employee.id, advance.id)}
+                                                    className="size-4"
+                                                    disabled={!canSelect}
+                                                  />
+                                                  <div className="flex flex-col">
+                                                    <span className="truncate max-w-[120px]">
+                                                      {advance.reason || "Avance"}
+                                                    </span>
+                                                    {!canSelect && !isSelected && (
+                                                      <span className="text-[10px] text-red-500">Net insuffisant</span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                                <span className={cn(
+                                                  "font-medium",
+                                                  isSelected ? "text-amber-700" : "text-muted-foreground"
+                                                )}>
+                                                  -{formatCurrency(Number(advance.amount))}
+                                                </span>
+                                              </label>
+                                            );
+                                          })}
+                                          {employee.selectedAdvanceIds.length > 0 && (
+                                            <div className="text-xs text-amber-600 font-medium pt-1 border-t">
+                                              Total avances: -{formatCurrency(
+                                                employee.advances
+                                                  .filter(a => employee.selectedAdvanceIds.includes(a.id))
+                                                  .reduce((sum, a) => sum + Number(a.amount), 0)
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Summary */}
+                                  <div className="mt-4 pt-3 border-t flex justify-end gap-6 text-sm">
+                                    <div>
+                                      <span className="text-muted-foreground">Brut:</span>
+                                      <span className="ml-2 font-medium">{formatCurrency(totals.gross)}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground">Déductions:</span>
+                                      <span className="ml-2 font-medium text-red-600">-{formatCurrency(totals.totalDeductions)}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground">Net:</span>
+                                      <span className="ml-2 font-bold text-green-600">{formatCurrency(totals.net)}</span>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            {employee.loadingContract ? (
-                              <Badge variant="secondary" className="text-xs">
-                                <div className="size-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
-                                Vérification...
-                              </Badge>
-                            ) : employee.error ? (
-                              <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                <HiOutlineXCircle className="size-3 mr-1" />
-                                {employee.error}
-                              </Badge>
-                            ) : (
-                              <Badge variant="default" className="text-xs bg-green-500">
-                                <HiOutlineCheckCircle className="size-3 mr-1" />
-                                Éligible
-                              </Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))
+                          </React.Fragment>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -693,7 +1332,7 @@ export default function GeneratePayslipsPage() {
               className="w-full" 
               size="lg"
               onClick={handleGenerate}
-              disabled={generating || !selectedPeriod || selectedCount === 0}
+              disabled={generating || selectedCount === 0}
             >
               {generating ? (
                 <>

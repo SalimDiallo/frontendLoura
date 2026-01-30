@@ -588,7 +588,7 @@ export default function EmployeeDetailPage() {
                                 key={permission.id}
                                 className="flex items-center gap-2 text-sm px-3 py-2 bg-muted/50 rounded-md"
                               >
-                                <div className="size-1.5 rounded-full bg-blue-500 flex-shrink-0"></div>
+                                <div className="size-1.5 rounded-full bg-foreground flex-shrink-0"></div>
                                 <span className="truncate">{permission.name}</span>
                               </div>
                             ))}

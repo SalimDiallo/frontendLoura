@@ -123,6 +123,7 @@ export const API_ENDPOINTS = {
     LEAVE_REQUESTS: {
       LIST: '/hr/leave-requests/',
       CREATE: '/hr/leave-requests/',
+      HISTORY: '/hr/leave-requests/history',
       DETAIL: (id: string) => `/hr/leave-requests/${id}/`,
       UPDATE: (id: string) => `/hr/leave-requests/${id}/`,
       DELETE: (id: string) => `/hr/leave-requests/${id}/`,

@@ -13,34 +13,35 @@ export function FAQSection() {
   return (
     <section
       id="faq"
-      className="flex flex-col items-center justify-center gap-10 pb-10 w-full relative"
+      className="flex flex-col items-center justify-center gap-10 py-20 w-full relative px-6"
     >
       <SectionHeader>
-        <h2 className="text-3xl md:text-4xl font-medium tracking-tighter text-center text-balance">
-          {faqSection?.title}
+        <h2 className="text-3xl md:text-4xl lg:text-5xl tracking-tight text-center text-balance">
+          <span className="font-display font-bold">Questions</span>
+          <span className="text-muted-foreground font-normal"> fréquentes</span>
         </h2>
-        <p className="text-muted-foreground text-center text-balance font-medium">
+        <p className="text-muted-foreground text-center text-balance font-normal max-w-2xl mx-auto">
           {faqSection?.description}
         </p>
       </SectionHeader>
 
-      <div className="max-w-3xl w-full mx-auto px-10">
+      <div className="max-w-2xl w-full mx-auto">
         <Accordion
           type="single"
           collapsible
-          className="w-full border-b-0 grid gap-2"
+          className="w-full border-0 grid gap-3"
         >
           {faqSection?.faQitems.map((faq, index) => (
             <AccordionItem
               key={index}
               value={index.toString()}
-              className="border-0 grid gap-2"
+              className="border border-border rounded-xl overflow-hidden bg-background data-[state=open]:border-foreground/20 transition-colors"
             >
-              <AccordionTrigger className="border bg-accent border-border rounded-lg px-4 py-3.5 cursor-pointer no-underline hover:no-underline data-[state=open]:ring data-[state=open]:ring-primary/20">
+              <AccordionTrigger className="px-5 py-4 cursor-pointer no-underline hover:no-underline text-left text-sm font-medium hover:bg-secondary/30 transition-colors">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="p-3 border text-primary rounded-lg bg-accent">
-                <p className="text-primary font-medium leading-relaxed">
+              <AccordionContent className="px-5 pb-4 pt-0 border-t border-border">
+                <p className="text-muted-foreground text-sm leading-relaxed pt-4">
                   {faq.answer}
                 </p>
               </AccordionContent>

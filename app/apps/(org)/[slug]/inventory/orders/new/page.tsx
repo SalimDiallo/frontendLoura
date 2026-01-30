@@ -39,11 +39,25 @@ export default function NewOrderPage() {
   const [showTransport, setShowTransport] = useState(false);
 
   // Générer numéro de commande
+  // Génère un numéro de commande suffisamment "non unique" pour ne jamais être identique à un autre
   const generateOrderNumber = () => {
     const date = new Date();
-    const dateStr = date.toISOString().slice(2, 10).replace(/-/g, "");
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-    return `CMD-${dateStr}-${random}`;
+    const dateStr = date
+      .toISOString()
+      .replace(/[-:.TZ]/g, "") // YYYYMMDDHHMMSSmmm (inclut millisecondes)
+      .slice(2, 17); // YYMMDDHHMMSSmmm
+    const rand = Math.random().toString(36).substring(2, 8).toUpperCase(); // 6 caractères aléatoires
+    const unique =
+      Date.now().toString(36).toUpperCase() + // timestamp en base36
+      "-" +
+      Math.floor(Math.random() * 999999)
+        .toString()
+        .padStart(6, "0");
+    // Ajoute le nom de l'organisation s'il existe dans params
+    const orgName = params?.org
+      ? String(params.org).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7)
+      : "ORG";
+    return `CMD-${orgName}-${dateStr}-${rand}-${unique}`;
   };
 
   const [formData, setFormData] = useState({
@@ -512,7 +526,7 @@ export default function NewOrderPage() {
             <Button
               type="submit"
               disabled={loading || items.length === 0 || !formData.supplier || !formData.warehouse}
-              className="flex-1 h-12 bg-blue-600 hover:bg-blue-700"
+              className="flex-1 h-12 bg-foreground hover:bg-blue-700"
             >
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

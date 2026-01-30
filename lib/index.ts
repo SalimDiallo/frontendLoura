@@ -19,7 +19,6 @@ export {
   authSelectors,
   usePermissionsStore,
   permissionsSelectors,
-  PERMISSIONS,
 } from './store';
 
 // Store Types (éviter les conflits avec les types HR)

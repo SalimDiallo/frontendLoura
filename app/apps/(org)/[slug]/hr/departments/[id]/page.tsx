@@ -339,7 +339,7 @@ export default function DepartmentDetailPage() {
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900">
-              <HiOutlineUsers className="size-6 text-blue-600 dark:text-blue-400" />
+              <HiOutlineUsers className="size-6 text-foreground dark:text-blue-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Employés Actifs</p>

@@ -843,9 +843,10 @@ function SidebarMenuSubButton({
         "text-muted-foreground/80",
         "ring-ring outline-hidden",
         "transition-all duration-200",
-        "hover:bg-accent/60 hover:text-accent-foreground",
-        "dark:hover:bg-slate-800/60",
+        "hover:bg-primary/60 hover:text-primary-foreground",
+        "dark:hover:bg-primary/60",
         "active:scale-[0.98]",
+        
         "focus-visible:ring-2",
         "disabled:pointer-events-none disabled:opacity-50",
         "aria-disabled:pointer-events-none aria-disabled:opacity-50",

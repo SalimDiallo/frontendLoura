@@ -66,6 +66,10 @@ const FIELD_LABELS: Record<string, string> = {
   description: 'Description',
   non_field_errors: 'Erreur',
   detail: 'Erreur',
+  // Périodes de paie
+  start_date: 'Date de début',
+  end_date: 'Date de fin',
+  payment_date: 'Date de paiement',
 };
 
 /**

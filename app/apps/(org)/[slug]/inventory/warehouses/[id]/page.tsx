@@ -83,7 +83,7 @@ export default function WarehouseDetailPage() {
     switch (type) {
       case "in": return <ArrowDownCircle className="h-4 w-4 text-green-600" />;
       case "out": return <ArrowUpCircle className="h-4 w-4 text-red-600" />;
-      case "transfer": return <ArrowRightLeft className="h-4 w-4 text-blue-600" />;
+      case "transfer": return <ArrowRightLeft className="h-4 w-4 text-foreground" />;
       default: return <Package className="h-4 w-4 text-orange-600" />;
     }
   };
@@ -188,7 +188,7 @@ export default function WarehouseDetailPage() {
 
         <Card className="p-4 text-center">
           <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 mx-auto mb-2 flex items-center justify-center">
-            <TrendingUp className="h-5 w-5 text-blue-600" />
+            <TrendingUp className="h-5 w-5 text-foreground" />
           </div>
           <p className="text-2xl font-bold">{new Intl.NumberFormat("fr-FR").format(stats?.total_quantity || 0)}</p>
           <p className="text-xs text-muted-foreground">Unités</p>
@@ -227,7 +227,7 @@ export default function WarehouseDetailPage() {
         </Button>
         <Button variant="outline" size="sm" asChild>
           <Link href={`/apps/${slug}/inventory/movements/new?warehouse=${warehouseId}&type=transfer`}>
-            <ArrowRightLeft className="mr-2 h-4 w-4 text-blue-600" />
+            <ArrowRightLeft className="mr-2 h-4 w-4 text-foreground" />
             Transfert
           </Link>
         </Button>
@@ -369,7 +369,7 @@ export default function WarehouseDetailPage() {
                       "font-bold",
                       mov.movement_type === "in" && "text-green-600",
                       mov.movement_type === "out" && "text-red-600",
-                      mov.movement_type === "transfer" && "text-blue-600"
+                      mov.movement_type === "transfer" && "text-foreground"
                     )}>
                       {mov.movement_type === "in" ? "+" : mov.movement_type === "out" ? "-" : "↔"}{mov.quantity}
                     </p>

@@ -102,11 +102,11 @@ export function QRScanFAB() {
       <div className="relative">
         {/* Pulse ring pour attirer l'attention au début */}
         {isPulsing && (
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 animate-ping opacity-30" />
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-foreground to-indigo-500 animate-ping opacity-30" />
         )}
 
         {/* Glow effect permanent */}
-        <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 opacity-20 blur-lg group-hover:opacity-40 transition-opacity" />
+        <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-foreground to-indigo-500 opacity-20 blur-lg group-hover:opacity-40 transition-opacity" />
 
         {/* Main button */}
         <Button
@@ -114,7 +114,7 @@ export function QRScanFAB() {
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           size="lg"
-          className="relative h-16 w-16 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-4 border-white dark:border-gray-800"
+          className="relative h-16 w-16 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 bg-gradient-to-r from-foreground to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-4 border-white dark:border-gray-800"
           aria-label="Scanner un QR code pour pointer"
         >
           <HiOutlineQrCode className="h-8 w-8 transition-transform duration-300 group-hover:rotate-12" />

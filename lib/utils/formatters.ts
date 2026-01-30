@@ -49,9 +49,45 @@ export const formatDateTime = (date: Date | string): string => {
 };
 
 /**
+ * Formate une date courte en français (JJ/MM/AAAA)
+ */
+export const formatShortDate = (dateString: string): string => {
+  return new Date(dateString).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+};
+
+/**
+ * Formate une heure (HH:mm) à partir d'une chaîne ou d'un objet Date
+ */
+export const formatTime = (dateString?: string | Date): string => {
+  if (!dateString) return "-";
+  let dateObj: Date;
+  if (dateString instanceof Date) {
+    dateObj = dateString;
+  } else {
+    dateObj = new Date(dateString);
+    if (isNaN(dateObj.getTime())) return "-";
+  }
+  return dateObj
+    .toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+    .replace(/^(\d{2}:\d{2}).*$/, "$1");
+};
+
+
+/**
  * Formate une durée en heures et minutes
  */
-export const formatDuration = (hours: number): string => {
+export const formatDuration = (hours?: number): string => {
+  if (!hours) {
+    return "vide"
+  }
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);
   
@@ -94,6 +130,20 @@ export const slugify = (text: string): string => {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 };
+
+
+/**
+ * Donne une couleur de texte en fonction du nombre de jours jusqu'à échéance (pour crédits à vendre, etc.)
+ * @param days number | undefined
+ * @returns string nom de class Tailwind
+ */
+export const getDaysColor = (days: number | undefined): string => {
+  if (days === undefined) return "";
+  if (days < 0) return "text-red-600 font-bold";
+  if (days <= 7) return "text-orange-600";
+  return "text-green-600";
+};
+
 
 /**
  * Génère les initiales à partir d'un nom

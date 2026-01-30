@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/landing/sections/navbar";
 import { siteConfig } from "@/lib/landing/site";
 import type { Metadata, Viewport} from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -11,6 +11,13 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Police élégante pour les titres audacieux
+const playfairDisplay = Playfair_Display({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 export const viewport: Viewport = {
@@ -38,7 +45,7 @@ export default function RootLayout({
       </head> */}
 
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans bg-background`}
+        className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} antialiased font-sans bg-background`}
       >
      
           <div className="max-w-7xl mx-auto border-x relative">

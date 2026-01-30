@@ -344,19 +344,26 @@ export interface Order {
   id: string;
   organization: string;
   supplier: string;
-  supplier_name?: string;
+  supplier_name?: string | null;
   warehouse: string;
-  warehouse_name?: string;
+  warehouse_name?: string | null;
   order_number: string;
   order_date: string;
   expected_delivery_date?: string | null;
   actual_delivery_date?: string | null;
   status: OrderStatus;
-  status_display?: string;
-  total_amount: number;
-  notes?: string;
+  status_display?: string | null;
+  total_amount: number | string;
+  notes?: string | null;
   items?: OrderItem[];
   item_count?: number;
+  // Transport info
+  transport_mode?: string | null;
+  transport_company?: string | null;
+  tracking_number?: string | null;
+  transport_cost?: number | string | null;
+  transport_included?: boolean | null;
+  transport_notes?: string | null;
   created_at: string;
   updated_at: string;
 }

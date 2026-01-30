@@ -21,7 +21,8 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
+import { getBadgeWIthOutIconAdLabel } from "@/lib/utils/BadgeStatus";
 
 export default function ProformasPage() {
   const params = useParams();
@@ -90,24 +91,6 @@ export default function ProformasPage() {
         p.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-GN", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-    }).format(amount) + " GNF";
-  };
-
-  const getStatusVariant = (status: string): "success" | "warning" | "error" | "default" => {
-    switch (status) {
-      case "converted": return "success";
-      case "accepted": return "success";
-      case "sent": return "warning";
-      case "draft": return "default";
-      case "rejected": return "error";
-      case "expired": return "error";
-      default: return "default";
-    }
-  };
 
   if (loading) {
     return (
@@ -250,7 +233,7 @@ export default function ProformasPage() {
         <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-              <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <FileText className="h-5 w-5 text-foreground dark:text-blue-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total</p>
@@ -356,9 +339,7 @@ export default function ProformasPage() {
                       {formatCurrency(proforma.total_amount)}
                     </td>
                     <td className="p-4 text-center">
-                      <Badge variant={getStatusVariant(proforma.status)}>
-                        {proforma.status_display || proforma.status}
-                      </Badge>
+                      {getBadgeWIthOutIconAdLabel({ status: proforma.status, label: proforma.status_display || proforma.status })}
                     </td>
                     <td className="p-4">
                       <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>

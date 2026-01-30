@@ -1,12 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Alert, Card, Input, Label } from "@/components/ui";
 import { createWarehouse } from "@/lib/services/inventory";
 import type { WarehouseCreate } from "@/lib/types/inventory";
 import { ArrowLeft, Save, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+
+// Fonction utilitaire pour générer un code à partir du nom et de la date
+function generateCode(name: string, city: string) {
+  // Code: WH-[ville]-[AAAAMMJJ]-[3lettres du nom]
+  const today = new Date();
+  const dateStr = today
+    .toISOString()
+    .slice(0, 10)
+    .replace(/-/g, ""); // YYYYMMDD
+  // 3 premières lettres non-accentuées du nom sans espaces
+  const cleanedName = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "");
+  const code =
+    "WH-" +
+    (city ? city.toUpperCase().slice(0, 3) : "XXX") +
+    "-" +
+    dateStr +
+    "-" +
+    (cleanedName.length >= 3 ? cleanedName.toUpperCase().slice(0, 3) : "NEW");
+  return code;
+}
 
 export default function NewWarehousePage() {
   const params = useParams();
@@ -26,6 +49,25 @@ export default function NewWarehousePage() {
     email: "",
     is_active: true,
   });
+
+  // Auto-met à jour le code à la saisie du nom, de la ville ou à l'initialisation
+  useEffect(() => {
+    // Ne change le code que si l'utilisateur n'a pas manuellement modifié
+    setFormData((prev) => {
+      // Si le code était vide ou auto-généré avant, on met à jour
+      const autoCode = generateCode(prev.name, prev.city ?? prev.country ?? "");
+      // Si le code en cours est manuellement édité, on ne touche pas
+      if (
+        prev.code === "" ||
+        prev.code.startsWith("WH-") // suppose que si le code suit ce format, il est auto, sinon c'est manuel
+      ) {
+        return { ...prev, code: autoCode };
+      }
+      // Cas où l'utilisateur a déjà écrit un code, on n'écrase pas
+      return prev;
+    });
+    // eslint-disable-next-line
+  }, [formData.name, formData.city]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,8 +146,14 @@ export default function NewWarehousePage() {
                   value={formData.code}
                   onChange={(e) => handleChange("code", e.target.value)}
                   required
-                  placeholder="Ex: WH-CNK-01"
+                  placeholder="Généré automatiquement, mais modifiable"
+                  // Explication à l'utilisateur
+                  autoComplete="off"
                 />
+                <div className="text-xs text-muted-foreground">
+                  Ce code est généré automatiquement à partir du nom, de la ville et de la date.
+                  Vous pouvez le modifier si besoin.
+                </div>
               </div>
             </div>
           </div>

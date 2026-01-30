@@ -28,10 +28,14 @@ import {
   UserCheck,
   Hourglass,
   FileDown,
+  Mail,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatDate, formatShortDate } from '@/lib/utils';
 import { API_CONFIG } from '@/lib/api/config';
 import { PDFPreviewModal } from '@/components/ui';
+import { useUser } from '@/lib/hooks';
+import { COMMON_PERMISSIONS } from '@/lib/types';
+import { getLeaveStatusConfig } from '@/lib/utils/BadgeStatus';
 
 export default function LeaveRequestDetailPage() {
   const params = useParams();
@@ -53,9 +57,12 @@ export default function LeaveRequestDetailPage() {
     isOpen: false,
     pdfUrl: '',
   });
+  const user = useUser();
+  const userType = user?.user_type;
 
   useEffect(() => {
     loadLeaveRequest();
+    // eslint-disable-next-line
   }, [leaveId]);
 
   const loadLeaveRequest = async () => {
@@ -150,60 +157,42 @@ export default function LeaveRequestDetailPage() {
       pdfUrl: '',
     });
   };
+ 
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return {
-          label: 'Approuvée',
-          variant: 'success' as const,
-          icon: CheckCircle2,
-          bgClass: 'bg-green-50 dark:bg-green-950/30',
-          textClass: 'text-green-600 dark:text-green-400',
-        };
-      case 'rejected':
-        return {
-          label: 'Rejetée',
-          variant: 'error' as const,
-          icon: XCircle,
-          bgClass: 'bg-red-50 dark:bg-red-950/30',
-          textClass: 'text-red-600 dark:text-red-400',
-        };
-      case 'cancelled':
-        return {
-          label: 'Annulée',
-          variant: 'default' as const,
-          icon: XCircle,
-          bgClass: 'bg-gray-50 dark:bg-gray-800',
-          textClass: 'text-gray-600 dark:text-gray-400',
-        };
-      default:
-        return {
-          label: 'En attente',
-          variant: 'warning' as const,
-          icon: Hourglass,
-          bgClass: 'bg-amber-50 dark:bg-amber-950/30',
-          textClass: 'text-amber-600 dark:text-amber-400',
-        };
+  // Logic for permission to approve/reject
+  let canApproveOrReject = false;
+  if (leave && user) {
+    const isUserLeave = user.id === leave.employee;
+    const isAdmin = user.user_type === 'admin';
+    const isEmployee = user.user_type === 'employee' || userType === 'employee';
+    // permissions can be string[] or undefined
+    const perms = Array.isArray(user.permissions) ? user.permissions : [];
+    // If employee, allow if they have "hr.approve_leave_requests" and NOT their own leave
+    if (isEmployee) {
+      canApproveOrReject =
+        !isUserLeave &&
+        perms.includes(COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS);
     }
-  };
+    // If admin, same logic as before, but admin can approve/reject as long as not own leave
+    else if (isAdmin) {
+      canApproveOrReject = !isUserLeave;
+    }
+    // Other user types: inherit previous logic (for "manager", etc)
+    else {
+      // Permission could come from user.permissions as an array
+      // (keeping legacy 'approve_leaves' for other custom roles)
+      const hasApprovePermission = perms.includes('approve_leaves');
+      canApproveOrReject = !isUserLeave && hasApprovePermission;
+    }
+  }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const formatShortDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  };
+  // Logic for permission to delete own leave (can delete if not approved)
+  let canDeleteOwn = false;
+  if (leave && user) {
+    // user.id can be string or number, so toString both for safety if needed
+    canDeleteOwn = (user.id === leave.employee) 
+      && leave.status !== 'approved';
+  }
 
   if (loading) {
     return (
@@ -235,9 +224,15 @@ export default function LeaveRequestDetailPage() {
 
   if (!leave) return null;
 
-  const statusConfig = getStatusConfig(leave.status);
+  const statusConfig = getLeaveStatusConfig(leave.status);
   const StatusIcon = statusConfig.icon;
   const isPending = leave.status === 'pending';
+
+  // Approveur info - let’s be defensive in case some fields are missing/null
+  const approverName = leave.approver_name;
+  const approvalDate = leave.approval_date;
+  const approvalNotes = leave.approval_notes;
+  const approverId = leave.approver; // could be id or object depending on backend
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -359,21 +354,36 @@ export default function LeaveRequestDetailPage() {
             </Card>
           )}
 
-          {/* Approval Notes */}
-          {leave.approval_notes && (
+          {/* Approval Notes + Approver Info*/}
+          {(approvalNotes || approverName || approvalDate) && (
             <Card className="p-6">
               <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
                 <UserCheck className="size-5 text-primary" />
-                Notes d'approbation
+                Validation / approuveur
               </h2>
-              <p className="text-muted-foreground whitespace-pre-wrap">
-                {leave.approval_notes}
-              </p>
-              {leave.approver_name && (
-                <p className="text-sm text-muted-foreground mt-4">
-                  Par {leave.approver_name}
-                  {leave.approval_date && ` le ${formatShortDate(leave.approval_date)}`}
-                </p>
+              {approvalNotes && (
+                <div className="mb-3">
+                  <div className="text-muted-foreground font-medium mb-1">
+                    Note d'approbation :
+                  </div>
+                  <div className="text-muted-foreground whitespace-pre-wrap">
+                    {approvalNotes}
+                  </div>
+                </div>
+              )}
+              {(approverName) && (
+                <div className="mb-1 flex items-center gap-2">
+                  <User className="size-4 text-primary" />
+                  <span className="font-medium">
+                    {approverName ? approverName : 'Nom inconnu'}
+                  </span>
+                 
+                </div>
+              )}
+              {approvalDate && (
+                <div className="text-xs text-muted-foreground">
+                  Validation le {formatDate(approvalDate)}
+                </div>
               )}
             </Card>
           )}
@@ -413,13 +423,48 @@ export default function LeaveRequestDetailPage() {
             </div>
           </Card>
 
+          {/* Approver Mini-card (if info available) */}
+          {(approverName || approvalDate) && (
+            <Card className="p-6">
+              <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                <UserCheck className="size-5 text-primary" />
+                Approuveur
+              </h2>
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-full bg-success/10 flex items-center justify-center font-bold text-success">
+                  {approverName
+                    ? approverName.split(' ').map(n => n[0]).join('').slice(0, 2)
+                    : <User className="size-5" />
+                  }
+                </div>
+                <div>
+                  <p className="font-medium">
+                    {approverName || 'Nom inconnu'}
+                  </p>
+                
+                  {approvalDate && (
+                    <p className="text-xs text-muted-foreground">
+                      Validation le {formatShortDate(approvalDate)}
+                    </p>
+                  )}
+                  {/* ID de l'approbateur si utile */}
+                  {approverId && (
+                    <p className="text-xs text-muted-foreground italic mt-1">
+                      (ID: {approverId})
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Timeline */}
           <Card className="p-6">
             <h2 className="font-semibold text-lg mb-4">Historique</h2>
             <div className="space-y-4">
               <div className="flex gap-3">
                 <div className="size-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <FileText className="size-4 text-blue-600 dark:text-blue-400" />
+                  <FileText className="size-4 text-foreground dark:text-blue-400" />
                 </div>
                 <div>
                   <p className="font-medium text-sm">Demande créée</p>
@@ -453,6 +498,11 @@ export default function LeaveRequestDetailPage() {
                         ? formatDate(leave.approval_date)
                         : formatDate(leave.updated_at)}
                     </p>
+                    {approverName && (
+                      <p className="text-xs text-muted-foreground">
+                        Par {approverName}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -473,7 +523,7 @@ export default function LeaveRequestDetailPage() {
           </Card>
 
           {/* Actions */}
-          {isPending && (
+          {isPending && canApproveOrReject && (
             <Card className="p-6">
               <h2 className="font-semibold text-lg mb-4">Actions</h2>
               <div className="space-y-3">
@@ -498,6 +548,37 @@ export default function LeaveRequestDetailPage() {
                   <XCircle className="size-4 mr-2" />
                   Rejeter
                 </Button>
+                <Button 
+                  variant="outline"
+                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={handleDelete}
+                  disabled={actionLoading !== null}
+                >
+                  {actionLoading === 'delete' ? (
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-4 mr-2" />
+                  )}
+                  Supprimer
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {/* User can delete their own leave as long as it is not approved */}
+          {canDeleteOwn && !canApproveOrReject && (
+            <Card className="p-6">
+              <h2 className="font-semibold text-lg mb-4">Actions</h2>
+              <div className="space-y-3">
+                {/* Show info alert if the leave is still pending and the user is not allowed to approve/reject */}
+                {isPending && (
+                  <Alert variant="info" className="mb-4">
+                    <AlertCircle className="size-4" />
+                    <span>
+                      Vous ne pouvez pas approuver ou rejeter votre propre demande.
+                    </span>
+                  </Alert>
+                )}
                 <Button 
                   variant="outline"
                   className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"

@@ -27,6 +27,8 @@ import type { Attendance, AttendanceStats } from "@/lib/types/hr";
 import { Can } from "@/components/apps/common/protected-route";
 import { COMMON_PERMISSIONS } from "@/lib/types/shared/permissions";
 import { useAttendancePermissions } from "@/lib/hooks";
+import { formatDate, formatDuration, formatTime } from "@/lib/utils";
+import { getStatusBadge, getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 
 export default function AttendanceHistoryPage() {
   return (
@@ -117,45 +119,9 @@ function AttendanceHistoryContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const formatTime = (dateString?: string) => {
-    if (!dateString) return "-";
-    return format(new Date(dateString), "HH:mm", { locale: fr });
-  };
+ 
 
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "d MMM yyyy", { locale: fr });
-  };
 
-  const formatDuration = (hours?: number) => {
-    if (!hours) return "-";
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    return `${h}h ${m}m`;
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "success" | "warning" | "error" | "secondary"> = {
-      present: "success",
-      late: "warning",
-      absent: "error",
-      half_day: "secondary",
-      on_leave: "default",
-    };
-
-    const labels: Record<string, string> = {
-      present: "Présent",
-      late: "En retard",
-      absent: "Absent",
-      half_day: "Demi-journée",
-      on_leave: "En congé",
-    };
-
-    return (
-      <Badge variant={variants[status] || "default"}>
-        {labels[status] || status}
-      </Badge>
-    );
-  };
 
   if (loading && attendances.length === 0) {
     return (
@@ -213,7 +179,7 @@ function AttendanceHistoryContent() {
           </Card>
           <Card className="p-4 border-0 shadow-sm">
             <div className="text-sm text-muted-foreground">Heures sup.</div>
-            <div className="text-2xl font-bold mt-1 text-blue-600">
+            <div className="text-2xl font-bold mt-1 text-foreground">
               {formatDuration(stats.overtime_hours)}
             </div>
           </Card>
@@ -312,14 +278,14 @@ function AttendanceHistoryContent() {
                   <TableCell>{formatDuration(attendance.total_hours)}</TableCell>
                   <TableCell>
                     {attendance.is_overtime ? (
-                      <span className="text-blue-600">
+                      <span className="text-foreground">
                         {formatDuration(attendance.overtime_hours)}
                       </span>
                     ) : (
                       "-"
                     )}
                   </TableCell>
-                  <TableCell>{getStatusBadge(attendance.status)}</TableCell>
+                  <TableCell>{getStatusBadgeNode(attendance.status)}</TableCell>
                   <TableCell>
                     {attendance.is_approved ? (
                       <HiOutlineCheckCircle className="size-5 text-green-600" />

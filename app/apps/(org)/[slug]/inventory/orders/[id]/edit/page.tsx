@@ -594,7 +594,7 @@ export default function EditOrderPage() {
             <Button
               type="submit"
               disabled={saving || items.length === 0}
-              className="flex-1 h-12 bg-blue-600 hover:bg-blue-700"
+              className="flex-1 h-12 bg-foreground hover:bg-blue-700"
             >
               {saving ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

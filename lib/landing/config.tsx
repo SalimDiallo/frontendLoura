@@ -79,7 +79,7 @@ export const siteConfig = {
     badge: "Découvrez la gestion intelligente d'agence",
     title: "Louratech : Centralisez et pilotez tous vos modules",
     description:
-      "Louratech est une solution SaaS pour digitaliser et optimiser la gestion des agences, avec des modules intégrés : RH, Stocks, Services, Projets, CRM, et bien plus.",
+      "Louratech est une solution SaaS pour digitaliser et optimiser la gestion des entreprises, avec des modules intégrés : RH, Stocks, Services, Projets, CRM, et bien plus.",
     cta: {
       primary: {
         text: "Essayez gratuitement",

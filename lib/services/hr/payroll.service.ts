@@ -96,9 +96,10 @@ export async function deletePayroll(id: string): Promise<void> {
 /**
  * Génération automatique de fiches de paie pour une période
  * Avec déduction automatique des avances et sélection d'employés
+ * Supporte maintenant le mode ad-hoc (sans période) et les données personnalisées par employé
  */
 export async function generateBulkPayslips(
-  payrollPeriodId: string,
+  payrollPeriodId: string | null,
   options?: {
     auto_deduct_advances?: boolean;
     auto_approve?: boolean;
@@ -107,6 +108,13 @@ export async function generateBulkPayslips(
       department?: string;
       position?: string;
     };
+    employee_custom_data?: Record<string, {
+      base_salary?: number;
+      notes?: string;
+      allowances?: { name: string; amount: number }[];
+      deductions?: { name: string; amount: number }[];
+      advance_ids?: string[];
+    }>;
   }
 ): Promise<{
   message: string;
@@ -115,16 +123,18 @@ export async function generateBulkPayslips(
   total_employees: number;
   advances_deducted: number;
   auto_approved?: boolean;
+  ad_hoc_mode?: boolean;
   errors: string[];
 }> {
   return apiClient.post(
     API_ENDPOINTS.HR.PAYSLIPS.GENERATE_BULK,
     {
-      payroll_period: payrollPeriodId,
+      payroll_period: payrollPeriodId || undefined,
       auto_deduct_advances: options?.auto_deduct_advances ?? true,
       auto_approve: options?.auto_approve ?? false,
       employee_ids: options?.employee_ids ?? [],
       employee_filters: options?.employee_filters ?? {},
+      employee_custom_data: options?.employee_custom_data ?? {},
     }
   );
 }

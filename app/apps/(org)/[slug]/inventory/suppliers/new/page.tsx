@@ -5,8 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { Button, Input, Card, Alert } from "@/components/ui";
 import { createSupplier } from "@/lib/services/inventory";
 import type { SupplierCreate } from "@/lib/types/inventory";
-import { ArrowLeft, Save, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
+import { generateSupplierCode } from "@/lib/utils/code-generator"; // On suppose que le générateur existe déjà
 
 export default function NewSupplierPage() {
   const params = useParams();
@@ -30,14 +31,40 @@ export default function NewSupplierPage() {
     is_active: true,
   });
 
+  // Génération automatique du code fournisseur lors du changement du nom ou à la demande
+  const handleGenerateCode = () => {
+    if (formData.name.trim() !== "") {
+      const code = generateSupplierCode(formData.name ?? "");
+      setFormData((prev) => ({ ...prev, code }));
+    }
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+    // Si le champ modifié est 'name', générer automatiquement le code si vide ou ayant l'ancien code
+    if (name === "name") {
+      setFormData((prev) => {
+        const newForm = {
+          ...prev,
+          [name]: value,
+        };
+        // Si le code est vide ou correspond à l'ancien code généré, regénérer
+        if (
+          !prev.code ||
+          prev.code === generateSupplierCode(prev.name ?? "")
+        ) {
+          newForm.code = generateSupplierCode(value);
+        }
+        return newForm;
+      });
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,8 +125,18 @@ export default function NewSupplierPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium mb-2 flex items-center gap-2">
                 Code <span className="text-destructive">*</span>
+                <button
+                  type="button"
+                  className="text-xs underline text-primary ml-2"
+                  tabIndex={-1}
+                  onClick={handleGenerateCode}
+                  title="Générer automatiquement à partir du nom"
+                  style={{ fontWeight: 500, outline: "none", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+                >
+                  Générer automatiquement
+                </button>
               </label>
               <Input
                 name="code"
@@ -107,6 +144,7 @@ export default function NewSupplierPage() {
                 onChange={handleChange}
                 required
                 placeholder="Ex: SUPP-001"
+                autoComplete="off"
               />
             </div>
           </div>

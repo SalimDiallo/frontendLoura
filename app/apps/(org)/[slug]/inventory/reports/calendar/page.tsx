@@ -255,7 +255,7 @@ export default function CalendarPage() {
           {/* Period Stats Mini */}
           <div className="hidden md:flex items-center gap-4 px-4 py-2 rounded-lg bg-muted/50 text-sm">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              <div className="w-2 h-2 rounded-full bg-foreground"></div>
               <span className="font-medium">{periodStats.movements}</span>
               <span className="text-muted-foreground">mvt</span>
             </div>
@@ -360,7 +360,7 @@ export default function CalendarPage() {
                       <div className="space-y-1">
                         {activities.movements > 0 && (
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-foreground" />
                             <span>{activities.movements} mouvements</span>
                           </div>
                         )}
@@ -438,7 +438,7 @@ export default function CalendarPage() {
                         <div className="space-y-0.5">
                           {activity.movements.total > 0 && (
                             <div className="flex items-center gap-1">
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-foreground" />
                               <span className="text-[10px] text-muted-foreground truncate">{activity.movements.total} mvt</span>
                             </div>
                           )}
@@ -496,7 +496,7 @@ export default function CalendarPage() {
               {selectedDayActivity.movements.total > 0 && (
                 <Card className="p-4">
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                    <TrendingUp className="h-4 w-4 text-foreground" />
                     Détail des mouvements
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -643,7 +643,7 @@ export default function CalendarPage() {
             <div className="border-t pt-4">
               <p className="text-xs font-medium text-muted-foreground mb-2">Légende</p>
               <div className="space-y-1.5 text-xs">
-                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-blue-500" /><span>Mouvements</span></div>
+                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-foreground" /><span>Mouvements</span></div>
                 <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-green-500" /><span>Commandes</span></div>
                 <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-orange-500" /><span>Inventaires</span></div>
               </div>

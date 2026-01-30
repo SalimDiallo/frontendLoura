@@ -23,6 +23,7 @@ import type { Payroll, PayrollStatus } from "@/lib/types/hr";
 import { formatCurrency } from "@/lib/utils";
 import { Can } from "@/components/apps/common";
 import { ResourceType, PermissionAction } from "@/lib/types/shared";
+import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 
 export default function PayrollDetailPage() {
   const params = useParams();
@@ -97,17 +98,7 @@ export default function PayrollDetailPage() {
     }
   };
 
-  const getStatusBadge = (status: PayrollStatus) => {
-    const statusConfig = {
-      draft: { label: "Brouillon", variant: "default" as const },
-      pending: { label: "En attente", variant: "warning" as const },
-      paid: { label: "Payé", variant: "success" as const },
-      cancelled: { label: "Annulé", variant: "error" as const },
-    };
 
-    const config = statusConfig[status] || { label: status, variant: "default" as const };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
 
   if (loading) {
     return (
@@ -200,7 +191,7 @@ export default function PayrollDetailPage() {
 
         {/* Status Badge */}
         <div>
-          {getStatusBadge(payroll.status)}
+          {getStatusBadgeNode(payroll.status)}
         </div>
 
         {/* Employee Info */}

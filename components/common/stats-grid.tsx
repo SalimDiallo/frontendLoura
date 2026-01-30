@@ -54,7 +54,7 @@ const VALUE_COLORS = {
   success: 'text-green-600 dark:text-green-400',
   error: 'text-red-600 dark:text-red-400',
   warning: 'text-amber-600 dark:text-yellow-300',
-  info: 'text-blue-600 dark:text-blue-400',
+  info: 'text-foreground dark:text-blue-400',
 };
 
 export function StatsGrid({

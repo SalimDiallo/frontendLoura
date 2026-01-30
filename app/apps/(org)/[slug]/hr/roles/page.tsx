@@ -208,7 +208,7 @@ export default function RolesPage() {
         </Card>
         <Card className="p-4 border-0 shadow-sm">
           <div className="text-sm text-muted-foreground">Rôles organisation</div>
-          <div className="text-2xl font-bold mt-1 text-blue-600">
+          <div className="text-2xl font-bold mt-1 text-foreground">
             {roles?.filter((r) => !r.is_system_role).length || 0}
           </div>
         </Card>

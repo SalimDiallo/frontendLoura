@@ -29,6 +29,7 @@ import {
   HiOutlinePlusCircle,
   HiOutlineTrash,
   HiOutlineCalendar,
+  HiChevronDown,
 } from "react-icons/hi2";
 import { createPayroll, getPayrollPeriods, contractService, getPayrollAdvances, createPayrollPeriod } from "@/lib/services/hr";
 import { getEmployees } from "@/lib/services/hr";
@@ -42,7 +43,7 @@ export default function CreatePayrollPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const slug = params.slug as string;
-  const preselectedEmployeeId = searchParams.get('employee');
+  const preselectedEmployeeId = searchParams.get("employee");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,15 +64,19 @@ export default function CreatePayrollPage() {
     end_date: "",
     payment_date: "",
   });
-  
+
   // Advances state
   const [employeeAdvances, setEmployeeAdvances] = useState<PayrollAdvance[]>([]);
   const [loadingAdvances, setLoadingAdvances] = useState(false);
   const [selectedAdvances, setSelectedAdvances] = useState<string[]>([]);
 
+  // One single group mask for optionals, closed by default, finely bordered
+  const [showOptionals, setShowOptionals] = useState(false);
+
   const [formData, setFormData] = useState<PayrollCreate>({
     employee: "",
-    payroll_period: "",
+    payroll_period: null,  // Optionnel maintenant
+    description: "",       // Nouveau champ
     base_salary: 0,
     allowances: [],
     deductions: [],
@@ -88,10 +93,9 @@ export default function CreatePayrollPage() {
     loadPayrollPeriods();
   }, [slug]);
 
-  // Pre-select employee if provided in URL
   useEffect(() => {
     if (preselectedEmployeeId && employees.length > 0 && !formData.employee) {
-      const employeeExists = employees.some(emp => emp.id === preselectedEmployeeId);
+      const employeeExists = employees.some((emp) => emp.id === preselectedEmployeeId);
       if (employeeExists) {
         handleEmployeeChange(preselectedEmployeeId);
       }
@@ -101,10 +105,10 @@ export default function CreatePayrollPage() {
   const loadEmployees = async () => {
     try {
       setLoadingEmployees(true);
-      const data = await getEmployees(slug, { page_size: 100, employment_status: 'active' });
+      const data = await getEmployees(slug, { page_size: 100, employment_status: "active" });
       setEmployees(data.results);
     } catch (err) {
-      console.error('Error loading employees:', err);
+      console.error("Error loading employees:", err);
     } finally {
       setLoadingEmployees(false);
     }
@@ -116,7 +120,7 @@ export default function CreatePayrollPage() {
       const data = await getPayrollPeriods(slug, { page_size: 50 });
       setPayrollPeriods(data.results);
     } catch (err) {
-      console.error('Error loading payroll periods:', err);
+      console.error("Error loading payroll periods:", err);
     } finally {
       setLoadingPeriods(false);
     }
@@ -127,20 +131,14 @@ export default function CreatePayrollPage() {
       setError("Veuillez remplir tous les champs obligatoires");
       return;
     }
-
     try {
       setCreatingPeriod(true);
       setError(null);
 
       const newPeriod = await createPayrollPeriod(slug, periodForm);
-
-      // Refresh periods list
       await loadPayrollPeriods();
-
-      // Auto-select the newly created period
       setFormData({ ...formData, payroll_period: newPeriod.id });
 
-      // Close dialog and reset form
       setPeriodDialog(false);
       setPeriodForm({
         name: "",
@@ -160,11 +158,10 @@ export default function CreatePayrollPage() {
   };
 
   const openQuickPeriodDialog = () => {
-    // Pre-fill with current month
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
-    const monthName = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    const monthName = now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
@@ -172,9 +169,9 @@ export default function CreatePayrollPage() {
 
     setPeriodForm({
       name: monthName.charAt(0).toUpperCase() + monthName.slice(1),
-      start_date: startDate.toISOString().split('T')[0],
-      end_date: endDate.toISOString().split('T')[0],
-      payment_date: paymentDate.toISOString().split('T')[0],
+      start_date: startDate.toISOString().split("T")[0],
+      end_date: endDate.toISOString().split("T")[0],
+      payment_date: paymentDate.toISOString().split("T")[0],
     });
 
     setPeriodDialog(true);
@@ -185,44 +182,33 @@ export default function CreatePayrollPage() {
       setLoadingContract(true);
       const contract = await contractService.getActiveContract(slug, employeeId);
       setSelectedEmployeeContract(contract);
-
-      // Auto-fill base salary from contract
       if (contract && contract.base_salary) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           base_salary: contract.base_salary,
         }));
       }
     } catch (err) {
-      console.error('Error loading employee contract:', err);
+      console.error("Error loading employee contract:", err);
       setSelectedEmployeeContract(null);
     } finally {
       setLoadingContract(false);
     }
   };
 
-  // Load advances for selected employee (APPROVED status = ready to be deducted)
   const loadEmployeeAdvances = async (employeeId: string) => {
     try {
       setLoadingAdvances(true);
       setSelectedAdvances([]);
-      console.log('Loading advances for employee:', employeeId);
-
       const advances = await getPayrollAdvances({
         organization_subdomain: slug,
         employee: employeeId,
-        status: 'approved', // Avances approuvées prêtes à être déduites
+        status: "approved",
       });
-
-      console.log('All advances received:', advances);
-
-      // Filter advances that don't have a payslip linked yet
       const availableAdvances = advances.filter((adv: PayrollAdvance) => !adv.payslip);
-      console.log('Available advances (not yet linked):', availableAdvances);
-
       setEmployeeAdvances(availableAdvances);
     } catch (err) {
-      console.error('Error loading employee advances:', err);
+      console.error("Error loading employee advances:", err);
       setEmployeeAdvances([]);
     } finally {
       setLoadingAdvances(false);
@@ -241,35 +227,67 @@ export default function CreatePayrollPage() {
     }
   };
 
-  // Toggle advance selection
-  const toggleAdvanceSelection = (advanceId: string) => {
-    setSelectedAdvances(prev => {
-      if (prev.includes(advanceId)) {
-        return prev.filter(id => id !== advanceId);
-      } else {
-        return [...prev, advanceId];
-      }
-    });
+  // --- UX: Restrict advance selection so net never goes negative
+  const calculateGrossSalary = () => {
+    const baseSalary = Number(formData.base_salary) || 0;
+    const allowancesTotal = (formData.allowances || []).reduce(
+      (sum, a) => sum + (Number(a.amount) || 0),
+      0
+    );
+    return baseSalary + allowancesTotal;
   };
 
-  // Calculate total advances to deduct
-  const calculateAdvancesTotal = () => {
-    return employeeAdvances
-      .filter(adv => selectedAdvances.includes(adv.id))
+  const manualDeductionSum = () =>
+    (formData.deductions || []).reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+
+  const calculateAdvancesTotal = (customSelection?: string[]) =>
+    employeeAdvances
+      .filter((adv) => (customSelection || selectedAdvances).includes(adv.id))
       .reduce((sum, adv) => sum + (Number(adv.amount) || 0), 0);
+
+  const calculateTotalDeductions = (customSelected?: string[]) =>
+    manualDeductionSum() + calculateAdvancesTotal(customSelected);
+
+  const calculateNetSalary = (customSelected?: string[]) =>
+    calculateGrossSalary() - calculateTotalDeductions(customSelected);
+
+  // Disable advance if its selection would push net < 0
+  const isAdvanceDisabled = (advanceId: string) => {
+    let testSelected = [...selectedAdvances];
+    if (!testSelected.includes(advanceId)) testSelected.push(advanceId);
+    return calculateNetSalary(testSelected) < 0;
+  };
+
+  const toggleAdvanceSelection = (advanceId: string) => {
+    const willAdd = !selectedAdvances.includes(advanceId);
+    let newSelection: string[];
+    if (willAdd) {
+      if (isAdvanceDisabled(advanceId)) {
+        setError("Impossible de sélectionner l'avance : le salaire net ne peut pas être négatif.");
+        setTimeout(() => setError(null), 4000);
+        return;
+      }
+      newSelection = [...selectedAdvances, advanceId];
+    } else {
+      newSelection = selectedAdvances.filter((id) => id !== advanceId);
+    }
+    setSelectedAdvances(newSelection);
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!formData.employee) {
       setError("Veuillez sélectionner un employé");
       return;
     }
 
-    if (!formData.payroll_period) {
-      setError("Veuillez sélectionner une période de paie");
-      return;
+    // Si pas de période et pas de description, encourager une description
+    if (!formData.payroll_period && !formData.description?.trim()) {
+      // Générer une description automatique basée sur la date
+      const now = new Date();
+      const monthName = now.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+      setFormData({ ...formData, description: `Paie ${monthName}` });
     }
 
     if (formData.base_salary <= 0) {
@@ -277,19 +295,23 @@ export default function CreatePayrollPage() {
       return;
     }
 
+    if (calculateNetSalary() < 0) {
+      setError("Le salaire net ne peut pas être négatif. Veuillez ajuster déductions ou avances.");
+      return;
+    }
+
+
     try {
       setLoading(true);
       setError(null);
 
-      // Clean data before sending (remove is_deduction from items)
-      // Add selected advances as deductions
       const advanceDeductions = employeeAdvances
-        .filter(adv => selectedAdvances.includes(adv.id))
-        .map(adv => ({
-          name: `Remboursement avance - ${adv.reason || 'Avance sur salaire'}`,
+        .filter((adv) => selectedAdvances.includes(adv.id))
+        .map((adv) => ({
+          name: `Remboursement avance - ${adv.reason || "Avance sur salaire"}`,
           amount: Number(adv.amount) || 0,
           is_deduction: true,
-          advance_id: adv.id, // Keep track of which advance this is
+          advance_id: adv.id,
         }));
 
       const cleanedData: PayrollCreate = {
@@ -297,58 +319,53 @@ export default function CreatePayrollPage() {
         allowances: (formData.allowances || []).map(({ name, amount }) => ({
           name,
           amount,
-          is_deduction: false
+          is_deduction: false,
         })),
         deductions: [
           ...(formData.deductions || []).map(({ name, amount }) => ({
             name,
             amount,
-            is_deduction: true
+            is_deduction: true,
           })),
           ...advanceDeductions,
         ],
-        // Pass selected advance IDs to backend for linking
         advance_ids: selectedAdvances,
       };
-
-      // Log data being sent for debugging
-      console.log('Payroll data being sent:', JSON.stringify(cleanedData, null, 2));
 
       await createPayroll(cleanedData);
       router.push(`/apps/${slug}/hr/payroll`);
     } catch (err: any) {
       let errorMessage = "Erreur lors de la création";
-
-      // Handle API errors with detailed messages
       if (err.data) {
-        // Check for non_field_errors (unique constraint)
         if (err.data.non_field_errors) {
           const uniqueError = err.data.non_field_errors.find((msg: string) =>
-            msg.includes('employee, payroll_period must make a unique set')
+            msg.includes("employee, payroll_period must make a unique set")
           );
           if (uniqueError) {
             errorMessage = "Une fiche de paie existe déjà pour cet employé pour cette période.";
           } else {
-            errorMessage = err.data.non_field_errors.join(', ');
+            errorMessage = err.data.non_field_errors.join(", ");
           }
-        }
-        // Check for field-specific errors
-        else if (typeof err.data === 'object') {
+        } else if (typeof err.data === "object") {
           const errors = Object.entries(err.data)
             .map(([field, messages]) => {
-              const fieldLabel = field === 'employee' ? 'Employé' :
-                                field === 'payroll_period' ? 'Période de paie' :
-                                field === 'base_salary' ? 'Salaire de base' : field;
-              return `${fieldLabel}: ${Array.isArray(messages) ? messages.join(', ') : messages}`;
+              const fieldLabel =
+                field === "employee"
+                  ? "Employé"
+                  : field === "payroll_period"
+                  ? "Période de paie"
+                  : field === "base_salary"
+                  ? "Salaire de base"
+                  : field;
+              return `${fieldLabel}: ${Array.isArray(messages) ? messages.join(", ") : messages}`;
             });
-          errorMessage = errors.join('\n');
+          errorMessage = errors.join("\n");
         }
       } else if (err.message) {
         errorMessage = err.message;
       }
-
       setError(errorMessage);
-      console.error('Payroll creation error:', err);
+      console.error("Payroll creation error:", err);
     } finally {
       setLoading(false);
     }
@@ -360,6 +377,7 @@ export default function CreatePayrollPage() {
       ...formData,
       allowances: [...(formData.allowances || []), { name: "", amount: 0, is_deduction: false }],
     });
+    setShowOptionals(true);
   };
 
   const removeAllowance = (index: number) => {
@@ -379,7 +397,6 @@ export default function CreatePayrollPage() {
     if (template.is_percentage && template.percentage) {
       amount = (formData.base_salary * template.percentage) / 100;
     }
-
     setFormData({
       ...formData,
       allowances: [
@@ -391,6 +408,7 @@ export default function CreatePayrollPage() {
         },
       ],
     });
+    setShowOptionals(true);
   };
 
   // Deductions management
@@ -399,6 +417,7 @@ export default function CreatePayrollPage() {
       ...formData,
       deductions: [...(formData.deductions || []), { name: "", amount: 0, is_deduction: true }],
     });
+    setShowOptionals(true);
   };
 
   const removeDeduction = (index: number) => {
@@ -431,33 +450,44 @@ export default function CreatePayrollPage() {
         },
       ],
     });
-  };
-
-  const calculateGrossSalary = () => {
-    const baseSalary = Number(formData.base_salary) || 0;
-    const allowancesTotal = (formData.allowances || []).reduce(
-      (sum, a) => sum + (Number(a.amount) || 0),
-      0
-    );
-    return baseSalary + allowancesTotal;
-  };
-
-  const calculateTotalDeductions = () => {
-    const manualDeductions = (formData.deductions || []).reduce(
-      (sum, d) => sum + (Number(d.amount) || 0),
-      0
-    );
-    return manualDeductions + calculateAdvancesTotal();
-  };
-
-  const calculateNetSalary = () => {
-    return calculateGrossSalary() - calculateTotalDeductions();
+    setShowOptionals(true);
   };
 
   const formatCurrency = (value: number | string) => {
-    const num = typeof value === 'string' ? parseFloat(value) : value;
-    return isNaN(num) ? '0.00' : num.toFixed(2);
+    const num = typeof value === "string" ? parseFloat(value) : value;
+    return isNaN(num) ? "0.00" : num.toFixed(2);
   };
+
+  // Fine minimal border
+  const fineBorderClass = "border border-border rounded-md";
+
+  // Collapse mask header
+  function MaskHeader({
+    opened,
+    toggle,
+    label,
+  }: {
+    opened: boolean;
+    toggle: () => void;
+    label: string;
+  }) {
+    return (
+      <button
+        type="button"
+        className="flex items-center gap-2 text-base font-medium py-2 px-3 w-full bg-transparent border-0"
+        onClick={toggle}
+        aria-expanded={opened}
+      >
+        <HiChevronDown
+          className={`transition-transform ${opened ? "rotate-180" : ""} size-5`}
+        />
+        <span className="whitespace-nowrap">
+          {label}
+        </span>
+        <span className="text-xs ml-2 text-muted-foreground">(optionnel)</span>
+      </button>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -483,9 +513,9 @@ export default function CreatePayrollPage() {
       {success && <Alert variant="success">{success}</Alert>}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Champs obligatoires */}
         <Card className="p-6 border-0 shadow-sm">
           <h2 className="text-lg font-semibold mb-4">Informations générales</h2>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="employee">
@@ -508,47 +538,82 @@ export default function CreatePayrollPage() {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Section Période ou Description */}
+            <div className="md:col-span-2 space-y-4 p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <HiOutlineCalendar className="size-5 text-muted-foreground" />
+                <span className="font-medium">Période ou Description</span>
+                <span className="text-xs text-muted-foreground">(l'un ou l'autre)</span>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="payroll_period">
+                    Période de paie <span className="text-xs text-muted-foreground">(optionnel)</span>
+                  </Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={formData.payroll_period || ""}
+                      onValueChange={(value) => setFormData({ 
+                        ...formData, 
+                        payroll_period: value === "_none" ? null : value 
+                      })}
+                      disabled={loadingPeriods}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingPeriods ? "Chargement..." : "Sans période (ad-hoc)"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">
+                          <span className="text-muted-foreground">📝 Sans période (ad-hoc)</span>
+                        </SelectItem>
+                        {payrollPeriods.map((period) => (
+                          <SelectItem key={period.id} value={period.id}>
+                            {period.name} (
+                            {new Date(period.start_date).toLocaleDateString("fr-FR")} -{" "}
+                            {new Date(period.end_date).toLocaleDateString("fr-FR")})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={openQuickPeriodDialog}
+                      title="Créer une nouvelle période rapidement"
+                    >
+                      <HiOutlinePlusCircle className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div className="space-y-2">
-              <Label htmlFor="payroll_period">
-                Période de paie <span className="text-destructive">*</span>
+              <Label htmlFor="base_salary">
+                Salaire de base <span className="text-destructive">*</span>
               </Label>
-              <div className="flex gap-2">
-                <Select
-                  value={formData.payroll_period}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, payroll_period: value })
-                  }
-                  disabled={loadingPeriods}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingPeriods ? "Chargement..." : "Sélectionner une période"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {payrollPeriods.map((period) => (
-                      <SelectItem key={period.id} value={period.id}>
-                        {period.name} ({new Date(period.start_date).toLocaleDateString("fr-FR")} - {new Date(period.end_date).toLocaleDateString("fr-FR")})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={openQuickPeriodDialog}
-                  title="Créer une nouvelle période rapidement"
-                >
-                  <HiOutlinePlusCircle className="size-4" />
-                </Button>
-              </div>
-              {payrollPeriods.length === 0 && !loadingPeriods && (
-                <p className="text-sm text-muted-foreground">
-                  Aucune période disponible. Cliquez sur + pour créer une période rapidement.
+              <Input
+                id="base_salary"
+                type="number"
+                step="0.01"
+                value={formData.base_salary || ""}
+                onChange={(e) => {
+                  const value = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                  setFormData({ ...formData, base_salary: isNaN(value) ? 0 : value });
+                }}
+                required
+                disabled={loadingContract}
+              />
+              {selectedEmployeeContract && (
+                <p className="text-xs text-muted-foreground">
+                  Salaire chargé automatiquement depuis le contrat actif (
+                  {selectedEmployeeContract.contract_type_display})
                 </p>
               )}
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="payment_method">Méthode de paiement</Label>
               <Select
@@ -568,284 +633,314 @@ export default function CreatePayrollPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="base_salary">
-                Salaire de base <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="base_salary"
-                type="number"
-                step="0.01"
-                value={formData.base_salary || ''}
-                onChange={(e) => {
-                  const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                  setFormData({ ...formData, base_salary: isNaN(value) ? 0 : value });
-                }}
-                required
-                disabled={loadingContract}
-              />
-              {selectedEmployeeContract && (
-                <p className="text-xs text-muted-foreground">
-                  Salaire chargé automatiquement depuis le contrat actif ({selectedEmployeeContract.contract_type_display})
-                </p>
-              )}
-            </div>
           </div>
         </Card>
 
-        {/* Additional Details */}
-        <Card className="p-6 border-0 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">Détails supplémentaires</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="currency">Devise</Label>
-              <Input
-                id="currency"
-                value={formData.currency || 'GNF'}
-                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                placeholder="GNF"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="worked_hours">Heures travaillées</Label>
-              <Input
-                id="worked_hours"
-                type="number"
-                step="0.5"
-                value={formData.worked_hours || ''}
-                onChange={(e) => {
-                  const value = e.target.value === '' ? 160 : parseFloat(e.target.value);
-                  setFormData({ ...formData, worked_hours: isNaN(value) ? 160 : value });
-                }}
-              />
-              <p className="text-xs text-muted-foreground">
-                Défaut: 160h/mois
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="overtime_hours">Heures supplémentaires</Label>
-              <Input
-                id="overtime_hours"
-                type="number"
-                step="0.5"
-                value={formData.overtime_hours || ''}
-                onChange={(e) => {
-                  const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                  setFormData({ ...formData, overtime_hours: isNaN(value) ? 0 : value });
-                }}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="leave_days_taken">Jours de congé pris</Label>
-              <Input
-                id="leave_days_taken"
-                type="number"
-                step="0.5"
-                value={formData.leave_days_taken || ''}
-                onChange={(e) => {
-                  const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                  setFormData({ ...formData, leave_days_taken: isNaN(value) ? 0 : value });
-                }}
-              />
-            </div>
-          </div>
-        </Card>
-
-        {/* Allowances */}
-        <Card className="p-6 border-0 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Primes et indemnités</h2>
-            <div className="flex gap-2">
-              <select
-                className="px-3 py-1.5 text-sm border rounded-md"
-                onChange={(e) => {
-                  const index = parseInt(e.target.value);
-                  if (!isNaN(index)) {
-                    addAllowanceFromTemplate(DEFAULT_ALLOWANCE_TEMPLATES[index]);
-                    e.target.value = '';
-                  }
-                }}
-                defaultValue=""
-              >
-                <option value="" disabled>Choisir un template</option>
-                {DEFAULT_ALLOWANCE_TEMPLATES.map((template, index) => (
-                  <option key={index} value={index}>
-                    {template.name} {template.description && `- ${template.description}`}
-                  </option>
-                ))}
-              </select>
-              <Button type="button" variant="outline" size="sm" onClick={addAllowance}>
-                <HiOutlinePlusCircle className="size-4 mr-2" />
-                Ajouter
-              </Button>
-            </div>
-          </div>
-
-          {(formData.allowances || []).length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Aucune prime ajoutée
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {(formData.allowances || []).map((allowance, index) => (
-                <div key={index} className="flex gap-3 items-end">
-                  <div className="flex-1">
-                    <Label htmlFor={`allowance-name-${index}`}>Nom</Label>
-                    <Input
-                      id={`allowance-name-${index}`}
-                      value={allowance.name}
-                      onChange={(e) =>
-                        updateAllowance(index, "name", e.target.value)
-                      }
-                      placeholder="Ex: Prime de transport"
-                    />
-                  </div>
-                  <div className="w-40">
-                    <Label htmlFor={`allowance-amount-${index}`}>Montant</Label>
-                    <Input
-                      id={`allowance-amount-${index}`}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={allowance.amount}
-                      onChange={(e) =>
-                        updateAllowance(index, "amount", parseFloat(e.target.value) || 0)
-                      }
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeAllowance(index)}
-                    className="text-destructive"
-                  >
-                    <HiOutlineTrash className="size-4" />
-                  </Button>
+        {/* Masque unique pour les éléments optionnels */}
+        <div className={fineBorderClass + " bg-muted/30 pt-0"}>
+          <MaskHeader
+            opened={showOptionals}
+            toggle={() => setShowOptionals((v) => !v)}
+            label="Détails, primes, déductions, avances et notes"
+          />
+          {showOptionals && (
+            <div className="p-6 pt-2 space-y-6">
+              {/* Détails supplémentaires */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Devise</Label>
+                  <Input
+                    id="currency"
+                    value={formData.currency || "GNF"}
+                    onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                    placeholder="GNF"
+                  />
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Deductions */}
-        <Card className="p-6 border-0 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Déductions</h2>
-            <div className="flex gap-2">
-              <select
-                className="px-3 py-1.5 text-sm border rounded-md"
-                onChange={(e) => {
-                  const index = parseInt(e.target.value);
-                  if (!isNaN(index)) {
-                    addDeductionFromTemplate(DEFAULT_DEDUCTION_TEMPLATES[index]);
-                    e.target.value = '';
-                  }
-                }}
-                defaultValue=""
-              >
-                <option value="" disabled>Choisir un template</option>
-                {DEFAULT_DEDUCTION_TEMPLATES.map((template, index) => (
-                  <option key={index} value={index}>
-                    {template.name} {template.description && `- ${template.description}`}
-                  </option>
-                ))}
-              </select>
-              <Button type="button" variant="outline" size="sm" onClick={addDeduction}>
-                <HiOutlinePlusCircle className="size-4 mr-2" />
-                Ajouter
-              </Button>
-            </div>
-          </div>
-
-          {(formData.deductions || []).length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Aucune déduction ajoutée
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {(formData.deductions || []).map((deduction, index) => (
-                <div key={index} className="flex gap-3 items-end">
-                  <div className="flex-1">
-                    <Label htmlFor={`deduction-name-${index}`}>Nom</Label>
-                    <Input
-                      id={`deduction-name-${index}`}
-                      value={deduction.name}
-                      onChange={(e) =>
-                        updateDeduction(index, "name", e.target.value)
-                      }
-                      placeholder="Ex: Cotisation sociale"
-                    />
-                  </div>
-                  <div className="w-40">
-                    <Label htmlFor={`deduction-amount-${index}`}>Montant</Label>
-                    <Input
-                      id={`deduction-amount-${index}`}
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={deduction.amount}
-                      onChange={(e) =>
-                        updateDeduction(index, "amount", parseFloat(e.target.value) || 0)
-                      }
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeDeduction(index)}
-                    className="text-destructive"
-                  >
-                    <HiOutlineTrash className="size-4" />
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="worked_hours">Heures travaillées</Label>
+                  <Input
+                    id="worked_hours"
+                    type="number"
+                    step="0.5"
+                    value={formData.worked_hours || ""}
+                    onChange={(e) => {
+                      const value = e.target.value === "" ? 160 : parseFloat(e.target.value);
+                      setFormData({ ...formData, worked_hours: isNaN(value) ? 160 : value });
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">Défaut: 160h/mois</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Salary Advances - Only show if employee is selected */}
-        {formData.employee && (
-          loadingAdvances ? (
-            <Card className="p-6 border-0 shadow-sm">
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                <span className="ml-3 text-sm text-muted-foreground">Chargement des avances...</span>
+                <div className="space-y-2">
+                  <Label htmlFor="overtime_hours">Heures supplémentaires</Label>
+                  <Input
+                    id="overtime_hours"
+                    type="number"
+                    step="0.5"
+                    value={formData.overtime_hours || ""}
+                    onChange={(e) => {
+                      const value = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                      setFormData({ ...formData, overtime_hours: isNaN(value) ? 0 : value });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="leave_days_taken">Jours de congé pris</Label>
+                  <Input
+                    id="leave_days_taken"
+                    type="number"
+                    step="0.5"
+                    value={formData.leave_days_taken || ""}
+                    onChange={(e) => {
+                      const value = e.target.value === "" ? 0 : parseFloat(e.target.value);
+                      setFormData({ ...formData, leave_days_taken: isNaN(value) ? 0 : value });
+                    }}
+                  />
+                </div>
               </div>
-            </Card>
-          ) : employeeAdvances.length > 0 ? (
-            <PayrollAdvancesSummary
-              advances={employeeAdvances}
-              employeeName={employees.find(e => e.id === formData.employee)?.full_name}
-              selectedAdvanceIds={selectedAdvances}
-              onAdvanceSelect={setSelectedAdvances}
-            />
-          ) : (
-            <Card className="p-6 border-0 shadow-sm bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/40">
-                  <HiOutlinePlusCircle className="size-5 text-green-600 dark:text-green-400" />
+              {/* Primes */}
+              <Card className="border-0 shadow-none p-0 bg-transparent">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-base font-semibold">Primes et indemnités</h2>
+                  <div className="flex gap-2">
+                    <select
+                      className="px-3 py-1.5 text-sm border rounded-md"
+                      onChange={(e) => {
+                        const index = parseInt(e.target.value);
+                        if (!isNaN(index)) {
+                          addAllowanceFromTemplate(DEFAULT_ALLOWANCE_TEMPLATES[index]);
+                          e.target.value = "";
+                        }
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Choisir un template
+                      </option>
+                      {DEFAULT_ALLOWANCE_TEMPLATES.map((template, index) => (
+                        <option key={index} value={index}>
+                          {template.name}{" "}
+                          {template.description ? `- ${template.description}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addAllowance}
+                    >
+                      <HiOutlinePlusCircle className="size-4 mr-2" />
+                      Ajouter
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-green-900 dark:text-green-100">
-                    Aucune avance en attente
-                  </h3>
-                  <p className="text-sm text-green-700 dark:text-green-300 mt-0.5">
-                    Cet employé n'a pas d'avances à déduire pour cette période
+                {(formData.allowances || []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    Aucune prime ajoutée
                   </p>
+                ) : (
+                  <div className="space-y-2">
+                    {(formData.allowances || []).map((allowance, index) => (
+                      <div key={index} className="flex gap-3 items-end">
+                        <div className="flex-1">
+                          <Label htmlFor={`allowance-name-${index}`}>Nom</Label>
+                          <Input
+                            id={`allowance-name-${index}`}
+                            value={allowance.name}
+                            onChange={(e) => updateAllowance(index, "name", e.target.value)}
+                            placeholder="Ex: Prime de transport"
+                          />
+                        </div>
+                        <div className="w-40">
+                          <Label htmlFor={`allowance-amount-${index}`}>Montant</Label>
+                          <Input
+                            id={`allowance-amount-${index}`}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={allowance.amount}
+                            onChange={(e) =>
+                              updateAllowance(index, "amount", parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeAllowance(index)}
+                          className="text-destructive"
+                        >
+                          <HiOutlineTrash className="size-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+              {/* Déductions */}
+              <Card className="border-0 shadow-none p-0 bg-transparent mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-base font-semibold">Déductions</h2>
+                  <div className="flex gap-2">
+                    <select
+                      className="px-3 py-1.5 text-sm border rounded-md"
+                      onChange={(e) => {
+                        const index = parseInt(e.target.value);
+                        if (!isNaN(index)) {
+                          addDeductionFromTemplate(DEFAULT_DEDUCTION_TEMPLATES[index]);
+                          e.target.value = "";
+                        }
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Choisir un template
+                      </option>
+                      {DEFAULT_DEDUCTION_TEMPLATES.map((template, index) => (
+                        <option key={index} value={index}>
+                          {template.name}{" "}
+                          {template.description ? `- ${template.description}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addDeduction}
+                    >
+                      <HiOutlinePlusCircle className="size-4 mr-2" />
+                      Ajouter
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          )
-        )}
-
-
-        {/* Summary */}
+                {(formData.deductions || []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    Aucune déduction ajoutée
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {(formData.deductions || []).map((deduction, index) => (
+                      <div key={index} className="flex gap-3 items-end">
+                        <div className="flex-1">
+                          <Label htmlFor={`deduction-name-${index}`}>Nom</Label>
+                          <Input
+                            id={`deduction-name-${index}`}
+                            value={deduction.name}
+                            onChange={(e) =>
+                              updateDeduction(index, "name", e.target.value)
+                            }
+                            placeholder="Ex: Cotisation sociale"
+                          />
+                        </div>
+                        <div className="w-40">
+                          <Label htmlFor={`deduction-amount-${index}`}>Montant</Label>
+                          <Input
+                            id={`deduction-amount-${index}`}
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={deduction.amount}
+                            onChange={(e) =>
+                              updateDeduction(index, "amount", parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeDeduction(index)}
+                          className="text-destructive"
+                        >
+                          <HiOutlineTrash className="size-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+              {/* Avances */}
+              {formData.employee &&
+                (loadingAdvances ? (
+                  <Card className="border-0 shadow-none bg-transparent p-0 mt-4">
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      <span className="ml-3 text-sm text-muted-foreground">
+                        Chargement des avances...
+                      </span>
+                    </div>
+                  </Card>
+                ) : employeeAdvances.length > 0 ? (
+                  <Card className="border-0 shadow-none bg-transparent p-0 mt-4">
+                    <div className="mb-2 font-semibold">Avances à déduire</div>
+                    <div>
+                      {employeeAdvances.map((adv) => {
+                        const isChecked = selectedAdvances.includes(adv.id);
+                        const disabled = isAdvanceDisabled(adv.id) && !isChecked;
+                        return (
+                          <label
+                            key={adv.id}
+                            className={`flex items-center gap-3 py-1 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="accent-primary"
+                              disabled={disabled}
+                              checked={isChecked}
+                              onChange={() => toggleAdvanceSelection(adv.id)}
+                            />
+                            <span>
+                              <span className="font-medium">
+                                {adv.reason || "Avance sur salaire"}
+                              </span>{" "}
+                              - {formatCurrency(adv.amount)} GNF
+                              {disabled && (
+                                <span className="ml-2 text-xs text-destructive">
+                                  (rend le net négatif)
+                                </span>
+                              )}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                ) : (
+                  <Card className="border-0 shadow-none bg-transparent p-0 mt-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-8 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/40">
+                        <HiOutlinePlusCircle className="size-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-green-900 dark:text-green-100 text-sm">
+                          Aucune avance en attente
+                        </h3>
+                        <p className="text-xs text-green-700 dark:text-green-300 mt-0.5">
+                          Cet employé n'a pas d'avances à déduire pour cette période
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              {/* Notes */}
+              <Card className="border-0 shadow-none bg-transparent p-0 mt-4">
+                <div className="space-y-1">
+                  <Label htmlFor="notes">Notes</Label>
+                  <textarea
+                    id="notes"
+                    className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="Ajoutez des notes supplémentaires..."
+                  />
+                </div>
+              </Card>
+            </div>
+          )}
+        </div>
+        {/* Résumé */}
         <Card className="p-6 border-0 shadow-sm bg-muted/50">
           <h2 className="text-lg font-semibold mb-4">Résumé</h2>
           <div className="space-y-3">
@@ -856,7 +951,14 @@ export default function CreatePayrollPage() {
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Total primes</span>
               <span className="font-medium text-green-600">
-                +{formatCurrency((formData.allowances || []).reduce((sum, a) => sum + (Number(a.amount) || 0), 0))} GNF
+                +
+                {formatCurrency(
+                  (formData.allowances || []).reduce(
+                    (sum, a) => sum + (Number(a.amount) || 0),
+                    0
+                  )
+                )}{" "}
+                GNF
               </span>
             </div>
             <div className="flex justify-between items-center py-3 border-y">
@@ -864,9 +966,18 @@ export default function CreatePayrollPage() {
               <span className="font-bold">{formatCurrency(calculateGrossSalary())} GNF</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Déductions manuelles</span>
+              <span className="text-sm text-muted-foreground">
+                Déductions manuelles
+              </span>
               <span className="font-medium text-red-600">
-                -{formatCurrency((formData.deductions || []).reduce((sum, d) => sum + (Number(d.amount) || 0), 0))} GNF
+                -
+                {formatCurrency(
+                  (formData.deductions || []).reduce(
+                    (sum, d) => sum + (Number(d.amount) || 0),
+                    0
+                  )
+                )}{" "}
+                GNF
               </span>
             </div>
             {selectedAdvances.length > 0 && (
@@ -887,37 +998,18 @@ export default function CreatePayrollPage() {
             </div>
             <div className="border-t-2 pt-4 flex justify-between items-center">
               <span className="text-lg font-bold">Salaire net</span>
-              <span className="text-2xl font-bold text-primary">
+              <span
+                className={`text-2xl font-bold ${
+                  calculateNetSalary() < 0 ? "text-destructive" : "text-primary"
+                }`}
+              >
                 {formatCurrency(calculateNetSalary())} GNF
               </span>
             </div>
           </div>
         </Card>
-
-        {/* Notes */}
-        <Card className="p-6 border-0 shadow-sm">
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes (optionnel)</Label>
-            <textarea
-              id="notes"
-              className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background"
-              value={formData.notes}
-              onChange={(e) =>
-                setFormData({ ...formData, notes: e.target.value })
-              }
-              placeholder="Ajoutez des notes supplémentaires..."
-            />
-          </div>
-        </Card>
-
-        {/* Actions */}
         <div className="flex gap-3 justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            disabled={loading}
-          >
+          <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
             Annuler
           </Button>
           <Button type="submit" disabled={loading}>
@@ -938,7 +1030,6 @@ export default function CreatePayrollPage() {
               Créez une nouvelle période de paie. Les champs sont pré-remplis avec le mois en cours.
             </DialogDescription>
           </DialogHeader>
-
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="period-name">
@@ -951,7 +1042,6 @@ export default function CreatePayrollPage() {
                 placeholder="Ex: Janvier 2025"
               />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="period-start">
@@ -964,7 +1054,6 @@ export default function CreatePayrollPage() {
                   onChange={(e) => setPeriodForm({ ...periodForm, start_date: e.target.value })}
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="period-end">
                   Date de fin <span className="text-destructive">*</span>
@@ -977,7 +1066,6 @@ export default function CreatePayrollPage() {
                 />
               </div>
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="period-payment">Date de paiement prévue (optionnel)</Label>
               <Input
@@ -991,7 +1079,6 @@ export default function CreatePayrollPage() {
               </p>
             </div>
           </div>
-
           <DialogFooter>
             <Button
               type="button"

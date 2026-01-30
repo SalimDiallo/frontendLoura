@@ -23,7 +23,8 @@ import {
   Banknote,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency, getDaysColor } from "@/lib/utils";
+import { getBadgeWIthOutIconAdLabel } from "@/lib/utils/BadgeStatus";
 
 export default function CreditSalesPage() {
   const params = useParams();
@@ -150,51 +151,7 @@ export default function CreditSalesPage() {
         credit.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-GN", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-    }).format(amount) + " GNF";
-  };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "paid":
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case "partial":
-        return <Clock className="h-4 w-4 text-orange-600" />;
-      case "pending":
-        return <Clock className="h-4 w-4 text-yellow-600" />;
-      case "overdue":
-        return <AlertCircle className="h-4 w-4 text-red-600" />;
-      case "cancelled":
-        return <XCircle className="h-4 w-4 text-gray-600" />;
-      default:
-        return <Clock className="h-4 w-4" />;
-    }
-  };
-
-  const getStatusVariant = (status: string): "success" | "warning" | "error" | "default" => {
-    switch (status) {
-      case "paid":
-        return "success";
-      case "partial":
-        return "warning";
-      case "pending":
-        return "warning";
-      case "overdue":
-        return "error";
-      default:
-        return "default";
-    }
-  };
-
-  const getDaysColor = (days: number | undefined) => {
-    if (days === undefined) return "";
-    if (days < 0) return "text-red-600 font-bold";
-    if (days <= 7) return "text-orange-600";
-    return "text-green-600";
-  };
 
   if (loading) {
     return (
@@ -256,7 +213,7 @@ export default function CreditSalesPage() {
           <Card className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-                <CreditCard className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <CreditCard className="h-5 w-5 text-foreground dark:text-blue-400" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Crédit total</p>
@@ -476,12 +433,7 @@ export default function CreditSalesPage() {
                       </div>
                     </td>
                     <td className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        {getStatusIcon(credit.status)}
-                        <Badge variant={getStatusVariant(credit.status)}>
-                          {credit.status_display}
-                        </Badge>
-                      </div>
+                      {getBadgeWIthOutIconAdLabel({status: credit.status, label:credit.status_display || credit.status})}
                     </td>
                     <td className="p-4 text-center">
                       <Badge variant="default">

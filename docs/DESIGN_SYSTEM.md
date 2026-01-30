@@ -438,7 +438,7 @@ Utilisez ces couleurs de manière cohérente :
 - **Success/Active** : `text-green-600`, `bg-green-100`
 - **Warning/Pending** : `text-orange-600`, `bg-orange-100`
 - **Error/Inactive** : `text-red-600`, `bg-red-100`
-- **Info** : `text-blue-600`, `bg-blue-100`
+- **Info** : `text-foreground`, `bg-blue-100`
 - **Primary** : `text-primary`, `bg-primary/10`
 
 ### 5. Responsive design
@@ -543,7 +543,7 @@ export default function Dashboard() {
           title="Total Employés"
           value={150}
           icon={HiOutlineUsers}
-          iconColor="text-blue-600"
+          iconColor="text-foreground"
           iconBgColor="linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%)"
           trend={{ value: 12, isPositive: true }}
         />

@@ -101,7 +101,14 @@ export default function EditDepartmentPage() {
       setLoading(true);
       setError(null);
 
-      await updateDepartment(id, data);
+      // Nettoyer les données : convertir les chaînes vides en undefined pour les champs optionnels
+      const cleanedData = {
+        ...data,
+        manager: data.manager || undefined,
+        parent_department: data.parent_department || undefined,
+      };
+
+      await updateDepartment(id, cleanedData);
       router.push(`/apps/${slug}/hr/departments`);
     } catch (err: any) {
       console.error(err);

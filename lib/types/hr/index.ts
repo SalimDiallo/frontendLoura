@@ -6,7 +6,6 @@
 
 export enum EmploymentStatus {
   ACTIVE = 'active',
-  INACTIVE = 'inactive',
   ON_LEAVE = 'on_leave',
   SUSPENDED = 'suspended',
   TERMINATED = 'terminated',
@@ -60,9 +59,9 @@ export interface DepartmentCreate {
   name: string;
   code: string;
   description?: string;
-  manager?: string; // Employee or AdminUser ID
-  head_id?: string; // Alternative name for manager
-  parent_department?: string;
+  manager?: string | null; // Employee or AdminUser ID
+  head_id?: string | null; // Alternative name for manager
+  parent_department?: string | null;
   is_active?: boolean;
 }
 
@@ -363,6 +362,30 @@ export interface LeaveRequest {
   approver_name?: string;
 }
 
+export interface LeaveRequestHistoryApiResponse {
+  id: string;
+  employee: string;
+  employee_name: string;
+  leave_type: string;
+  leave_type_name: string;
+  leave_type_color: string;
+  start_date: string;
+  end_date: string;
+  start_half_day: boolean;
+  end_half_day: boolean;
+  total_days: string;
+  reason: string;
+  attachment_url: string | null;
+  status: LeaveStatus;
+  status_display: string;
+  approver_name: string;
+  approval_date: string;
+  approval_notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+
 export interface LeaveRequestCreate {
   leave_type: string; // LeaveType ID
   start_date: string;
@@ -400,8 +423,10 @@ export interface Payroll {
   employee: string;
   employee_name?: string;
   employee_id?: string;
-  payroll_period: string;
-  payroll_period_name?: string;
+  payroll_period?: string | null;  // Optionnel - peut être null pour les paies ad-hoc
+  payroll_period_name?: string | null;
+  description?: string;            // Description/titre de la fiche de paie
+  display_name?: string;           // Nom d'affichage calculé
 
   // Salary Components
   base_salary: number;
@@ -436,7 +461,8 @@ export interface Payroll {
 
 export interface PayrollCreate {
   employee: string;
-  payroll_period: string; // ID de la période de paie (OBLIGATOIRE)
+  payroll_period?: string | null;  // ID de la période de paie (OPTIONNEL)
+  description?: string;            // Description/titre de la fiche de paie
   base_salary: number;
   allowances?: PayrollItem[];  // Liste des primes et indemnités
   deductions?: PayrollItem[];  // Liste des déductions

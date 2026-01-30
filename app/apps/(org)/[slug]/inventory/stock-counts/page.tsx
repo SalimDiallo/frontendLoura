@@ -24,6 +24,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 
 export default function StockCountsPage() {
   const params = useParams();
@@ -183,25 +184,7 @@ export default function StockCountsPage() {
         count.warehouse_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusBadge = (status: StockCountStatus) => {
-    const variants: Record<string, { variant: "success" | "error" | "warning" | "info" | "default" | "outline"; icon: any; label: string }> = {
-      planned: { variant: "outline", icon: <Clock className="h-3 w-3" aria-hidden="true" />, label: "Planifié" },
-      draft: { variant: "outline", icon: <Clock className="h-3 w-3" aria-hidden="true" />, label: "Brouillon" },
-      in_progress: { variant: "warning", icon: <Clock className="h-3 w-3" aria-hidden="true" />, label: "En cours" },
-      completed: { variant: "info", icon: <CheckCircle className="h-3 w-3" aria-hidden="true" />, label: "Complété" },
-      validated: { variant: "success", icon: <CheckCircle className="h-3 w-3" aria-hidden="true" />, label: "Validé" },
-      cancelled: { variant: "error", icon: <XCircle className="h-3 w-3" aria-hidden="true" />, label: "Annulé" },
-    };
-
-    const config = variants[status] || variants.planned;
-
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1 w-fit">
-        {config.icon}
-        {config.label}
-      </Badge>
-    );
-  };
+ 
 
   if (loading) {
     return (
@@ -427,7 +410,7 @@ export default function StockCountsPage() {
                         <span>{new Date(count.count_date).toLocaleDateString('fr-FR')}</span>
                       </div>
                     </td>
-                    <td className="p-4">{getStatusBadge(count.status)}</td>
+                    <td className="p-4">{getStatusBadgeNode(count.status)}</td>
                     <td className="p-4 text-center">
                       <Badge variant="outline">{count.item_count || 0}</Badge>
                     </td>

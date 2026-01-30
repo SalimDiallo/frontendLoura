@@ -324,8 +324,8 @@ export default function CreateOrganizationPage() {
                 {/* Section: Paramètres Régionaux */}
                 <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl p-6 shadow-sm">
                   <div className="flex items-center gap-2 mb-6 border-b border-border dark:border-slate-800 pb-4">
-                    <div className="p-2 bg-blue-500/10 rounded-lg">
-                      <Globe className="w-5 h-5 text-blue-500" />
+                    <div className="p-2 bg-foreground/10 rounded-lg">
+                      <Globe className="w-5 h-5 text-foreground" />
                     </div>
                     <h2 className="text-lg font-semibold text-foreground dark:text-white">
                       Paramètres régionaux

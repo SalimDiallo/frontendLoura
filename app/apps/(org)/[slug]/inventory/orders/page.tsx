@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Alert, Badge, Card, Input } from "@/components/ui";
 import { getOrders, confirmOrder, receiveOrder, cancelOrder } from "@/lib/services/inventory";
-import type { OrderList, OrderStatus } from "@/lib/types/inventory";
+import type { OrderList } from "@/lib/types/inventory";
 import {
   Plus,
   Search,
@@ -20,9 +20,10 @@ import {
   Truck,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { Can } from "@/components/apps/common/protected-route";
 import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { getStatusInfo } from "@/lib/utils/BadgeStatus";
 
 export default function OrdersPage() {
   const params = useParams();
@@ -98,19 +99,6 @@ export default function OrdersPage() {
     o.supplier_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("fr-GN", { style: "decimal", minimumFractionDigits: 0 }).format(amount) + " GNF";
-
-  const getStatusInfo = (status: OrderStatus) => {
-    const info: Record<OrderStatus, { label: string; color: string; bg: string; icon: any }> = {
-      draft: { label: "Brouillon", color: "text-gray-600", bg: "bg-gray-100 dark:bg-gray-800", icon: Clock },
-      pending: { label: "En attente", color: "text-yellow-600", bg: "bg-yellow-100 dark:bg-yellow-900/30", icon: Clock },
-      confirmed: { label: "Confirmée", color: "text-blue-600", bg: "bg-blue-100 dark:bg-blue-900/30", icon: CheckCircle },
-      received: { label: "Reçue", color: "text-green-600", bg: "bg-green-100 dark:bg-green-900/30", icon: Package },
-      cancelled: { label: "Annulée", color: "text-red-600", bg: "bg-red-100 dark:bg-red-900/30", icon: XCircle },
-    };
-    return info[status] || info.draft;
-  };
 
   // Stats
   const stats = {
@@ -187,11 +175,11 @@ export default function OrdersPage() {
           onClick={() => setFilterStatus(filterStatus === "confirmed" ? undefined : "confirmed")}
           className={cn(
             "p-3 rounded-lg border transition-all text-left",
-            filterStatus === "confirmed" ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "hover:border-blue-300"
+            filterStatus === "confirmed" ? "border-foreground bg-blue-50 dark:bg-blue-900/20" : "hover:border-blue-300"
           )}
         >
           <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-blue-600" />
+            <CheckCircle className="h-5 w-5 text-foreground" />
             <span className="text-2xl font-bold">{stats.confirmed}</span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">Confirmées</p>
@@ -263,7 +251,7 @@ export default function OrdersPage() {
                     <div className="flex items-center gap-4">
                       {/* Statut */}
                       <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", status.bg)}>
-                        <StatusIcon className={cn("h-5 w-5", status.color)} />
+                        <StatusIcon />
                       </div>
 
                       {/* Infos */}
@@ -284,7 +272,7 @@ export default function OrdersPage() {
                           {order.expected_delivery_date && (
                             <>
                               <span>•</span>
-                              <span className="text-blue-600">
+                              <span className="text-foreground">
                                 Livraison: {new Date(order.expected_delivery_date).toLocaleDateString('fr-FR')}
                               </span>
                             </>

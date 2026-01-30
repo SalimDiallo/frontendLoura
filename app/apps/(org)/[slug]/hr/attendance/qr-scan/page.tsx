@@ -407,7 +407,7 @@ export default function QRScanPage() {
         <Card className="max-w-md w-full p-8 text-center border-0 shadow-xl">
           {/* Info Icon */}
           <div className="size-24 rounded-full bg-blue-100 dark:bg-blue-900/50 mx-auto mb-6 flex items-center justify-center">
-            <CheckCircle2 className="size-12 text-blue-600 dark:text-blue-400" />
+            <CheckCircle2 className="size-12 text-foreground dark:text-blue-400" />
           </div>
 
           {/* Message */}

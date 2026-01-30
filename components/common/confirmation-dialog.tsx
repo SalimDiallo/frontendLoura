@@ -63,7 +63,7 @@ export function ConfirmationDialog({
 
   const iconColor = {
     warning: 'text-amber-600',
-    info: 'text-blue-600',
+    info: 'text-foreground',
     success: 'text-green-600',
   }[icon];
 

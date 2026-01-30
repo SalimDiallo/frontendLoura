@@ -178,6 +178,8 @@
       transform: rotate(calc(var(--angle, 0)deg + 360deg)) translate(var(--h-radius, 160px), 0) rotate(calc((var(--angle, 0)deg + 360deg) * -1));
     }
   }
+
+  
 }
 
 /* Palette: Sobriété, moins bleu, plus neutre et quelques accents chauds */
@@ -190,7 +192,7 @@
   --popover-foreground: #222d3b;
   --primary: #e2b100; 
   --primary-foreground: #f6f6f4;
-  --secondary: #8da29d; /* Vert sauge doux, moins saturé que le bleu */
+  --secondary: #d4943f; /* Vert sauge doux, moins saturé que le bleu */
   --secondary-foreground: #f6f6f4;
   --muted: #ece8e2;
   --muted-foreground: #766c60;
@@ -227,7 +229,7 @@
   --popover-foreground: #edece6;
   --primary: #e2b100bb; /* Même couleur que clair, chaleur sobre */
   --primary-foreground: #191922;
-  --secondary: #6b8173; /* Sombre, neutre, moins bleu */
+  --secondary: #000f99; /* Sombre, neutre, moins bleu */
   --secondary-foreground: #edece6;
   --muted: #262727;
   --muted-foreground: #b8b0a0;
@@ -266,5 +268,7 @@
   body {
     @apply bg-background text-foreground;
   }
-
 }
+
+
+

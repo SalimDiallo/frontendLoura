@@ -41,7 +41,7 @@ import {
   User,
   Palette,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { API_CONFIG, STORAGE_KEYS } from "@/lib/api/config";
 
 type TabType = "proformas" | "delivery" | "invoices";
@@ -431,10 +431,6 @@ export default function DocumentsHubPage() {
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("fr-GN", { style: "decimal", minimumFractionDigits: 0 }).format(amount) + " GNF";
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
-  };
 
   const getProformaStatusVariant = (status: string): "success" | "warning" | "error" | "default" => {
     switch (status) {
@@ -630,7 +626,7 @@ export default function DocumentsHubPage() {
               </div>
             </Card>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900"><FileText className="h-4 w-4 text-blue-600" /></div><div><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold">{proformas.length}</p></div></div></Card>
+              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900"><FileText className="h-4 w-4 text-foreground" /></div><div><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold">{proformas.length}</p></div></div></Card>
               <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900"><Clock className="h-4 w-4 text-yellow-600" /></div><div><p className="text-xs text-muted-foreground">En attente</p><p className="text-lg font-bold">{proformas.filter(p => ["draft", "sent"].includes(p.status)).length}</p></div></div></Card>
               <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-green-100 dark:bg-green-900"><CheckCircle className="h-4 w-4 text-green-600" /></div><div><p className="text-xs text-muted-foreground">Converties</p><p className="text-lg font-bold">{proformas.filter(p => p.status === "converted").length}</p></div></div></Card>
               <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-red-100 dark:bg-red-900"><XCircle className="h-4 w-4 text-red-600" /></div><div><p className="text-xs text-muted-foreground">Expirées</p><p className="text-lg font-bold">{proformas.filter(p => p.status === "expired" || p.is_expired).length}</p></div></div></Card>
@@ -681,7 +677,7 @@ export default function DocumentsHubPage() {
               </div>
             </Card>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900"><Truck className="h-4 w-4 text-blue-600" /></div><div><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold">{deliveryNotes.length}</p></div></div></Card>
+              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900"><Truck className="h-4 w-4 text-foreground" /></div><div><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold">{deliveryNotes.length}</p></div></div></Card>
               <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900"><Package className="h-4 w-4 text-yellow-600" /></div><div><p className="text-xs text-muted-foreground">Prêts</p><p className="text-lg font-bold">{deliveryNotes.filter(n => n.status === "ready").length}</p></div></div></Card>
               <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900"><Truck className="h-4 w-4 text-purple-600" /></div><div><p className="text-xs text-muted-foreground">En transit</p><p className="text-lg font-bold">{deliveryNotes.filter(n => n.status === "in_transit").length}</p></div></div></Card>
               <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-green-100 dark:bg-green-900"><CheckCircle className="h-4 w-4 text-green-600" /></div><div><p className="text-xs text-muted-foreground">Livrés</p><p className="text-lg font-bold">{deliveryNotes.filter(n => n.status === "delivered").length}</p></div></div></Card>
@@ -825,7 +821,7 @@ export default function DocumentsHubPage() {
                     {filteredSavedDocs.map((doc) => (
                       <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", doc.type === "quote" ? "bg-blue-100 text-blue-600" : "bg-green-100 text-green-600")}>
+                          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", doc.type === "quote" ? "bg-blue-100 text-foreground" : "bg-green-100 text-green-600")}>
                             {doc.type === "quote" ? <FileText className="h-4 w-4" /> : <Receipt className="h-4 w-4" />}
                           </div>
                           <div>
@@ -889,7 +885,7 @@ export default function DocumentsHubPage() {
           <div className="relative bg-background rounded-xl shadow-2xl w-[95vw] h-[90vh] max-w-5xl flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/50">
               <div className="flex items-center gap-3">
-                <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", previewDoc.type === "quote" ? "bg-blue-100 text-blue-600" : "bg-green-100 text-green-600")}>
+                <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", previewDoc.type === "quote" ? "bg-blue-100 text-foreground" : "bg-green-100 text-green-600")}>
                   {previewDoc.type === "quote" ? <FileText className="h-4 w-4" /> : <Receipt className="h-4 w-4" />}
                 </div>
                 <div>

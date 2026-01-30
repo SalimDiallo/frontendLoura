@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Card, Alert, Button, Badge, Input, Select } from "@/components/ui";
+import { Card, Alert, Button, Badge, Input } from "@/components/ui";
 import {
   Table,
   TableBody,
@@ -19,65 +19,56 @@ import {
   HiOutlineXCircle,
   HiOutlineCalendar,
   HiOutlineMagnifyingGlass,
-  HiOutlineAdjustmentsHorizontal,
   HiOutlineDocumentText,
+  HiOutlinePlus,
+  HiOutlineEye,
 } from "react-icons/hi2";
-import {
-  getLeaveRequests,
-  getLeaveBalances,
-} from "@/lib/services/hr/leave.service";
+import { getLeaveRequestsHistory } from "@/lib/services/hr/leave.service";
 import { getLeaveTypes } from "@/lib/services/hr/leave-type.service";
-import { getEmployees } from "@/lib/services/hr/employee.service";
-import type { LeaveRequest, LeaveType, EmployeeListItem } from "@/lib/types/hr";
+import type { LeaveRequestHistoryApiResponse, LeaveType } from "@/lib/types/hr";
 import { exportLeaveRequestToPDF } from "@/lib/utils/pdf-export";
-
-type SortField = "created_at" | "start_date" | "end_date" | "total_days";
-type SortOrder = "asc" | "desc";
+import { useUser } from "@/lib/hooks";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Eye, EyeClosed } from "lucide-react";
 
 export default function LeaveHistoryPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const router = useRouter();
+  const user = useUser();
 
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequestHistoryApiResponse[]>([]);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
-  const [employees, setEmployees] = useState<EmployeeListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
-  const [selectedType, setSelectedType] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [selectedYear, setSelectedYear] = useState<string>(
-    new Date().getFullYear().toString()
-  );
-
-  // Sorting
-  const [sortField, setSortField] = useState<SortField>("created_at");
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
+    setAuthChecked(true);
+
+    if (user && user.user_type === "admin") {
+      router.replace(`/apps/${slug}/hr/leaves`);
+      return;
+    }
+
     loadData();
-  }, []);
+    // eslint-disable-next-line
+  }, [user]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [requestsResponse, typesResponse, employeesResponse] =
-        await Promise.all([
-          getLeaveRequests(),
-          getLeaveTypes({ is_active: true }),
-          getEmployees(slug, { is_active: true }),
-        ]);
-
+      const [requestsResponse, typesResponse] = await Promise.all([
+        getLeaveRequestsHistory(),
+        getLeaveTypes({ is_active: true }),
+      ]);
       setLeaveRequests(requestsResponse.results || []);
-      setLeaveTypes(typesResponse);
-      setEmployees(employeesResponse.results || []);
+      setLeaveTypes(typesResponse || []);
     } catch (err: any) {
-      console.error("Erreur lors du chargement:", err);
       setError(
         err.message || "Erreur lors du chargement de l'historique des congés"
       );
@@ -109,10 +100,8 @@ export default function LeaveHistoryPage() {
         icon: HiOutlineXCircle,
       },
     };
-
     const config = statusConfig[status] || statusConfig.pending;
     const Icon = config.icon;
-
     return (
       <Badge variant={config.variant} className="gap-1">
         <Icon className="size-3" />
@@ -121,109 +110,39 @@ export default function LeaveHistoryPage() {
     );
   };
 
-  // Apply filters and sorting
+  // Search only
+  const normalizedSearch = search.trim().toLowerCase();
+
   const filteredRequests = leaveRequests
     .filter((request) => {
-      // Search filter
-      const matchesSearch =
-        searchQuery === "" ||
-        request.employee_name
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        request.leave_type_name
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase());
-
-      // Employee filter
-      const matchesEmployee =
-        selectedEmployee === "all" || request.employee === selectedEmployee;
-
-      // Type filter
-      const matchesType =
-        selectedType === "all" || request.leave_type === selectedType;
-
-      // Status filter
-      const matchesStatus =
-        selectedStatus === "all" || request.status === selectedStatus;
-
-      // Year filter
-      const requestYear = new Date(request.start_date).getFullYear().toString();
-      const matchesYear = selectedYear === "all" || requestYear === selectedYear;
+      if (!request.employee || request.employee !== user?.id) return false;
+      if (!normalizedSearch) return true;
+      // Cherche dans type, statut (label), nom employé
+      const leaveType = (request.leave_type_name || "").toLowerCase();
+      const employee = (request.employee_name || "").toLowerCase();
+      const status = (getStatusBadge(request.status)?.props?.children?.[1] || "")
+        .toLowerCase();
 
       return (
-        matchesSearch &&
-        matchesEmployee &&
-        matchesType &&
-        matchesStatus &&
-        matchesYear
+        leaveType.includes(normalizedSearch) ||
+        employee.includes(normalizedSearch) ||
+        status.includes(normalizedSearch)
       );
     })
+    // always most recent first
     .sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
-
-      switch (sortField) {
-        case "created_at":
-          aValue = new Date(a.created_at || "").getTime();
-          bValue = new Date(b.created_at || "").getTime();
-          break;
-        case "start_date":
-          aValue = new Date(a.start_date).getTime();
-          bValue = new Date(b.start_date).getTime();
-          break;
-        case "end_date":
-          aValue = new Date(a.end_date).getTime();
-          bValue = new Date(b.end_date).getTime();
-          break;
-        case "total_days":
-          aValue = a.total_days;
-          bValue = b.total_days;
-          break;
-        default:
-          return 0;
-      }
-
-      if (sortOrder === "asc") {
-        return aValue - bValue;
-      } else {
-        return bValue - aValue;
-      }
+      const aDate = new Date(a.created_at || "").getTime();
+      const bDate = new Date(b.created_at || "").getTime();
+      return bDate - aDate;
     });
 
-  // Get available years from requests
-  const availableYears = Array.from(
-    new Set(
-      leaveRequests.map((r) => new Date(r.start_date).getFullYear().toString())
-    )
-  ).sort((a, b) => parseInt(b) - parseInt(a));
-
-  const handleSortChange = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortOrder("desc");
-    }
-  };
-
-  const resetFilters = () => {
-    setSearchQuery("");
-    setSelectedEmployee("all");
-    setSelectedType("all");
-    setSelectedStatus("all");
-    setSelectedYear(new Date().getFullYear().toString());
-    setSortField("created_at");
-    setSortOrder("desc");
-  };
-
-  if (loading) {
+  // Skeleton loading
+  if (!authChecked || loading) {
     return (
       <div className="space-y-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="h-24 bg-muted rounded"></div>
-          <div className="h-96 bg-muted rounded"></div>
-        </div>
+        <Skeleton className="w-1/3 h-8 rounded" />
+        <Skeleton className="h-20 w-full rounded" />
+        <Skeleton className="h-96 w-full rounded" />
       </div>
     );
   }
@@ -231,8 +150,8 @@ export default function LeaveHistoryPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex-1">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
               <Link href={`/apps/${slug}/hr/leaves`}>
@@ -241,115 +160,71 @@ export default function LeaveHistoryPage() {
             </Button>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <HiOutlineCalendar className="size-7" />
-              Historique des Congés
+              Mon historique de congés
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1 ml-10">
-            Consultez l'historique complet des demandes de congés
+            Retrouvez ici vos demandes de congé{" "}
+            {user?.first_name ? `(${user.first_name} ${user.last_name})` : null}
           </p>
+        </div>
+        <div>
+          <Button
+            asChild
+            size="lg"
+            className="gap-2 shadow-md ring-2 ring-primary"
+            title="Déposer une nouvelle demande de congé"
+          >
+            <Link href={`/apps/${slug}/hr/leaves/create`}>
+              <HiOutlinePlus className="size-6" />
+              Créer une demande
+            </Link>
+          </Button>
         </div>
       </div>
 
       {error && <Alert variant="error">{error}</Alert>}
 
-      {/* Filters Card */}
-      <Card className="p-6 border-0 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <HiOutlineAdjustmentsHorizontal className="size-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Filtres et Recherche</h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          {/* Search */}
-          <div className="relative">
-            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+      {/* Search seulement  */}
+      <Card className="px-4 py-3 border bg-background rounded-md mb-2">
+        <div className="flex items-center gap-2">
+          <div className="relative w-full max-w-md">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+              <HiOutlineMagnifyingGlass className="size-4" />
+            </span>
             <Input
               type="search"
-              placeholder="Rechercher..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              placeholder="Rechercher par type, statut, ou approbateur…"
+              value={search}
+              autoFocus
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-9 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary bg-background text-sm h-9"
+              onKeyDown={e => {
+                if (e.key === "Escape") setSearch("");
+              }}
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-base text-muted-foreground hover:text-red-500"
+                aria-label="Effacer la recherche"
+                tabIndex={0}
+                style={{ background: "none", border: "none" }}
+              >
+                &times;
+              </button>
+            )}
           </div>
-
-          {/* Employee Filter */}
-          <Select
-            value={selectedEmployee}
-            onValueChange={(value: string) => setSelectedEmployee(value)}
-          >
-            <option value="all">Tous les employés</option>
-            {employees.map((employee) => (
-              <option key={employee.id} value={employee.id}>
-                {employee.full_name}
-              </option>
-            ))}
-          </Select>
-
-          {/* Type Filter */}
-          <Select
-            value={selectedType}
-            onValueChange={(value: string) => setSelectedType(value)}
-          >
-            <option value="all">Tous les types</option>
-            {leaveTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </Select>
-
-          {/* Status Filter */}
-          <Select
-            value={selectedStatus}
-            onValueChange={(value: string) => setSelectedStatus(value)}
-          >
-            <option value="all">Tous les statuts</option>
-            <option value="pending">En attente</option>
-            <option value="approved">Approuvé</option>
-            <option value="rejected">Rejeté</option>
-            <option value="cancelled">Annulé</option>
-          </Select>
-
-          {/* Year Filter */}
-          <Select
-            value={selectedYear}
-            onValueChange={(value: string) => setSelectedYear(value)}
-          >
-            <option value="all">Toutes les années</option>
-            {availableYears.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </Select>
-
-          {/* Sort */}
-          <Select
-            value={`${sortField}-${sortOrder}`}
-            onValueChange={(value: string) => {
-              const [field, order] = value.split("-") as [SortField, SortOrder];
-              setSortField(field);
-              setSortOrder(order);
-            }}
-          >
-            <option value="created_at-desc">Plus récent (création)</option>
-            <option value="created_at-asc">Plus ancien (création)</option>
-            <option value="start_date-desc">Plus récent (début)</option>
-            <option value="start_date-asc">Plus ancien (début)</option>
-            <option value="total_days-desc">Plus de jours</option>
-            <option value="total_days-asc">Moins de jours</option>
-          </Select>
         </div>
-
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {filteredRequests.length} demande
-            {filteredRequests.length > 1 ? "s" : ""} trouvée
-            {filteredRequests.length > 1 ? "s" : ""}
+        <div className="pt-2 pl-0">
+          <p className="text-xs text-muted-foreground">
+            {filteredRequests.length === 0
+              ? "Aucune demande trouvée"
+              : filteredRequests.length === 1
+              ? "1 demande trouvée"
+              : `${filteredRequests.length} demandes trouvées`}
           </p>
-          <Button variant="outline" size="sm" onClick={resetFilters}>
-            Réinitialiser les filtres
-          </Button>
         </div>
       </Card>
 
@@ -361,16 +236,15 @@ export default function LeaveHistoryPage() {
               <div className="flex size-16 items-center justify-center rounded-full bg-muted">
                 <HiOutlineCalendar className="size-8 text-muted-foreground" />
               </div>
-              <div>
-                <h3 className="text-lg font-semibold">
-                  Aucune demande trouvée
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Aucune demande de congé ne correspond à vos critères de recherche
-                </p>
-              </div>
-              <Button variant="outline" onClick={resetFilters}>
-                Réinitialiser les filtres
+              <h3 className="text-lg font-semibold">Aucune demande trouvée</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Vous n&apos;avez pas fait de demande ou aucun résultat ne correspond.
+              </p>
+              <Button asChild className="gap-1 mt-2">
+                <Link href={`/apps/${slug}/hr/leaves/create`}>
+                  <HiOutlinePlus className="mr-1" />
+                  Créer une demande
+                </Link>
               </Button>
             </div>
           </div>
@@ -380,7 +254,6 @@ export default function LeaveHistoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Demandé le</TableHead>
-                  <TableHead>Employé</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Période</TableHead>
                   <TableHead>Durée</TableHead>
@@ -391,9 +264,9 @@ export default function LeaveHistoryPage() {
               </TableHeader>
               <TableBody>
                 {filteredRequests.map((request) => (
-                  <TableRow key={request.id}>
+                  <TableRow key={request.id} className="hover:bg-accent/30 transition">
                     <TableCell>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-muted-foreground whitespace-nowrap">
                         {request.created_at
                           ? new Date(request.created_at).toLocaleDateString(
                               "fr-FR",
@@ -404,11 +277,6 @@ export default function LeaveHistoryPage() {
                               }
                             )
                           : "N/A"}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        {request.employee_name || "N/A"}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -426,24 +294,25 @@ export default function LeaveHistoryPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm">
-                        <div>
+                      <div className="text-sm whitespace-nowrap">
+                        <span>
                           {new Date(request.start_date).toLocaleDateString(
                             "fr-FR"
                           )}
-                        </div>
-                        <div className="text-muted-foreground">
-                          →{" "}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {" "}
+                          &rarr;{" "}
                           {new Date(request.end_date).toLocaleDateString(
                             "fr-FR"
                           )}
-                        </div>
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm font-medium">
+                      <span className="text-sm font-medium whitespace-nowrap">
                         {request.total_days}{" "}
-                        {request.total_days > 1 ? "jours" : "jour"}
+                        {Number(request.total_days) > 1 ? "jours" : "jour"}
                       </span>
                     </TableCell>
                     <TableCell>{getStatusBadge(request.status)}</TableCell>
@@ -457,16 +326,25 @@ export default function LeaveHistoryPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => exportLeaveRequestToPDF(request)}
-                          title="Télécharger PDF"
+                          onClick={() =>
+                            exportLeaveRequestToPDF({
+                              ...request,
+                              total_days: Number(request.total_days),
+                              attachment_url: request.attachment_url ?? undefined,
+                            })
+                          }
+                          title="Télécharger la demande"
                         >
                           <HiOutlineDocumentText className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/apps/${slug}/hr/leaves/${request.id}`}>
-                            Détails
-                          </Link>
-                        </Button>
+                      
+                        <button
+                            onClick={() =>  router.push(`/apps/${slug}/hr/leaves/${request.id}`)}
+                            title="Voir détails"
+                            className="inline-flex items-center mx-1 px-1.5 py-1 rounded hover:bg-muted transition"
+                          >
+                            <HiOutlineEye className="size-5 text-primary" />
+                          </button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -477,11 +355,11 @@ export default function LeaveHistoryPage() {
         )}
       </Card>
 
-      {/* Summary Stats */}
+      {/* Résumé (stats) */}
       {filteredRequests.length > 0 && (
         <Card className="p-6 border-0 shadow-sm">
           <h3 className="text-lg font-semibold mb-4">
-            Résumé de la sélection
+            Résumé de vos demandes
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
@@ -491,7 +369,9 @@ export default function LeaveHistoryPage() {
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Jours approuvés</p>
+              <p className="text-sm text-muted-foreground">
+                Jours approuvés
+              </p>
               <p className="text-2xl font-bold text-green-600">
                 {filteredRequests
                   .filter((r) => r.status === "approved")

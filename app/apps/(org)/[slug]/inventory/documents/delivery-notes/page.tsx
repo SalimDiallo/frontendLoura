@@ -169,7 +169,7 @@ export default function DeliveryNotesPage() {
       case "delivered":
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case "in_transit":
-        return <Truck className="h-4 w-4 text-blue-600" />;
+        return <Truck className="h-4 w-4 text-foreground" />;
       case "ready":
         return <Package className="h-4 w-4 text-yellow-600" />;
       case "pending":
@@ -283,7 +283,7 @@ export default function DeliveryNotesPage() {
         <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-              <Truck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Truck className="h-5 w-5 text-foreground dark:text-blue-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total bons</p>

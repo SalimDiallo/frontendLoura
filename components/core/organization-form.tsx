@@ -79,7 +79,7 @@ export function OrganizationForm({
             <input
               type="text"
               required
-              className="flex-1 block w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono"
+              className="flex-1 block w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-foreground focus:border-foreground sm:text-sm font-mono"
               placeholder="super-entreprise"
               value={formData.subdomain}
               onChange={(e) => handleSubdomainChange(e.target.value)}

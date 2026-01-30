@@ -325,7 +325,7 @@ export default function InventoryOverviewPage() {
             <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border hover:border-blue-400 hover:shadow-md transition-all group">
               <div className="flex items-center gap-3 mb-2">
                 <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Package className="h-5 w-5 text-blue-600" />
+                  <Package className="h-5 w-5 text-foreground" />
                 </div>
                 <div>
                   <p className="font-medium">Ajouter Produit</p>

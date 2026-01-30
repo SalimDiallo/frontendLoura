@@ -50,9 +50,9 @@ const MOVEMENT_TYPES = [
     label: "Transfert",
     description: "Entre entrepôts",
     icon: ArrowRightLeft,
-    color: "text-blue-600",
+    color: "text-foreground",
     bg: "bg-blue-100 dark:bg-blue-900/30",
-    border: "border-blue-500",
+    border: "border-foreground",
     btnColor: "#2563eb",
   },
   {

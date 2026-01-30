@@ -4,11 +4,11 @@ import { Icons } from "@/components/landing/icons";
 import { NavMenu } from "@/components/landing/nav-menu";
 import { siteConfig } from "@/lib/landing/config";
 import { cn } from "@/lib/landing/utils";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ArrowRight } from "lucide-react";
 import { AnimatePresence, motion, useScroll } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { buttonVariants, ThemeToggle } from "@/components/ui";
+import { ThemeToggle } from "@/components/ui";
 import Logo from "@/components/ui/Logo";
 
 const INITIAL_WIDTH = "70rem";
@@ -105,33 +105,34 @@ export function Navbar() {
       >
         <div
           className={cn(
-            "mx-auto max-w-7xl rounded-2xl transition-all duration-300  xl:px-0",
+            "mx-auto max-w-7xl rounded-full transition-all duration-300 xl:px-0",
             hasScrolled
-              ? "px-2 border border-border backdrop-blur-lg bg-background/75"
+              ? "px-4 border border-border backdrop-blur-xl bg-background/80 shadow-sm"
               : "shadow-none px-7",
           )}
         >
           <div className="flex h-[56px] items-center justify-between p-4">
             <Logo className="flex gap-2 items-center" />
             <NavMenu />
-            <div className="flex flex-row items-center gap-1 md:gap-3 shrink-0">
-              <div className="flex items-center space-x-6">
+            <div className="flex flex-row items-center gap-2 md:gap-3 shrink-0">
+              <div className="flex items-center">
                 <Link
-                  className={buttonVariants()}
+                  className="group hidden md:inline-flex items-center gap-2 bg-foreground hover:bg-foreground/90 text-background font-medium text-sm px-5 py-2 rounded-full transition-all duration-200"
                   href="#"
                 >
                   Commencer
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
               </div>
               <ThemeToggle />
               <button
-                className="md:hidden border border-border size-8 rounded-md cursor-pointer flex items-center justify-center"
+                className="md:hidden border border-border size-9 rounded-full cursor-pointer flex items-center justify-center hover:bg-secondary transition-colors"
                 onClick={toggleDrawer}
               >
                 {isDrawerOpen ? (
-                  <X className="size-5" />
+                  <X className="size-4" />
                 ) : (
-                  <Menu className="size-5" />
+                  <Menu className="size-4" />
                 )}
               </button>
             </div>
@@ -144,7 +145,7 @@ export function Navbar() {
         {isDrawerOpen && (
           <>
             <motion.div
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+              className="fixed inset-0 bg-background/80 backdrop-blur-sm"
               initial="hidden"
               animate="visible"
               exit="exit"
@@ -154,33 +155,33 @@ export function Navbar() {
             />
 
             <motion.div
-              className="fixed inset-x-0 w-[95%] mx-auto bottom-3 bg-background border border-border p-4 rounded-xl shadow-lg"
+              className="fixed inset-x-0 w-[95%] mx-auto bottom-3 bg-background border border-border p-5 rounded-2xl shadow-lg"
               initial="hidden"
               animate="visible"
               exit="exit"
               variants={drawerVariants}
             >
               {/* Mobile menu content */}
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-5">
                 <div className="flex items-center justify-between">
-                <Logo />
+                  <Logo />
                   <button
                     onClick={toggleDrawer}
-                    className="border border-border rounded-md p-1 cursor-pointer"
+                    className="border border-border rounded-full p-2 cursor-pointer hover:bg-secondary transition-colors"
                   >
-                    <X className="size-5" />
+                    <X className="size-4" />
                   </button>
                 </div>
 
                 <motion.ul
-                  className="flex flex-col text-sm mb-4 border border-border rounded-md"
+                  className="flex flex-col text-sm border border-border rounded-xl overflow-hidden"
                   variants={drawerMenuContainerVariants}
                 >
                   <AnimatePresence>
                     {siteConfig.nav.links.map((item) => (
                       <motion.li
                         key={item.id}
-                        className="p-2.5 border-b border-border last:border-b-0"
+                        className="p-3.5 border-b border-border last:border-b-0 hover:bg-secondary/50 transition-colors"
                         variants={drawerMenuVariants}
                       >
                         <a
@@ -193,10 +194,10 @@ export function Navbar() {
                             element?.scrollIntoView({ behavior: "smooth" });
                             setIsDrawerOpen(false);
                           }}
-                          className={`underline-offset-4 hover:text-primary/80 transition-colors ${
+                          className={`block transition-colors ${
                             activeSection === item.href.substring(1)
-                              ? "text-primary font-medium"
-                              : "text-primary/60"
+                              ? "text-foreground font-medium"
+                              : "text-muted-foreground"
                           }`}
                         >
                           {item.name}
@@ -210,9 +211,10 @@ export function Navbar() {
                 <div className="flex flex-col gap-2">
                   <Link
                     href="#"
-                    className="bg-primary h-8 flex items-center justify-center text-sm font-normal tracking-wide rounded-full text-primary-foreground dark:text-secondary-foreground w-full px-4 shadow-[inset_0_1px_2px_rgba(255,255,255,0.25),0_3px_3px_-1.5px_rgba(16,24,40,0.06),0_1px_1px_rgba(16,24,40,0.08)] border hover:bg-secondary/80 transition-all ease-out active:scale-95"
+                    className="group bg-foreground h-11 flex items-center justify-center gap-2 text-sm font-medium tracking-wide rounded-full text-background w-full px-4 transition-all ease-out active:scale-95"
                   >
                     Commencer
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </Link>
                 </div>
               </div>

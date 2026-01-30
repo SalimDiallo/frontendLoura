@@ -54,7 +54,7 @@ import { useAuthStore } from "@/lib/store";
 
 const EMPLOYMENT_STATUS_OPTIONS = [
   { value: "active", label: "Actifs", icon: <HiOutlineCheckCircle className="size-4 text-green-500" /> },
-  { value: "on_leave", label: "En congé", icon: <LuCalendarOff className="size-4 text-blue-500" /> },
+  { value: "on_leave", label: "En congé", icon: <LuCalendarOff className="size-4 text-foreground" /> },
   { value: "suspended", label: "Suspendus", icon: <LuPause className="size-4 text-orange-500" /> },
   { value: "terminated", label: "Terminés", icon: <LuBan className="size-4 text-red-500" /> },
 ];
@@ -480,16 +480,16 @@ export default function EmployeesPage() {
           </Card>
           <Card 
             className={cn(
-              "p-4 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-blue-500/20",
-              filters.status === "on_leave" && "ring-2 ring-blue-500/50"
+              "p-4 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-foreground/20",
+              filters.status === "on_leave" && "ring-2 ring-foreground/50"
             )}
             onClick={() => handleFilterChange("status", filters.status === "on_leave" ? "" : "on_leave")}
           >
             <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <LuCalendarOff className="size-3 text-blue-500" />
+              <LuCalendarOff className="size-3 text-foreground" />
               En congé
             </div>
-            <div className="text-xl font-bold mt-0.5 text-blue-600 dark:text-blue-400">
+            <div className="text-xl font-bold mt-0.5 text-foreground dark:text-blue-400">
               {stats.onLeave}
             </div>
           </Card>

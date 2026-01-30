@@ -378,7 +378,7 @@ export default function ProductDetailPage() {
               <p className="text-3xl font-bold mt-2">{product.total_stock || 0}</p>
               <p className="text-xs text-muted-foreground mt-1">{product.unit}</p>
             </div>
-            <Package className="h-10 w-10 text-blue-500 opacity-80" />
+            <Package className="h-10 w-10 text-foreground opacity-80" />
           </div>
         </Card>
 

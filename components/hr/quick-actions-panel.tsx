@@ -37,7 +37,7 @@ const variantStyles = {
   success: "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-green-500/25",
   warning: "bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-amber-500/25",
   danger: "bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white shadow-red-500/25",
-  info: "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-blue-500/25",
+  info: "bg-gradient-to-r from-foreground to-indigo-600 hover:from-foreground hover:to-indigo-700 text-white shadow-foreground/25",
 };
 
 /**
@@ -134,7 +134,7 @@ export function QuickActionsPanel({
               action.variant === "success" && "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400",
               action.variant === "warning" && "bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400",
               action.variant === "danger" && "bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400",
-              action.variant === "info" && "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400",
+              action.variant === "info" && "bg-blue-100 dark:bg-blue-900/50 text-foreground dark:text-blue-400",
               !action.variant && "bg-primary/10 text-primary"
             )}>
               {processingId === action.id ? (

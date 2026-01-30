@@ -26,6 +26,7 @@ import {
   Clock,
   TruckIcon,
   Loader2,
+  Truck // For transport info
 } from "lucide-react";
 import Link from "next/link";
 
@@ -97,6 +98,7 @@ export default function OrderDetailPage() {
     try {
       setActionLoading(true);
       const updatedOrder = await receiveOrder(orderId);
+      
       setOrder(updatedOrder);
     } catch (err: any) {
       alert(err.message || "Erreur lors de la réception");
@@ -104,6 +106,9 @@ export default function OrderDetailPage() {
       setActionLoading(false);
     }
   };
+
+  console.log(order);
+  
 
   const handleCancel = async () => {
     if (!confirm("Êtes-vous sûr de vouloir annuler cette commande ?")) {
@@ -157,6 +162,14 @@ export default function OrderDetailPage() {
 
   const statusInfo = statusConfig[order.status];
 
+  // Helper to see if the transport info exists (at least company or mode or cost, etc.)
+  const hasTransport =
+    !!order.transport_company ||
+    !!order.transport_mode ||
+    !!order.transport_cost ||
+    !!order.tracking_number ||
+    !!order.transport_notes;
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -169,8 +182,8 @@ export default function OrderDetailPage() {
           </Link>
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl font-bold">{order.order_number}</h1>
-              <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+              <h1 className="text-xl font-bold">{order.order_number}</h1>
+              <Badge variant={statusInfo.variant} size="lg">{statusInfo.label}</Badge>
             </div>
             <p className="text-muted-foreground">
               Commande du {new Date(order.order_date).toLocaleDateString('fr-FR')}
@@ -217,10 +230,10 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Order Information */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className={`grid gap-6 md:grid-cols-${hasTransport ? "3" : "2"}`}>
         <Card className="p-6">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Building className="h-5 w-5 text-blue-600" />
+            <Building className="h-5 w-5 text-foreground" />
             Fournisseur et entrepôt
           </h3>
           <div className="space-y-3 text-sm">
@@ -290,6 +303,61 @@ export default function OrderDetailPage() {
             )}
           </div>
         </Card>
+        {/* Bloc transport s'il y a des infos de transport */}
+        {hasTransport && (
+          <Card className="p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <Truck className="h-5 w-5 text-blue-500" />
+              Informations de transport
+            </h3>
+            <div className="space-y-2 text-sm">
+              {order.transport_company && (
+                <div>
+                  <span className="text-muted-foreground text-xs">Transporteur</span>
+                  <p className="font-medium">{order.transport_company}</p>
+                </div>
+              )}
+              {order.transport_mode && (
+                <div>
+                  <span className="text-muted-foreground text-xs">Mode de transport</span>
+                  <p className="font-medium capitalize">{order.transport_mode}</p>
+                </div>
+              )}
+              {typeof order.transport_included !== "undefined" && (
+                <div>
+                  <span className="text-muted-foreground text-xs">Transport inclus ?</span>
+                  <p className="font-medium">{order.transport_included ? "Oui" : "Non"}</p>
+                </div>
+              )}
+              {(!!order.transport_cost && order.transport_cost !== "0" && order.transport_cost !== "0.00") && (
+                <div>
+                  <span className="text-muted-foreground text-xs">Coût du transport</span>
+                  <p className="font-medium">
+                    {
+                      new Intl.NumberFormat('fr-FR', {
+                        style: 'currency',
+                        currency: 'GNF',
+                        maximumFractionDigits: 0,
+                      }).format(Number(order.transport_cost))
+                    }
+                  </p>
+                </div>
+              )}
+              {order.tracking_number && (
+                <div>
+                  <span className="text-muted-foreground text-xs">Numéro de suivi</span>
+                  <p className="font-medium">{order.tracking_number}</p>
+                </div>
+              )}
+              {order.transport_notes && (
+                <div>
+                  <span className="text-muted-foreground text-xs">Note de livraison</span>
+                  <p className="font-medium">{order.transport_notes}</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* Order Items */}
@@ -367,7 +435,7 @@ export default function OrderDetailPage() {
                       style: 'currency',
                       currency: 'GNF',
                       maximumFractionDigits: 0,
-                    }).format(order.total_amount)}
+                    }).format(Number(order.total_amount) ?? 0)}
                   </td>
                 </tr>
               </tfoot>
@@ -395,7 +463,7 @@ export default function OrderDetailPage() {
         </h3>
         <div className="space-y-3 text-sm">
           <div className="flex items-start gap-3">
-            <div className="h-2 w-2 rounded-full bg-blue-600 mt-1.5"></div>
+            <div className="h-2 w-2 rounded-full bg-foreground mt-1.5"></div>
             <div>
               <p className="font-medium">Commande créée</p>
               <p className="text-muted-foreground text-xs">
