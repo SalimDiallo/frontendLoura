@@ -123,6 +123,8 @@ export default function EditOrganizationPage() {
     setError(null);
     try {
       // Transformer les données pour le backend
+      console.log(data);
+      
       const payload = {
         ...data,
         settings: {

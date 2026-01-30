@@ -30,6 +30,7 @@ import {
   HiOutlineClock,
   HiOutlineCheckCircle,
 } from "react-icons/hi2";
+import { formatCurrency } from "@/lib";
 
 interface ContractFormProps {
   orgSlug: string;
@@ -75,7 +76,6 @@ export function ContractForm({
           start_date: contract.start_date,
           end_date: contract.end_date || undefined,
           base_salary: contract.base_salary,
-          currency: contract.currency || "GNF",
           salary_period: contract.salary_period || "monthly",
           hours_per_week: contract.hours_per_week || 40,
           description: contract.description || "",
@@ -87,7 +87,6 @@ export function ContractForm({
           contract_type: ContractType.PERMANENT,
           start_date: new Date().toISOString().split("T")[0],
           base_salary: 0,
-          currency: "GNF",
           salary_period: "monthly",
           hours_per_week: 40,
           is_active: true,
@@ -223,7 +222,7 @@ export function ContractForm({
             RÉMUNÉRATION
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="base_salary"
@@ -252,29 +251,6 @@ export function ContractForm({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="currency"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Devise</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="GNF">GNF (Franc Guinéen)</SelectItem>
-                      <SelectItem value="USD">USD (Dollar)</SelectItem>
-                      <SelectItem value="EUR">EUR (Euro)</SelectItem>
-                      <SelectItem value="XOF">XOF (Franc CFA)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}
@@ -307,7 +283,7 @@ export function ContractForm({
             <div className="p-4 rounded-lg bg-muted/50 border">
               <div className="text-sm text-muted-foreground mb-1">Salaire</div>
               <div className="text-2xl font-bold">
-                {form.watch("base_salary")?.toLocaleString('fr-FR')} {form.watch("currency")}
+                {formatCurrency(form.watch("base_salary"))} 
                 <span className="text-sm font-normal text-muted-foreground ml-1">
                   / {SALARY_PERIOD_LABELS[form.watch("salary_period") as SalaryPeriod] || 'mois'}
                 </span>

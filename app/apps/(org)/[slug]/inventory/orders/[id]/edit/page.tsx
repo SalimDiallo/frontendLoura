@@ -21,7 +21,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 export default function EditOrderPage() {
   const params = useParams();
@@ -179,8 +179,6 @@ export default function EditOrderPage() {
   const transportFees = formData.transport_included ? 0 : (formData.transport_cost || 0);
   const totalWithTransport = calculateTotal() + transportFees;
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("fr-GN", { style: "decimal", minimumFractionDigits: 0 }).format(amount) + " GNF";
 
   const filteredProducts = products.filter(p =>
     productSearch === "" ? false :

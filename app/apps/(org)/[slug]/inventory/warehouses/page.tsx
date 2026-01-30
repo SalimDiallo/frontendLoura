@@ -18,7 +18,7 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { Can } from "@/components/apps/common/protected-route";
 import { COMMON_PERMISSIONS } from "@/lib/types/shared";
 
@@ -54,9 +54,6 @@ export default function WarehousesPage() {
     w.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
     w.city?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("fr-GN", { style: "decimal", minimumFractionDigits: 0, notation: "compact" }).format(amount) + " GNF";
 
   // Stats globales
   const totalValue = warehouses.reduce((sum, w) => sum + (w.total_stock_value || 0), 0);

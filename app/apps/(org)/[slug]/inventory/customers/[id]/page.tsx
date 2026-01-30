@@ -21,7 +21,7 @@ import {
   Building,
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -417,7 +417,7 @@ export default function CustomerDetailPage() {
                       </td>
                       <td className="p-4">
                         <span className={credit.is_overdue ? "text-red-600 font-bold" : ""}>
-                          {new Date(credit.due_date).toLocaleDateString("fr-FR")}
+                          {credit.due_date ? formatDate(credit.due_date) : 'aucun delai'}
                         </span>
                       </td>
                       <td className="p-4 text-right font-bold">

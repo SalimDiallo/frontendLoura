@@ -194,7 +194,7 @@ export function OrganisationSideBar() {
         // Gestion commerciale
         { title: "Ventes", url: `/apps/${orgSlug}/inventory/sales`, icon: HiOutlineReceiptPercent },
         { title: "Créances", url: `/apps/${orgSlug}/inventory/credit-sales`, icon: HiOutlineBanknotes },
-        { title: "Achats", url: `/apps/${orgSlug}/inventory/orders`, icon: HiOutlineTruck },
+        { title: "Approvisionnement", url: `/apps/${orgSlug}/inventory/orders`, icon: HiOutlineTruck },
         { title: "Dépenses", url: `/apps/${orgSlug}/inventory/expenses`, icon: HiOutlineCurrencyDollar },
         
         // Catalogue & Stock

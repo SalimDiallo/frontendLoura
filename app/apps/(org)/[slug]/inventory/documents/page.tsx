@@ -41,7 +41,7 @@ import {
   User,
   Palette,
 } from "lucide-react";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { API_CONFIG, STORAGE_KEYS } from "@/lib/api/config";
 
 type TabType = "proformas" | "delivery" | "invoices";
@@ -428,9 +428,7 @@ export default function DocumentsHubPage() {
     p.sku.toLowerCase().includes(productSearch.toLowerCase())
   );
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("fr-GN", { style: "decimal", minimumFractionDigits: 0 }).format(amount) + " GNF";
-
+ 
 
   const getProformaStatusVariant = (status: string): "success" | "warning" | "error" | "default" => {
     switch (status) {

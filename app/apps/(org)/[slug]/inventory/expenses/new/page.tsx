@@ -18,6 +18,7 @@ import {
   Tag,
 } from "lucide-react";
 import Link from "next/link";
+import { formatCurrency } from "@/lib";
 
 export default function NewExpensePage() {
   const params = useParams();
@@ -94,12 +95,7 @@ export default function NewExpensePage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-GN", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-    }).format(amount) + " GNF";
-  };
+
 
   return (
     <div className="p-6 max-w-3xl mx-auto">

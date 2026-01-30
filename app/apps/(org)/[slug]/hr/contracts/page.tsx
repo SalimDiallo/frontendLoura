@@ -41,7 +41,7 @@ import { ProtectedRoute, Can } from "@/components/apps/common";
 import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
 import { ResourceType, PermissionAction, COMMON_PERMISSIONS } from "@/lib/types/shared";
 import { PDFPreviewModal } from '@/components/ui';
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
 import { HiOutlineQuestionMarkCircle } from "react-icons/hi2";
@@ -504,7 +504,7 @@ export default function ContractsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="font-medium">
-                        {contract.base_salary?.toLocaleString('fr-FR')} {contract.currency}
+                        {formatCurrency(contract.base_salary)} 
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {SALARY_PERIOD_LABELS[contract.salary_period || 'monthly']}

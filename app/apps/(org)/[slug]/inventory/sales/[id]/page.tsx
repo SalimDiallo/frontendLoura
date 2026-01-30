@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Alert, Badge, Card } from "@/components/ui";
-import { getSale, addPaymentToSale, getSaleReceiptUrl } from "@/lib/services/inventory";
+import { getSale, addPaymentToSale, getSaleReceiptUrl, getSaleInvoiceUrl } from "@/lib/services/inventory";
 import type { Sale, Payment } from "@/lib/types/inventory";
 import {
   ArrowLeft,
@@ -192,7 +192,13 @@ export default function SaleDetailPage() {
           <Button variant="outline" asChild>
             <a href={getSaleReceiptUrl(saleId)} target="_blank">
               <Download className="mr-2 h-4 w-4" />
-              Télécharger reçu
+              Reçu
+            </a>
+          </Button>
+          <Button variant="outline" asChild>
+            <a href={getSaleInvoiceUrl(saleId)} target="_blank">
+              <Download className="mr-2 h-4 w-4" />
+              Facture
             </a>
           </Button>
         </div>

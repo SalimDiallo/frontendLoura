@@ -165,7 +165,7 @@ export default function CreditSalesPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-4">
       {/* Shortcuts Modal */}
       {showShortcuts && (
         <div
@@ -195,8 +195,8 @@ export default function CreditSalesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Ventes à crédit</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold">Ventes à crédit</h1>
+          <p className="text-muted-foreground text-sm">
             Suivi des créances et paiements
           </p>
         </div>
@@ -209,50 +209,50 @@ export default function CreditSalesPage() {
 
       {/* Stats Cards */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-                <CreditCard className="h-5 w-5 text-foreground dark:text-blue-400" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900">
+                <CreditCard className="h-4 w-4 text-foreground dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Crédit total</p>
-                <p className="text-xl font-bold">{formatCurrency(summary.total_credit)}</p>
+                <p className="text-xs text-muted-foreground">Crédit total</p>
+                <p className="text-lg font-bold">{formatCurrency(summary.total_credit)}</p>
               </div>
             </div>
           </Card>
-          <Card className="p-4 border-red-200 dark:border-red-900">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900">
-                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <Card className="p-3 border-red-200 dark:border-red-900">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900">
+                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">En retard</p>
-                <p className="text-xl font-bold text-red-600">
+                <p className="text-xs text-muted-foreground">En retard</p>
+                <p className="text-lg font-bold text-red-600">
                   {summary.overdue_count} ({formatCurrency(summary.overdue_amount)})
                 </p>
               </div>
             </div>
           </Card>
-          <Card className="p-4 border-orange-200 dark:border-orange-900">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900">
-                <Clock className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          <Card className="p-3 border-orange-200 dark:border-orange-900">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900">
+                <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Échéance proche (7j)</p>
-                <p className="text-xl font-bold text-orange-600">{summary.due_soon_count}</p>
+                <p className="text-xs text-muted-foreground">Échéance proche (7j)</p>
+                <p className="text-lg font-bold text-orange-600">{summary.due_soon_count}</p>
               </div>
             </div>
           </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
-                <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900">
+                <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Clients concernés</p>
-                <p className="text-xl font-bold">{summary.by_customer.length}</p>
+                <p className="text-xs text-muted-foreground">Clients concernés</p>
+                <p className="text-lg font-bold">{summary.by_customer.length}</p>
               </div>
             </div>
           </Card>
@@ -261,22 +261,22 @@ export default function CreditSalesPage() {
 
       {/* Top Debtors */}
       {summary && summary.by_customer.length > 0 && (
-        <Card className="p-4">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+        <Card className="p-3">
+          <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
             Top créanciers
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {summary.by_customer.slice(0, 5).map((customer, index) => (
               <div
                 key={index}
-                className="p-3 rounded-lg bg-muted/50 text-center"
+                className="p-2 rounded-lg bg-muted/50 text-center"
               >
-                <p className="text-sm text-muted-foreground truncate">
+                <p className="text-xs text-muted-foreground truncate">
                   {customer.customer__name}
                 </p>
-                <p className="font-bold text-lg text-orange-600">{formatCurrency(customer.total)}</p>
-                <p className="text-xs text-muted-foreground">{customer.count} crédit(s)</p>
+                <p className="font-bold text-base text-orange-600">{formatCurrency(customer.total)}</p>
+                <p className="text-[10px] text-muted-foreground">{customer.count} crédit(s)</p>
               </div>
             ))}
           </div>
@@ -284,28 +284,29 @@ export default function CreditSalesPage() {
       )}
 
       {/* Filters */}
-      <Card className="p-4">
-        <div className="flex flex-col md:flex-row gap-4">
+      <Card className="p-3">
+        <div className="flex flex-col md:flex-row gap-3">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 ref={searchInputRef}
-                placeholder="Rechercher par numéro de vente ou client..."
+                placeholder="Rechercher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-20"
+                className="pl-8 pr-16 h-8 text-sm"
               />
-              <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-xs text-muted-foreground">
+              <kbd className="absolute right-2.5 top-1/2 transform -translate-y-1/2 hidden sm:inline-flex h-4 items-center rounded border bg-muted px-1 font-mono text-[10px] text-muted-foreground">
                 Ctrl+K
               </kbd>
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1.5 flex-wrap">
             <Button
               variant={!filterStatus && !filterOverdue ? "default" : "outline"}
               onClick={() => { setFilterStatus(undefined); setFilterOverdue(false); }}
               size="sm"
+              className="h-8 text-xs px-2.5"
             >
               Tous
             </Button>
@@ -313,14 +314,16 @@ export default function CreditSalesPage() {
               variant={filterOverdue ? "destructive" : "outline"}
               onClick={() => { setFilterOverdue(!filterOverdue); setFilterStatus(undefined); }}
               size="sm"
+              className="h-8 text-xs px-2.5"
             >
-              <AlertCircle className="mr-2 h-4 w-4" />
+              <AlertCircle className="mr-1.5 h-3.5 w-3.5" />
               En retard
             </Button>
             <Button
               variant={filterStatus === "pending" ? "default" : "outline"}
               onClick={() => { setFilterStatus(filterStatus === "pending" ? undefined : "pending"); setFilterOverdue(false); }}
               size="sm"
+              className="h-8 text-xs px-2.5"
             >
               En attente
             </Button>
@@ -328,6 +331,7 @@ export default function CreditSalesPage() {
               variant={filterStatus === "partial" ? "default" : "outline"}
               onClick={() => { setFilterStatus(filterStatus === "partial" ? undefined : "partial"); setFilterOverdue(false); }}
               size="sm"
+              className="h-8 text-xs px-2.5"
             >
               Partiels
             </Button>
@@ -335,6 +339,7 @@ export default function CreditSalesPage() {
               variant={filterStatus === "paid" ? "default" : "outline"}
               onClick={() => { setFilterStatus(filterStatus === "paid" ? undefined : "paid"); setFilterOverdue(false); }}
               size="sm"
+              className="h-8 text-xs px-2.5"
             >
               Soldés
             </Button>
@@ -359,15 +364,16 @@ export default function CreditSalesPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left p-4 font-medium">Vente</th>
-                <th className="text-left p-4 font-medium">Client</th>
-                <th className="text-right p-4 font-medium">Total</th>
-                <th className="text-right p-4 font-medium">Payé</th>
-                <th className="text-right p-4 font-medium">Reste</th>
-                <th className="text-left p-4 font-medium">Échéance</th>
-                <th className="text-center p-4 font-medium">Statut</th>
-                <th className="text-center p-4 font-medium">Rappels</th>
-                <th className="text-center p-4 font-medium">Actions</th>
+                <th className="text-left px-3 py-2 font-medium text-xs">Vente</th>
+                <th className="text-left px-3 py-2 font-medium text-xs">Date</th>
+                <th className="text-left px-3 py-2 font-medium text-xs">Client</th>
+                <th className="text-right px-3 py-2 font-medium text-xs">Total</th>
+                <th className="text-right px-3 py-2 font-medium text-xs">Payé</th>
+                <th className="text-right px-3 py-2 font-medium text-xs">Reste</th>
+                <th className="text-left px-3 py-2 font-medium text-xs">Échéance</th>
+                <th className="text-center px-2 py-2 font-medium text-xs">Statut</th>
+                <th className="text-center px-2 py-2 font-medium text-xs">Rappels</th>
+                <th className="text-center px-2 py-2 font-medium text-xs">Actions</th>
               </tr>
             </thead>
             <tbody ref={tableRef}>
@@ -393,64 +399,98 @@ export default function CreditSalesPage() {
                     onDoubleClick={() => router.push(`/apps/${slug}/inventory/credit-sales/${credit.id}`)}
                     tabIndex={0}
                   >
-                    <td className="p-4">
-                      <code className="text-sm bg-muted px-2 py-1 rounded font-mono">
+                    <td className="px-3 py-2">
+                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
                         {credit.sale_number}
                       </code>
                     </td>
-                    <td className="p-4">
-                      <div className="font-medium">{credit.customer_name}</div>
+                    <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                      {new Date(credit.created_at).toLocaleDateString("fr-FR")}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="text-xs font-medium">{credit.customer_name}</div>
                       {credit.customer_phone && (
-                        <p className="text-sm text-muted-foreground">{credit.customer_phone}</p>
+                        <p className="text-[10px] text-muted-foreground">{credit.customer_phone}</p>
                       )}
                     </td>
-                    <td className="p-4 text-right font-bold">
+                    <td className="px-3 py-2 text-right font-bold text-xs">
                       {formatCurrency(credit.total_amount)}
                     </td>
-                    <td className="p-4 text-right text-green-600">
+                    <td className="px-3 py-2 text-right text-green-600 text-xs">
                       {formatCurrency(credit.paid_amount)}
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="px-3 py-2 text-right text-xs">
                       <span className="font-bold text-orange-600">
                         {formatCurrency(credit.remaining_amount)}
                       </span>
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <span>{new Date(credit.due_date).toLocaleDateString("fr-FR")}</span>
-                          <p className={cn("text-xs", getDaysColor(credit.days_until_due))}>
-                            {credit.days_until_due !== undefined && (
-                              credit.days_until_due < 0
-                                ? `${Math.abs(credit.days_until_due)} jour(s) de retard`
-                                : credit.days_until_due === 0
-                                ? "Échéance aujourd'hui"
-                                : `${credit.days_until_due} jour(s) restant(s)`
+                    <td className="px-3 py-2">
+                      <div className="flex flex-col">
+                        {credit.due_date ? (
+                          <>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <Calendar className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-xs font-semibold">
+                                {new Date(credit.due_date).toLocaleDateString("fr-FR")}
+                              </span>
+                            </div>
+                            {credit.days_until_due !== undefined && credit.days_until_due !== null && (
+                              <div className={cn(
+                                "text-[9px] px-1.5 py-0.5 rounded-full w-fit font-medium flex items-center gap-1",
+                                credit.days_until_due < 0 
+                                  ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                  : credit.days_until_due <= 3
+                                  ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                  : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              )}>
+                                {credit.days_until_due < 0 ? (
+                                  <>
+                                    <AlertTriangle className="h-2.5 w-2.5" />
+                                    {Math.abs(credit.days_until_due)}j retard
+                                  </>
+                                ) : credit.days_until_due === 0 ? (
+                                  <>
+                                    <Clock className="h-2.5 w-2.5" />
+                                    Aujourd'hui
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="h-2.5 w-2.5" />
+                                    {credit.days_until_due}j rest.
+                                  </>
+                                )}
+                              </div>
                             )}
-                          </p>
-                        </div>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">
+                            Sans échéance
+                          </span>
+                        )}
                       </div>
                     </td>
-                    <td className="p-4 text-center">
-                      {getBadgeWIthOutIconAdLabel({status: credit.status, label:credit.status_display || credit.status})}
+                    <td className="px-2 py-2 text-center">
+                      <div className="flex justify-center">
+                        {getBadgeWIthOutIconAdLabel({status: credit.status, label:credit.status_display || credit.status, className: "text-[10px] px-1.5 py-0"})}
+                      </div>
                     </td>
-                    <td className="p-4 text-center">
-                      <Badge variant="default">
+                    <td className="px-2 py-2 text-center">
+                      <Badge variant="default" className="text-[10px] px-1.5 py-0">
                         {credit.reminder_count || 0}
                       </Badge>
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-center gap-1">
-                        <Button variant="ghost" size="sm" asChild>
+                    <td className="px-2 py-2">
+                      <div className="flex items-center justify-center gap-0.5">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
                           <Link href={`/apps/${slug}/inventory/credit-sales/${credit.id}`}>
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
                         {credit.status !== "paid" && credit.status !== "cancelled" && (
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-7 w-7 p-0"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleSendReminder(credit.id);
@@ -458,16 +498,16 @@ export default function CreditSalesPage() {
                             disabled={reminderLoading === credit.id}
                           >
                             {reminderLoading === credit.id ? (
-                              <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                              <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
                             ) : (
-                              <Bell className="h-4 w-4" />
+                              <Bell className="h-3.5 w-3.5" />
                             )}
                           </Button>
                         )}
                         {credit.status !== "paid" && (
-                          <Button variant="ghost" size="sm" asChild>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
                             <Link href={`/apps/${slug}/inventory/credit-sales/${credit.id}/payment`}>
-                              <Banknote className="h-4 w-4 text-green-600" />
+                              <Banknote className="h-3.5 w-3.5 text-green-600" />
                             </Link>
                           </Button>
                         )}
@@ -482,19 +522,19 @@ export default function CreditSalesPage() {
       </Card>
 
       {/* Summary */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
         <p>Total: {filteredCreditSales.length} crédit(s)</p>
-        <div className="flex gap-4">
+        <div className="flex gap-3">
           <span className="flex items-center gap-1">
-            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertCircle className="h-3 w-3 text-red-600" />
             {creditSales.filter((c) => c.is_overdue).length} en retard
           </span>
           <span className="flex items-center gap-1">
-            <Clock className="h-4 w-4 text-orange-600" />
+            <Clock className="h-3 w-3 text-orange-600" />
             {creditSales.filter((c) => c.status === "partial").length} partiels
           </span>
           <span className="flex items-center gap-1">
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle className="h-3 w-3 text-green-600" />
             {creditSales.filter((c) => c.status === "paid").length} soldés
           </span>
         </div>

@@ -41,7 +41,7 @@ import {
   Bell,
   Receipt,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import {
   ChartContainer,
   ChartTooltip,
@@ -141,15 +141,8 @@ export default function InventoryOverviewPage() {
     sorties: { label: "Sorties", color: NEUTRAL_COLORS.danger },
   };
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "GNF",
-      maximumFractionDigits: 0,
-    }).format(value);
 
-  const formatNumber = (value: number) =>
-    new Intl.NumberFormat("fr-FR").format(value);
+
 
   if (loading) {
     return (

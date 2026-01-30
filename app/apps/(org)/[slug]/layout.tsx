@@ -21,6 +21,8 @@ import { ThemeToggle } from "@/components/ui";
 import { QRScanFAB } from "@/components/apps/hr";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, HelpCircle } from "lucide-react";
+import { organizationService } from "@/lib/services";
+
 
 export default function OrganizationLayout({ children }: PropsWithChildren) {
   const params = useParams();
@@ -30,6 +32,42 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
   const [chatOpen, setChatOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
+  // --- Nouveau useEffect pour synchroniser la currency dans localStorage ---
+  useEffect(() => {
+    // Si pas de slug ou pas de window (SSR), skip
+    if (!slug || typeof window === "undefined") return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const organization = await organizationService.getBySlug(slug);
+        // Si le composant est démonté, ne fait rien
+        if (cancelled) return;
+
+        const currency =
+          organization?.settings?.currency ||
+          undefined;
+
+        if (currency) {
+          // Stocker la monnaie de l'orga courante dans le localStorage
+          // Clé au choix, par ex: "loura-currency"
+          localStorage.setItem("loura-currency", currency);
+        } else {
+          localStorage.removeItem("loura-currency");
+        }
+      } catch (error) {
+        // On efface la currency s'il y a un problème d'orga
+        localStorage.removeItem("loura-currency");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+  // -------------------------------------------------------------------------
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -38,12 +76,12 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
   const handleGlobalKeyDown = useCallback((e: KeyboardEvent) => {
     // Ignorer si on est dans un champ de saisie
     const target = e.target as HTMLElement;
-    const isInputField = target.tagName === "INPUT" || 
-                         target.tagName === "TEXTAREA" || 
-                         target.isContentEditable;
-    
+    const isInputField = target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable;
+
     if (isInputField) return;
-    
+
     // B = Retour en arrière (navigation)
     if (e.key.toLowerCase() === "b" && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
@@ -64,7 +102,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
   const getPageTitle = () => {
     const path = pathname.split("/").filter(Boolean);
     const lastSegment = path[path.length - 1];
-    
+
     const titles: Record<string, string> = {
       dashboard: "Tableau de bord",
       hr: "Ressources Humaines",
@@ -106,7 +144,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
               {/* Left section */}
               <div className="flex items-center gap-3">
                 <SidebarTrigger className="size-9" />
-                
+
                 {/* Bouton retour */}
                 <Button
                   variant="ghost"
@@ -117,10 +155,10 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                 >
                   <ArrowLeft className="size-4" />
                 </Button>
-                
+
                 {/* Separator */}
                 <div className="hidden sm:block h-6 w-px bg-border/60" />
-                
+
                 {/* Page title */}
                 <div className="hidden sm:block">
                   <h2 className="text-sm font-semibold text-foreground">

@@ -47,7 +47,7 @@ import {
   FileText,
   FileSpreadsheet,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import {
   BarChart,
   Bar,
@@ -144,15 +144,7 @@ export default function ReportsPage() {
     }
   };
 
-  const formatCurrency = (value: any) => {
-    const num = safeNumber(value);
-    return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(num) + " GNF";
-  };
 
-  const formatNumber = (value: any) => {
-    const num = safeNumber(value);
-    return new Intl.NumberFormat("fr-FR").format(num);
-  };
 
   const formatShortCurrency = (value: any) => {
     const num = safeNumber(value);

@@ -891,7 +891,6 @@ export interface ContractCreate {
   start_date: string;
   end_date?: string;
   base_salary: number;
-  currency?: string;
   salary_period?: SalaryPeriod;
   hours_per_week?: number;
   description?: string;

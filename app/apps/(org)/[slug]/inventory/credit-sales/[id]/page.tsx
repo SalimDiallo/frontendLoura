@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Alert, Badge, Card, Input } from "@/components/ui";
-import { getCreditSale, addCreditPayment } from "@/lib/services/inventory";
+import { getCreditSale, addCreditPayment, getCreditSaleStatementUrl, getCreditSaleInvoiceUrl } from "@/lib/services/inventory";
 import type { CreditSale } from "@/lib/types/inventory";
 import {
   ArrowLeft,
@@ -19,9 +19,11 @@ import {
   X,
   History,
   Receipt,
+  Download,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate, getDaysColor } from "@/lib/utils";
 
 export default function CreditSaleDetailPage() {
   const params = useParams();
@@ -59,6 +61,8 @@ export default function CreditSaleDetailPage() {
     if (paymentAmount <= 0) return;
 
     try {
+      console.log(paymentAmount);
+      
       setPaymentLoading(true);
       await addCreditPayment(id, {
         amount: paymentAmount,
@@ -217,13 +221,25 @@ export default function CreditSaleDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {creditSale.status !== "paid" && (
             <Button onClick={() => setShowPaymentModal(true)}>
               <CreditCard className="mr-2 h-4 w-4" />
               Ajouter paiement
             </Button>
           )}
+          <Button variant="outline" asChild>
+            <a href={getCreditSaleStatementUrl(id)} target="_blank">
+              <Download className="mr-2 h-4 w-4" />
+              Relevé
+            </a>
+          </Button>
+          <Button variant="outline" asChild>
+            <a href={getCreditSaleInvoiceUrl(id)} target="_blank">
+              <FileText className="mr-2 h-4 w-4" />
+              Facture
+            </a>
+          </Button>
           <Button variant="outline" asChild>
             <Link href={`/apps/${slug}/inventory/sales/${creditSale.sale}`}>
               <Receipt className="mr-2 h-4 w-4" />
@@ -297,25 +313,57 @@ export default function CreditSaleDetailPage() {
           <div className="flex items-center gap-3">
             <div className={cn(
               "p-2 rounded-lg",
-              creditSale.is_overdue 
-                ? "bg-red-100 dark:bg-red-900" 
-                : "bg-purple-100 dark:bg-purple-900"
+              !creditSale.due_date
+                ? "bg-gray-100 dark:bg-gray-900"
+                : creditSale.is_overdue 
+                  ? "bg-red-100 dark:bg-red-900" 
+                  : "bg-purple-100 dark:bg-purple-900"
             )}>
               <Calendar className={cn(
                 "h-5 w-5",
-                creditSale.is_overdue 
-                  ? "text-red-600 dark:text-red-400" 
-                  : "text-purple-600 dark:text-purple-400"
+                !creditSale.due_date
+                  ? "text-gray-600 dark:text-gray-400"
+                  : creditSale.is_overdue 
+                    ? "text-red-600 dark:text-red-400" 
+                    : "text-purple-600 dark:text-purple-400"
               )} />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Échéance</p>
-              <p className={cn(
-                "text-xl font-bold",
-                creditSale.is_overdue && "text-red-600"
-              )}>
-                {formatDate(creditSale.due_date)}
-              </p>
+              {creditSale.due_date ? (
+                <>
+                  <p className={cn(
+                    "text-xl font-bold",
+                    creditSale.is_overdue && "text-red-600"
+                  )}>
+                    {formatDate(creditSale.due_date)}
+                  </p>
+                  {creditSale.days_until_due !== undefined && creditSale.days_until_due !== null && (
+                    <p className={cn("text-xs font-medium mt-1", getDaysColor(creditSale.days_until_due))}>
+                      {creditSale.days_until_due < 0 ? (
+                        <span className="flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          En retard de {Math.abs(creditSale.days_until_due)} jours
+                        </span>
+                      ) : creditSale.days_until_due === 0 ? (
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Échéance aujourd'hui
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Il reste {creditSale.days_until_due} jours
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-lg font-medium text-muted-foreground italic">
+                  Sans échéance
+                </p>
+              )}
             </div>
           </div>
         </Card>

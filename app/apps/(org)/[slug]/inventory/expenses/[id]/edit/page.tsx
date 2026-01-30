@@ -19,6 +19,7 @@ import {
   Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { formatCurrency } from "@/lib";
 
 export default function EditExpensePage() {
   const params = useParams();
@@ -109,9 +110,6 @@ export default function EditExpensePage() {
       setSaving(false);
     }
   };
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("fr-GN", { style: "decimal", minimumFractionDigits: 0 }).format(amount) + " GNF";
 
   if (loading) {
     return (

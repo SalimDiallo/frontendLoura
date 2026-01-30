@@ -81,10 +81,42 @@ export async function addPaymentToSale(
 }
 
 /**
+ * Build a full URL for PDF download with organization context and auth token
+ */
+function buildPdfUrl(endpoint: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  let url = `${baseUrl}${endpoint}`;
+  
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams();
+    
+    // Add organization slug
+    const orgSlug = localStorage.getItem('current_organization_slug');
+    if (orgSlug) {
+      params.append('organization_subdomain', orgSlug);
+    }
+    
+    // Add auth token for download
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      params.append('token', token);
+    }
+    
+    const queryString = params.toString();
+    if (queryString) {
+      const separator = url.includes('?') ? '&' : '?';
+      url = `${url}${separator}${queryString}`;
+    }
+  }
+  
+  return url;
+}
+
+/**
  * Get receipt PDF URL for a sale
  */
 export function getSaleReceiptUrl(saleId: string): string {
-  return API_ENDPOINTS.INVENTORY.SALES.RECEIPT(saleId);
+  return buildPdfUrl(API_ENDPOINTS.INVENTORY.SALES.RECEIPT(saleId));
 }
 
 /**
@@ -92,4 +124,11 @@ export function getSaleReceiptUrl(saleId: string): string {
  */
 export async function cancelSale(saleId: string): Promise<Sale> {
   return apiClient.post<Sale>(API_ENDPOINTS.INVENTORY.SALES.CANCEL(saleId), {});
+}
+
+/**
+ * Get invoice PDF URL for a sale
+ */
+export function getSaleInvoiceUrl(saleId: string): string {
+  return buildPdfUrl(API_ENDPOINTS.INVENTORY.SALES.INVOICE(saleId));
 }

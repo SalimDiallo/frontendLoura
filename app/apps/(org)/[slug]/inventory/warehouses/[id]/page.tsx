@@ -26,7 +26,7 @@ import {
   Eye,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 export default function WarehouseDetailPage() {
   const params = useParams();
@@ -70,8 +70,6 @@ export default function WarehouseDetailPage() {
     }
   };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("fr-GN", { style: "decimal", minimumFractionDigits: 0 }).format(amount) + " GNF";
 
   const filteredInventory = inventory.filter((s) =>
     searchTerm === "" ? true :

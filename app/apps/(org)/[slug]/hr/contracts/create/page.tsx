@@ -17,6 +17,7 @@ import { contractService } from "@/lib/services/hr";
 import type { EmployeeListItem, Contract } from "@/lib/types/hr";
 import { ProtectedRoute } from "@/components/apps/common";
 import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
+import { formatCurrency } from "@/lib";
 
 export default function CreateContractPage() {
   const params = useParams();
@@ -239,7 +240,7 @@ export default function CreateContractPage() {
                   </div>
                   <div className="text-sm text-amber-700 dark:text-amber-300">
                     <strong>{activeContract.contract_type_display || activeContract.contract_type}</strong> depuis le {new Date(activeContract.start_date).toLocaleDateString('fr-FR')} 
-                    {' '}• {activeContract.base_salary?.toLocaleString('fr-FR')} {activeContract.currency}/mois
+                    {' '}• {formatCurrency(activeContract.base_salary)} /mois
                   </div>
                   <div className="text-xs text-amber-600 dark:text-amber-400">
                     Ce contrat sera automatiquement désactivé lors de la création du nouveau.

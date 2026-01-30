@@ -161,6 +161,7 @@ export interface Sale {
   is_credit: boolean;
   is_credit_sale: boolean;
   credit_due_date?: string;
+  due_date?: string;
   notes?: string;
   items?: SaleItem[];
   payments?: Payment[];
@@ -184,6 +185,7 @@ export interface SaleCreate {
   is_credit?: boolean;
   is_credit_sale?: boolean;
   credit_due_date?: string;
+  due_date?: string;
   notes?: string;
   items?: SaleItemCreate[];
 }
@@ -533,13 +535,13 @@ export interface CreditSale {
   total_amount: number;
   paid_amount: number;
   remaining_amount: number;
-  due_date: string;
+  due_date?: string | null;  // Can be null if no due date is set
   grace_period_days: number;
   status: CreditSaleStatus;
   status_display?: string;
   last_reminder_date?: string | null;
   reminder_count: number;
-  days_until_due?: number;
+  days_until_due?: number | null;  // null if no due date
   is_overdue?: boolean;
   notes?: string;
   payments?: CreditPayment[];

@@ -42,7 +42,7 @@ import { LuUsers, LuCalendarOff, LuPause, LuBan } from "react-icons/lu";
 import { Alert, Button, Card, Input } from "@/components/ui";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/shared";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
 import { SmartFilters, FilterConfig } from "@/components/ui/smart-filters";
@@ -378,14 +378,6 @@ export default function EmployeesPage() {
     };
   }, [totalCount, employees]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "XOF",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   // ============================================
   // Render

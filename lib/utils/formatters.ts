@@ -3,12 +3,30 @@
  */
 
 /**
+ * Récupère l'organisation courante depuis les utilitaires locaux
+ * Si non disponible, tente de la récupérer via le backend (organizationService)
+ */
+
+
+/**
  * Formate un montant en devise
  */
 export const formatCurrency = (amount: number, currency: string = "GNF") => {
+  // On récupère la devise locale depuis le localStorage, sinon on utilise le paramètre ou "GNF"
+  let localCurrency: string | null = null;
+  if (typeof window !== "undefined") {
+    try {
+      localCurrency = window.localStorage.getItem("loura-currency");
+    } catch {
+      // ignore erreurs d'accès au localStorage
+      localCurrency = null;
+    }
+  }
+  
+  const currencyUsed = localCurrency || currency || "GNF";
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
-    currency: currency,
+    currency: currencyUsed,
     minimumFractionDigits: 0,
   }).format(amount);
 };

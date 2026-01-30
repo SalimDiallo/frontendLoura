@@ -31,6 +31,10 @@ export interface UnifiedUser {
     subdomain: string;
     logo_url?: string;
     is_active: boolean;
+    settings:{
+      currency?:string,
+      country?: string,
+    }
   }>;
   // Fields Employee
   employee_id?: string;
@@ -39,6 +43,10 @@ export interface UnifiedUser {
     name: string;
     subdomain: string;
     logo_url?: string;
+    settings:{
+      currency?:string,
+      country?: string,
+    }
   };
   department?: { id: string; name: string };
   position?: { id: string; title: string };

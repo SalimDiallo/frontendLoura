@@ -22,7 +22,7 @@ import {
   Warehouse as WarehouseIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 export default function NewOrderPage() {
   const params = useParams();
@@ -131,10 +131,6 @@ export default function NewOrderPage() {
   // Si frais inclus, le total ne change pas. Sinon, on ajoute les frais de transport.
   const transportFees = formData.transport_included ? 0 : (formData.transport_cost || 0);
   const totalWithTransport = calculateTotal() + transportFees;
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("fr-GN", { style: "decimal", minimumFractionDigits: 0 }).format(amount) + " GNF";
-
   const filteredProducts = products.filter(p =>
     productSearch === "" ? false :
     p.name.toLowerCase().includes(productSearch.toLowerCase()) ||

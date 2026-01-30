@@ -79,3 +79,49 @@ export async function getCreditSalesSummary(): Promise<CreditSaleSummary> {
 export async function getOverdueCreditSales(): Promise<CreditSale[]> {
   return getCreditSales({ overdue: true });
 }
+
+/**
+ * Build a full URL for PDF download with organization context and auth token
+ */
+function buildPdfUrl(endpoint: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  let url = `${baseUrl}${endpoint}`;
+  
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams();
+    
+    // Add organization slug
+    const orgSlug = localStorage.getItem('current_organization_slug');
+    if (orgSlug) {
+      params.append('organization_subdomain', orgSlug);
+    }
+    
+    // Add auth token for download
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      params.append('token', token);
+    }
+    
+    const queryString = params.toString();
+    if (queryString) {
+      const separator = url.includes('?') ? '&' : '?';
+      url = `${url}${separator}${queryString}`;
+    }
+  }
+  
+  return url;
+}
+
+/**
+ * Get credit sale statement PDF URL
+ */
+export function getCreditSaleStatementUrl(creditSaleId: string): string {
+  return buildPdfUrl(API_ENDPOINTS.INVENTORY.CREDIT_SALES.EXPORT_PDF(creditSaleId));
+}
+
+/**
+ * Get credit sale invoice PDF URL
+ */
+export function getCreditSaleInvoiceUrl(creditSaleId: string): string {
+  return buildPdfUrl(API_ENDPOINTS.INVENTORY.CREDIT_SALES.INVOICE(creditSaleId));
+}

@@ -37,6 +37,7 @@ import type { PayrollCreate, PayrollItem, EmployeeListItem, PayrollPeriod, Contr
 import { PayrollAdvanceStatus } from "@/lib/types/hr";
 import { DEFAULT_ALLOWANCE_TEMPLATES, DEFAULT_DEDUCTION_TEMPLATES } from "@/lib/types/hr";
 import { PayrollAdvancesSummary } from "@/components/hr/payroll-advances-summary";
+import { formatCurrency } from "@/lib";
 
 export default function CreatePayrollPage() {
   const params = useParams();
@@ -453,10 +454,6 @@ export default function CreatePayrollPage() {
     setShowOptionals(true);
   };
 
-  const formatCurrency = (value: number | string) => {
-    const num = typeof value === "string" ? parseFloat(value) : value;
-    return isNaN(num) ? "0.00" : num.toFixed(2);
-  };
 
   // Fine minimal border
   const fineBorderClass = "border border-border rounded-md";
@@ -895,7 +892,7 @@ export default function CreatePayrollPage() {
                               <span className="font-medium">
                                 {adv.reason || "Avance sur salaire"}
                               </span>{" "}
-                              - {formatCurrency(adv.amount)} GNF
+                              - {formatCurrency(adv.amount)}
                               {disabled && (
                                 <span className="ml-2 text-xs text-destructive">
                                   (rend le net négatif)

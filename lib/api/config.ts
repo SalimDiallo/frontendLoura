@@ -354,6 +354,7 @@ export const API_ENDPOINTS = {
       DELETE: (id: string) => `/inventory/sales/${id}/`,
       ADD_PAYMENT: (id: string) => `/inventory/sales/${id}/add_payment/`,
       RECEIPT: (id: string) => `/inventory/sales/${id}/receipt/`,
+      INVOICE: (id: string) => `/inventory/sales/${id}/invoice/`,
       CANCEL: (id: string) => `/inventory/sales/${id}/cancel/`,
     },
     // Paiements
@@ -418,6 +419,8 @@ export const API_ENDPOINTS = {
       DETAIL: (id: string) => `/inventory/credit-sales/${id}/`,
       ADD_PAYMENT: (id: string) => `/inventory/credit-sales/${id}/add_payment/`,
       SEND_REMINDER: (id: string) => `/inventory/credit-sales/${id}/send_reminder/`,
+      EXPORT_PDF: (id: string) => `/inventory/credit-sales/${id}/export-pdf/`,
+      INVOICE: (id: string) => `/inventory/credit-sales/${id}/invoice/`,
       SUMMARY: '/inventory/credit-sales/summary/',
     },
   },

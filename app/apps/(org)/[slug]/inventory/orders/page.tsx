@@ -129,7 +129,7 @@ export default function OrdersPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Truck className="h-6 w-6 text-primary" />
-            Achats
+            Approvisionnement du Stock
           </h1>
           <p className="text-sm text-muted-foreground">Commandes fournisseurs</p>
         </div>

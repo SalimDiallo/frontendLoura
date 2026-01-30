@@ -210,11 +210,11 @@ export const getStatusVariant = (
 
 
 // Badge status "sans icône", retourne juste le bloc <div> comme dans page.tsx (436-440)
-export function getBadgeWIthOutIconAdLabel({ status, label }: { status: string; label: string }) {
+export function getBadgeWIthOutIconAdLabel({ status, label, className }: { status: string; label: string; className?: string }) {
   return (
     <div className="flex items-center justify-center gap-2">
       {getStatusIcon(status)}
-      <Badge variant={getStatusVariant(status)}>
+      <Badge variant={getStatusVariant(status)} className={className}>
         {label}
       </Badge>
     </div>

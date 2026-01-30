@@ -161,6 +161,26 @@ export default function NewMovementPage() {
       return;
     }
 
+    // === VALIDATION STOCK: Pour les sorties et transferts, vérifier le stock disponible ===
+    if (formData.movement_type === MovementType.OUT || formData.movement_type === MovementType.TRANSFER) {
+      const product = products.find(p => p.id === formData.product);
+      const productName = product?.name || "Produit";
+      const stockAvailable = product?.total_stock || 0;
+      
+      if (formData.quantity > stockAvailable) {
+        setError(
+          `Stock insuffisant pour "${productName}". Stock disponible: ${stockAvailable}, quantité demandée: ${formData.quantity}. Le stock ne peut pas devenir négatif.`
+        );
+        return;
+      }
+    }
+
+    // Pour les ajustements, vérifier que la quantité est positive
+    if (formData.movement_type === MovementType.ADJUSTMENT && formData.quantity < 0) {
+      setError("La quantité d'ajustement doit être positive");
+      return;
+    }
+
     try {
       setLoading(true);
       

@@ -12,6 +12,10 @@ export function getCurrentOrganizationId(): string | null {
   return localStorage.getItem('current_organization_id');
 }
 
+
+
+
+
 /**
  * Récupère le slug de l'organisation actuelle depuis le localStorage
  */

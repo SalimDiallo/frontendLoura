@@ -138,7 +138,7 @@ export default function ExpensesPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [slug, router, showShortcuts, selectedIndex, deleteConfirmId]);
+  }, [slug, router, showShortcuts, selectedIndex, deleteConfirmId, expenses]);
 
   useEffect(() => {
     if (selectedIndex >= 0 && tableRef.current) {
@@ -193,34 +193,34 @@ export default function ExpensesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96" role="status">
+      <div className="flex items-center justify-center h-80" role="status">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-xs text-muted-foreground">Chargement...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-3 md:p-4">
       {/* Shortcuts Modal */}
       {showShortcuts && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
           onClick={() => setShowShortcuts(false)}
         >
-          <Card className="w-full max-w-md p-6 m-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <Keyboard className="h-5 w-5" />
+          <Card className="w-full max-w-sm p-3 m-2" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <Keyboard className="h-4 w-4" />
                 Raccourcis clavier
               </h2>
               <Button variant="ghost" size="sm" onClick={() => setShowShortcuts(false)}>
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
               </Button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               <ShortcutItem keys={["Ctrl", "K"]} description="Rechercher" />
               <ShortcutItem keys={["N"]} description="Nouvelle dépense" />
               <ShortcutItem keys={["↑", "↓"]} description="Naviguer" />
@@ -234,16 +234,16 @@ export default function ExpensesPage() {
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md p-6 m-4">
-            <h2 className="text-xl font-bold mb-4">Confirmer la suppression</h2>
-            <p className="text-muted-foreground mb-6">
+          <Card className="w-full max-w-sm p-3 m-2">
+            <h2 className="text-lg font-bold mb-2">Confirmer la suppression</h2>
+            <p className="text-xs text-muted-foreground mb-4">
               Êtes-vous sûr de vouloir supprimer cette dépense ? Cette action est irréversible.
             </p>
-            <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setDeleteConfirmId(null)}>
                 Annuler
               </Button>
-              <Button variant="destructive" onClick={() => handleDelete(deleteConfirmId)}>
+              <Button variant="destructive" size="sm" onClick={() => handleDelete(deleteConfirmId)}>
                 Supprimer
               </Button>
             </div>
@@ -254,26 +254,26 @@ export default function ExpensesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dépenses</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl md:text-2xl font-bold leading-tight">Dépenses</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
             Suivi et gestion des dépenses
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowShortcuts(true)}>
-            <Keyboard className="h-4 w-4" />
+            <Keyboard className="h-3 w-3" />
           </Button>
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild size="sm">
             <Link href={`/apps/${slug}/inventory/expenses/categories`}>
-              <PieChart className="mr-2 h-4 w-4" />
-              Catégories
+              <PieChart className="mr-1 h-3 w-3" />
+              <span className="hidden md:inline">Catégories</span>
             </Link>
           </Button>
-          <Button asChild>
+          <Button asChild size="sm">
             <Link href={`/apps/${slug}/inventory/expenses/new`}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nouvelle dépense
-              <kbd className="ml-2 hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-xs">
+              <Plus className="mr-1 h-3 w-3" />
+              <span>Nouvelle</span>
+              <kbd className="ml-1 hidden sm:inline-flex h-4 items-center rounded border bg-muted px-1 font-mono text-[10px]">
                 N
               </kbd>
             </Link>
@@ -283,48 +283,48 @@ export default function ExpensesPage() {
 
       {/* Stats Cards */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-                <Calendar className="h-5 w-5 text-foreground dark:text-blue-400" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <Card className="p-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded-lg bg-blue-100 dark:bg-blue-900">
+                <Calendar className="h-4 w-4 text-foreground dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Aujourd'hui</p>
-                <p className="text-xl font-bold">{formatCurrency(summary.daily_total)}</p>
+                <p className="text-xs text-muted-foreground">Aujourd'hui</p>
+                <p className="text-base font-bold">{formatCurrency(summary.daily_total)}</p>
               </div>
             </div>
           </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900">
-                <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          <Card className="p-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded-lg bg-orange-100 dark:bg-orange-900">
+                <TrendingUp className="h-4 w-4 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ce mois</p>
-                <p className="text-xl font-bold">{formatCurrency(summary.monthly_total)}</p>
+                <p className="text-xs text-muted-foreground">Ce mois</p>
+                <p className="text-base font-bold">{formatCurrency(summary.monthly_total)}</p>
               </div>
             </div>
           </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900">
-                <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <Card className="p-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded-lg bg-red-100 dark:bg-red-900">
+                <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Cette année</p>
-                <p className="text-xl font-bold">{formatCurrency(summary.yearly_total)}</p>
+                <p className="text-xs text-muted-foreground">Cette année</p>
+                <p className="text-base font-bold">{formatCurrency(summary.yearly_total)}</p>
               </div>
             </div>
           </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
-                <Receipt className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          <Card className="p-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1 rounded-lg bg-purple-100 dark:bg-purple-900">
+                <Receipt className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Nb. dépenses</p>
-                <p className="text-xl font-bold">{expenses.length}</p>
+                <p className="text-xs text-muted-foreground">Nb. dépenses</p>
+                <p className="text-base font-bold">{expenses.length}</p>
               </div>
             </div>
           </Card>
@@ -332,30 +332,31 @@ export default function ExpensesPage() {
       )}
 
       {/* Filters */}
-      <Card className="p-4">
-        <div className="flex flex-col md:flex-row gap-4">
+      <Card className="p-2">
+        <div className="flex flex-col md:flex-row gap-2">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
               <Input
                 ref={searchInputRef}
-                placeholder="Rechercher par description, numéro ou bénéficiaire..."
+                placeholder="Rechercher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-20"
+                className="pl-8 pr-12 py-1 text-xs"
               />
-              <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-xs text-muted-foreground">
+              <kbd className="absolute right-2 top-1/2 transform -translate-y-1/2 hidden sm:inline-flex h-4 items-center rounded border bg-muted px-1 font-mono text-[10px] text-muted-foreground">
                 Ctrl+K
               </kbd>
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1 flex-wrap">
             <Button
               variant={filterCategory === undefined ? "default" : "outline"}
               onClick={() => setFilterCategory(undefined)}
               size="sm"
+              className="px-2 py-1"
             >
-              <Filter className="mr-2 h-4 w-4" />
+              <Filter className="mr-1 h-3 w-3" />
               Toutes
             </Button>
             {categories.slice(0, 4).map((cat) => (
@@ -364,6 +365,7 @@ export default function ExpensesPage() {
                 variant={filterCategory === cat.id ? "default" : "outline"}
                 onClick={() => setFilterCategory(filterCategory === cat.id ? undefined : cat.id)}
                 size="sm"
+                className="px-2 py-1"
               >
                 {cat.name}
               </Button>
@@ -374,33 +376,33 @@ export default function ExpensesPage() {
 
       {/* Error */}
       {error && (
-        <Alert variant="error">
-          <AlertTriangle className="h-4 w-4" />
+        <Alert variant="error" className="text-xs py-1 px-2">
+          <AlertTriangle className="h-3 w-3" />
           <div>
-            <h3 className="font-semibold">Erreur</h3>
-            <p className="text-sm">{error}</p>
+            <h3 className="font-semibold text-xs">Erreur</h3>
+            <p className="text-xs">{error}</p>
           </div>
         </Alert>
       )}
 
       {/* Category Summary */}
       {summary && summary.by_category.length > 0 && (
-        <Card className="p-4">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <PieChart className="h-5 w-5" />
+        <Card className="p-2">
+          <h3 className="font-semibold text-sm mb-2 flex items-center gap-1">
+            <PieChart className="h-3 w-3" />
             Répartition par catégorie (ce mois)
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {summary.by_category.map((cat, index) => (
               <div
                 key={index}
-                className="p-3 rounded-lg bg-muted/50 text-center"
+                className="p-2 rounded-lg bg-muted/50 text-center"
               >
-                <p className="text-sm text-muted-foreground truncate">
+                <p className="text-xs text-muted-foreground truncate">
                   {cat.category__name || "Sans catégorie"}
                 </p>
-                <p className="font-bold text-lg">{formatCurrency(cat.total)}</p>
-                <p className="text-xs text-muted-foreground">{cat.count} dépense(s)</p>
+                <p className="font-bold text-base">{formatCurrency(cat.total)}</p>
+                <p className="text-[11px] text-muted-foreground">{cat.count} dépense(s)</p>
               </div>
             ))}
           </div>
@@ -409,33 +411,34 @@ export default function ExpensesPage() {
 
       {/* Expenses List */}
       <Card>
-        <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-semibold">Liste des dépenses</h3>
+        <div className="flex items-center justify-between p-2 border-b">
+          <h3 className="font-semibold text-sm">Dépenses</h3>
           <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)}>
-            <Download className="mr-2 h-4 w-4" />
-            Exporter PDF
+            <Download className="mr-1 h-3 w-3" />
+            <span className="hidden md:inline">Exporter PDF</span>
+            <span className="md:hidden"><Download className="h-3 w-3" /></span>
           </Button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-xs">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left p-4 font-medium">Date</th>
-                <th className="text-left p-4 font-medium">Description</th>
-                <th className="text-left p-4 font-medium">Catégorie</th>
-                <th className="text-left p-4 font-medium">Bénéficiaire</th>
-                <th className="text-right p-4 font-medium">Montant</th>
-                <th className="text-center p-4 font-medium">Actions</th>
+                <th className="text-left p-2 font-medium">Date</th>
+                <th className="text-left p-2 font-medium">Description</th>
+                <th className="text-left p-2 font-medium">Cat.</th>
+                <th className="text-left p-2 font-medium">Bénéficiaire</th>
+                <th className="text-right p-2 font-medium">Montant</th>
+                <th className="text-center p-2 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody ref={tableRef}>
               {filteredExpenses.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center p-8 text-muted-foreground">
-                    <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <td colSpan={6} className="text-center p-8 text-xs text-muted-foreground">
+                    <Wallet className="h-6 w-6 mx-auto mb-3 opacity-50" />
                     <p>Aucune dépense trouvée</p>
-                    <p className="text-sm mt-2">
-                      Appuyez sur <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">N</kbd> pour ajouter une dépense
+                    <p className="text-xs mt-1">
+                      Appuyez sur <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-[10px]">N</kbd> pour ajouter une dépense
                     </p>
                   </td>
                 </tr>
@@ -444,52 +447,52 @@ export default function ExpensesPage() {
                   <tr
                     key={expense.id}
                     className={cn(
-                      "border-b transition-colors cursor-pointer",
+                      "border-b transition-colors cursor-pointer text-xs",
                       selectedIndex === index
-                        ? "bg-primary/10 ring-2 ring-primary ring-inset"
+                        ? "bg-primary/10 ring-1 ring-primary ring-inset"
                         : "hover:bg-muted/50"
                     )}
                     onClick={() => setSelectedIndex(index)}
                     onDoubleClick={() => router.push(`/apps/${slug}/inventory/expenses/${expense.id}`)}
                     tabIndex={0}
                   >
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <td className="p-2">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3 text-muted-foreground" />
                         <span>{new Date(expense.expense_date).toLocaleDateString("fr-FR")}</span>
                       </div>
                     </td>
-                    <td className="p-4">
-                      <div className="font-medium">{expense.description}</div>
+                    <td className="p-2">
+                      <div className="font-medium truncate">{expense.description}</div>
                       {expense.expense_number && (
-                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                        <code className="text-[10px] bg-muted px-1 py-0.5 rounded">
                           {expense.expense_number}
                         </code>
                       )}
                     </td>
-                    <td className="p-4">
-                      <Badge variant="default">
-                        {expense.category_name || "Sans catégorie"}
+                    <td className="p-2">
+                      <Badge variant="default" className="text-[10px] px-1 py-0.5">
+                        {expense.category_name || "Sans"}
                       </Badge>
                     </td>
-                    <td className="p-4 text-muted-foreground">
+                    <td className="p-2 text-muted-foreground truncate max-w-[120px]">
                       {expense.beneficiary || "-"}
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="p-2 text-right">
                       <span className="font-bold text-red-600">
                         -{formatCurrency(expense.amount)}
                       </span>
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-center gap-1">
+                    <td className="p-2">
+                      <div className="flex items-center justify-center gap-0.5">
                         <Button variant="ghost" size="sm" asChild>
                           <Link href={`/apps/${slug}/inventory/expenses/${expense.id}`}>
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3 w-3" />
                           </Link>
                         </Button>
                         <Button variant="ghost" size="sm" asChild>
                           <Link href={`/apps/${slug}/inventory/expenses/${expense.id}/edit`}>
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3 w-3" />
                           </Link>
                         </Button>
                         <Button
@@ -500,7 +503,7 @@ export default function ExpensesPage() {
                             setDeleteConfirmId(expense.id);
                           }}
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash2 className="h-3 w-3 text-red-500" />
                         </Button>
                       </div>
                     </td>
@@ -513,40 +516,42 @@ export default function ExpensesPage() {
       </Card>
 
       {/* Summary */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
         <p>Total: {filteredExpenses.length} dépense(s)</p>
         <p>
-          Montant total: <span className="font-bold text-red-600">
+          Total: <span className="font-bold text-red-600">
             -{formatCurrency(filteredExpenses.reduce((acc, e) => acc + e.amount, 0))}
           </span>
         </p>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground">
-        Appuyez sur <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">?</kbd> pour voir tous les raccourcis clavier
+      <p className="text-center text-[10px] text-muted-foreground mt-1">
+        <span className="hidden sm:inline">Appuyez sur</span>
+        <kbd className="mx-1 px-1 py-0.5 rounded border bg-muted font-mono text-[10px]">?</kbd>
+        <span className="hidden sm:inline">pour voir tous les raccourcis</span>
       </p>
 
       {/* Export Modal */}
       {showExportModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md p-6 m-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Exporter les dépenses
+          <Card className="w-full max-w-sm p-3 m-2">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Exporter dépenses
               </h2>
               <Button variant="ghost" size="sm" onClick={() => setShowExportModal(false)}>
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
               </Button>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Catégorie (optionnel)</label>
+                <label className="block text-xs font-medium mb-0.5">Catégorie (optionnel)</label>
                 <select
                   value={exportCategory}
                   onChange={(e) => setExportCategory(e.target.value)}
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  className="w-full h-7 rounded-md border border-input bg-background px-2 py-1 text-xs"
                 >
                   <option value="">Toutes les catégories</option>
                   {categories.map((cat) => (
@@ -555,38 +560,41 @@ export default function ExpensesPage() {
                 </select>
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Date début</label>
+                  <label className="block text-xs font-medium mb-0.5">Date début</label>
                   <Input
                     type="date"
                     value={exportStartDate}
                     onChange={(e) => setExportStartDate(e.target.value)}
+                    className="h-7 px-2 py-1 text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Date fin</label>
+                  <label className="block text-xs font-medium mb-0.5">Date fin</label>
                   <Input
                     type="date"
                     value={exportEndDate}
                     onChange={(e) => setExportEndDate(e.target.value)}
+                    className="h-7 px-2 py-1 text-xs"
                   />
                 </div>
               </div>
 
-              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
-                <p>📊 Le PDF inclura :</p>
-                <ul className="mt-1 ml-4 list-disc">
-                  <li>Liste des dépenses filtrées</li>
-                  <li>Total par catégorie</li>
+              <div className="bg-muted/50 rounded-lg p-2 text-xs text-muted-foreground">
+                <p>📊 Inclus :</p>
+                <ul className="mt-0.5 ml-4 list-disc">
+                  <li>Liste filtrée</li>
+                  <li>Totaux catégorie</li>
                   <li>Montant global</li>
                 </ul>
               </div>
             </div>
             
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-2 mt-4">
               <Button
                 variant="outline"
+                size="sm"
                 className="flex-1"
                 onClick={() => setShowExportModal(false)}
               >
@@ -594,6 +602,7 @@ export default function ExpensesPage() {
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 className="flex-1"
                 disabled={loadingPdf}
                 onClick={async () => {
@@ -622,10 +631,11 @@ export default function ExpensesPage() {
                   }
                 }}
               >
-                {loadingPdf ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                {loadingPdf ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
                 Prévisualiser
               </Button>
               <Button
+                size="sm"
                 className="flex-1"
                 disabled={loadingPdf}
                 onClick={async () => {
@@ -644,7 +654,7 @@ export default function ExpensesPage() {
                   }
                 }}
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-3 w-3" />
               </Button>
             </div>
           </Card>
@@ -667,13 +677,14 @@ export default function ExpensesPage() {
   );
 }
 
+// Petit kbd pour raccourcis affichés sur modale
 function ShortcutItem({ keys, description }: { keys: string[]; description: string }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-muted-foreground">{description}</span>
-      <div className="flex gap-1">
+      <span className="text-muted-foreground text-xs">{description}</span>
+      <div className="flex gap-0.5">
         {keys.map((key, i) => (
-          <kbd key={i} className="px-2 py-1 rounded border bg-muted font-mono text-xs min-w-[24px] text-center">
+          <kbd key={i} className="px-1.5 py-0.5 rounded border bg-muted font-mono text-[10px] min-w-[20px] text-center">
             {key}
           </kbd>
         ))}

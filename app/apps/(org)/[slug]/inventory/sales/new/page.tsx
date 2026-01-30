@@ -32,7 +32,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 interface CartItem {
   product_id: string;
@@ -139,11 +139,25 @@ export default function NewSalePage() {
   );
 
   const addToCart = useCallback((product: ProductList) => {
+    const stockAvailable = product.total_stock || 0;
+    
+    // Vérifier si le produit est en stock
+    if (stockAvailable <= 0) {
+      setError(`Impossible d'ajouter "${product.name}". Stock épuisé !`);
+      return;
+    }
+    
     setCart(prevCart => {
       const existingIndex = prevCart.findIndex((item) => item.product_id === product.id);
       if (existingIndex >= 0) {
+        const currentQty = prevCart[existingIndex].quantity;
+        // Vérifier si on peut ajouter plus
+        if (currentQty >= stockAvailable) {
+          setError(`Stock insuffisant pour "${product.name}" (restant: ${stockAvailable})`);
+          return prevCart;
+        }
         const newCart = [...prevCart];
-        newCart[existingIndex].quantity += 1;
+        newCart[existingIndex].quantity = currentQty + 1;
         newCart[existingIndex].subtotal = calculateItemSubtotal(newCart[existingIndex]);
         return newCart;
       } else {
@@ -156,18 +170,28 @@ export default function NewSalePage() {
           discount_type: "percentage",
           discount_value: 0,
           subtotal: product.selling_price || 0,
-          stock_available: product.total_stock || 0,
+          stock_available: stockAvailable,
         };
         return [...prevCart, newItem];
       }
     });
     setSearchTerm("");
     setShowProductSearch(false);
+    setError(null);
   }, []);
 
   const updateQuantity = (index: number, delta: number) => {
     const newCart = [...cart];
-    const newQuantity = Math.max(1, newCart[index].quantity + delta);
+    const item = newCart[index];
+    const stockAvailable = item.stock_available || 0;
+    let newQuantity = Math.max(1, item.quantity + delta);
+    
+    // Limiter la quantité au stock disponible
+    if (newQuantity > stockAvailable && stockAvailable > 0) {
+      setError(`Stock insuffisant pour "${item.product_name}" (restant: ${stockAvailable})`);
+      newQuantity = stockAvailable;
+    }
+    
     newCart[index].quantity = newQuantity;
     newCart[index].subtotal = calculateItemSubtotal(newCart[index]);
     setCart(newCart);
@@ -175,6 +199,19 @@ export default function NewSalePage() {
 
   const updateCartItem = (index: number, field: keyof CartItem, value: any) => {
     const newCart = [...cart];
+    const item = newCart[index];
+    
+    // Si on modifie la quantité, vérifier le stock
+    if (field === "quantity") {
+      const stockAvailable = item.stock_available || 0;
+      let newQty = Math.max(1, Number(value) || 1);
+      if (newQty > stockAvailable && stockAvailable > 0) {
+        setError(`Stock insuffisant pour "${item.product_name}" (restant: ${stockAvailable})`);
+        newQty = stockAvailable;
+      }
+      value = newQty;
+    }
+    
     (newCart[index] as any)[field] = value;
     newCart[index].subtotal = calculateItemSubtotal(newCart[index]);
     setCart(newCart);
@@ -207,12 +244,7 @@ export default function NewSalePage() {
   const total = Math.max(0, subtotal - cartDiscount);
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-GN", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-    }).format(amount) + " GNF";
-  };
+ 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,6 +261,24 @@ export default function NewSalePage() {
 
     if (isCredit && !selectedCustomer) {
       setError("Un client est requis pour une vente à crédit");
+      return;
+    }
+
+    // === VALIDATION STOCK: Vérifier que le stock est suffisant pour chaque article ===
+    const stockErrors: string[] = [];
+    for (const item of cart) {
+      if (item.quantity > item.stock_available) {
+        stockErrors.push(
+          `Stock insuffisant pour "${item.product_name}": disponible ${item.stock_available}, demandé ${item.quantity}`
+        );
+      }
+      if (item.quantity < 1) {
+        stockErrors.push(`Quantité invalide pour "${item.product_name}"`);
+      }
+    }
+    
+    if (stockErrors.length > 0) {
+      setError(stockErrors.join(" | "));
       return;
     }
 
@@ -620,10 +670,13 @@ export default function NewSalePage() {
                   />
                 </div>
                 
-                <div>
+                <div className={cn(
+                  "rounded-lg transition-all",
+                  isCredit && !selectedCustomer && "ring-2 ring-red-500/50 bg-red-50/50 dark:bg-red-900/10 p-2"
+                )}>
                   <Label className="mb-2 block text-sm font-medium">
                     <Users className="h-4 w-4 inline mr-1" />
-                    Client
+                    Client {isCredit && <span className="text-red-500">*</span>}
                   </Label>
                   <QuickSelect
                     label="Client"
@@ -642,6 +695,11 @@ export default function NewSalePage() {
                     createLabel="Créer"
                     extraFieldLabel="Téléphone"
                   />
+                  {isCredit && !selectedCustomer && (
+                    <p className="text-[10px] text-red-600 dark:text-red-400 mt-1 font-medium">
+                      Client obligatoire pour une vente à crédit
+                    </p>
+                  )}
                 </div>
 
                 {/* Type de paiement */}
