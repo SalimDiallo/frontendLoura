@@ -13,7 +13,7 @@ import { getRoles } from "@/lib/services/hr/role.service";
 import { organizationService } from "@/lib/services/core";
 import type { Department, Position, Role, EmployeeListItem, EmployeeCreate } from "@/lib/types/hr";
 import type { Organization } from "@/lib/types/core";
-import { AVAILABLE_PERMISSIONS } from "@/lib/constants/hr";
+import { AVAILABLE_PERMISSIONS } from "@/lib/constants/permissions-data-label";
 import { PermissionSelector } from "@/components/apps/hr/permission-selector";
 import { EmploymentStatus, Gender } from "@/lib/types/hr";
 import {

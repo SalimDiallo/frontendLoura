@@ -39,7 +39,7 @@ import { API_CONFIG } from "@/lib/api/config";
 import { Alert, Button, Card, Input, Badge } from "@/components/ui";
 import { ProtectedRoute, Can } from "@/components/apps/common";
 import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
-import { ResourceType, PermissionAction, COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { COMMON_PERMISSIONS } from "@/lib/types/shared";
 import { PDFPreviewModal } from '@/components/ui';
 import { cn, formatCurrency } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
@@ -265,7 +265,7 @@ export default function ContractsPage() {
   }
 
   return (
-    <ProtectedRoute config={HR_ROUTE_PERMISSIONS['/hr/contracts']}>
+    <Can permission={COMMON_PERMISSIONS.HR.VIEW_CONTRACTS} showMessage>
       <div className="space-y-6">
         {/* Modal des raccourcis */}
         <ShortcutsHelpModal
@@ -602,6 +602,6 @@ export default function ContractsPage() {
         pdfUrl={pdfPreview.pdfUrl}
         filename={pdfPreview.filename}
       />
-    </ProtectedRoute>
+    </Can>
   );
 }

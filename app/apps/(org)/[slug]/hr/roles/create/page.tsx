@@ -12,7 +12,7 @@ import {
   FormTextareaField,
 } from "@/components/ui/form-fields";
 import { createRole } from "@/lib/services/hr/role.service";
-import { AVAILABLE_PERMISSIONS } from "@/lib/constants/hr";
+import { AVAILABLE_PERMISSIONS } from "@/lib/constants/permissions-data-label";
 import { PermissionSelector } from "@/components/apps/hr/permission-selector";
 import {
   HiOutlineShieldCheck,

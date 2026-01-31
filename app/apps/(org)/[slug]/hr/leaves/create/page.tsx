@@ -295,7 +295,7 @@ export default function CreateLeaveRequestPage() {
 
       await createLeaveRequest(requestData);
 
-      router.push(`/apps/${slug}/hr/leaves`);
+      router.push(`/apps/${slug}/hr/leaves/history`);
     } catch (err: any) {
       if (err instanceof ApiError) {
         if (err.data && typeof err.data === "object") {

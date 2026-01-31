@@ -86,7 +86,7 @@ export default function LeavesPage() {
         if (token) {
           if (mounted) {
             setHasApprovePermission(
-              user?.permissions?.includes(COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS) ?? false
+              user?.permissions?.includes(COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS) ?? false
             );
           }
         } else {
@@ -141,7 +141,7 @@ export default function LeavesPage() {
         try {
           setLoading(true);
           setError(null);
-          const response = await getLeaveRequests();
+          const response = await getLeaveRequests({exclude:true});
           setLeaveRequests(response.results || []);
         } catch (err: any) {
           if (err instanceof ApiError) setError(err.message);
@@ -456,7 +456,8 @@ export default function LeavesPage() {
                           >
                             <HiOutlineEye className="size-5 text-blue-600" />
                           </button>
-                          {req.status === "pending" && (
+                         <Can permission={COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS}>
+                         {req.status === "pending" && (
                             <>
                               <button
                                 onClick={() => handleApprove(req.id)}
@@ -480,6 +481,7 @@ export default function LeavesPage() {
                               </button>
                             </>
                           )}
+                         </Can>
                         </TableCell>
                       </TableRow>
                     )

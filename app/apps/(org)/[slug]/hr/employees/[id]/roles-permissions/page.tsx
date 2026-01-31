@@ -6,12 +6,14 @@ import Link from "next/link";
 import { getEmployee, updateEmployee } from "@/lib/services/hr/employee.service";
 import { getRoles } from "@/lib/services/hr/role.service";
 import type { Employee, Role } from "@/lib/types/hr";
-import { AVAILABLE_PERMISSIONS } from "@/lib/constants/hr";
+import { AVAILABLE_PERMISSIONS } from "@/lib/constants/permissions-data-label";
 import { PermissionSelector } from "@/components/apps/hr/permission-selector";
 import { HiOutlineCheckCircle, HiOutlineShieldCheck, HiOutlineArrowLeft } from "react-icons/hi2";
 import { Alert, Button, Card, Badge } from "@/components/ui";
 import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types";
 
 export default function EmployeeRolesPermissionsPage() {
   const params = useParams();
@@ -93,7 +95,7 @@ export default function EmployeeRolesPermissionsPage() {
       await updateEmployee(id, updateData);
       setSuccess("Permissions mises à jour avec succès");
       setTimeout(() => {
-        router.push(`/apps/${slug}/hr/employees/${id}`);
+        // router.push(`/apps/${slug}/hr/employees/${id}`);
       }, 1500);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
@@ -127,7 +129,8 @@ export default function EmployeeRolesPermissionsPage() {
   }
 
   return (
-    <div className="space-y-6">
+ <Can permission={COMMON_PERMISSIONS.HR.UPDATE_EMPLOYEES} showMessage>
+         <div className="space-y-6">
       {/* Header */}
       <PageHeader
         title="Rôles & Permissions"
@@ -280,5 +283,6 @@ export default function EmployeeRolesPermissionsPage() {
         </div>
       </form>
     </div>
+ </Can>
   );
 }

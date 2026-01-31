@@ -17,7 +17,7 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   { code: COMMON_PERMISSIONS.HR.CREATE_EMPLOYEES, label: "Créer des employés", category: "Employés", module: "hr" },
   { code: COMMON_PERMISSIONS.HR.UPDATE_EMPLOYEES, label: "Modifier des employés", category: "Employés", module: "hr" },
   { code: COMMON_PERMISSIONS.HR.DELETE_EMPLOYEES, label: "Supprimer des employés", category: "Employés", module: "hr" },
-  { code: COMMON_PERMISSIONS.HR.MANAGE_EMPLOYEE_PERMISSIONS, label: "Gérer les permissions", category: "Employés", module: "hr" },
+  // { code: COMMON_PERMISSIONS.HR.MANAGE_EMPLOYEE_PERMISSIONS, label: "Gérer les permissions", category: "Employés", module: "hr" },
 
   // Departments
   { code: COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS, label: "Voir les départements", category: "Départements", module: "hr" },
@@ -45,7 +45,7 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
 
   // Leave Requests
   { code: COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS, label: "Voir les congés", category: "Congés", module: "hr" },
-  { code: COMMON_PERMISSIONS.HR.CREATE_LEAVE_REQUESTS, label: "Demander des congés", category: "Congés", module: "hr" },
+  // { code: COMMON_PERMISSIONS.HR.CREATE_LEAVE_REQUESTS, label: "Demander des congés", category: "Congés", module: "hr" },
   { code: COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS, label: "Approuver des congés", category: "Congés", module: "hr" },
   
   // Payroll
@@ -55,11 +55,11 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   { code: COMMON_PERMISSIONS.HR.EXPORT_PAYROLL, label: "Exporter la paie", category: "Paie", module: "hr" },
 
   // Attendance
-  { code: COMMON_PERMISSIONS.HR.VIEW_ATTENDANCE, label: "Voir ses pointages", category: "Pointages", module: "hr" },
+  // { code: COMMON_PERMISSIONS.HR.VIEW_ATTENDANCE, label: "Voir ses pointages", category: "Pointages", module: "hr" },
   { code: COMMON_PERMISSIONS.HR.VIEW_ALL_ATTENDANCE, label: "Voir tous les pointages", category: "Pointages", module: "hr" },
-  { code: COMMON_PERMISSIONS.HR.CREATE_ATTENDANCE, label: "Créer des pointages", category: "Pointages", module: "hr" },
-  { code: COMMON_PERMISSIONS.HR.UPDATE_ATTENDANCE, label: "Modifier des pointages", category: "Pointages", module: "hr" },
-  { code: COMMON_PERMISSIONS.HR.DELETE_ATTENDANCE, label: "Supprimer des pointages", category: "Pointages", module: "hr" },
+  // { code: COMMON_PERMISSIONS.HR.CREATE_ATTENDANCE, label: "Créer des pointages", category: "Pointages", module: "hr" },
+  // { code: COMMON_PERMISSIONS.HR.UPDATE_ATTENDANCE, label: "Modifier des pointages", category: "Pointages", module: "hr" },
+  // { code: COMMON_PERMISSIONS.HR.DELETE_ATTENDANCE, label: "Supprimer des pointages", category: "Pointages", module: "hr" },
   { code: COMMON_PERMISSIONS.HR.APPROVE_ATTENDANCE, label: "Approuver des pointages", category: "Pointages", module: "hr" },
   { code: COMMON_PERMISSIONS.HR.MANUAL_CHECKIN, label: "Pointage manuel", category: "Pointages", module: "hr" },
   { code: COMMON_PERMISSIONS.HR.CREATE_QR_SESSION, label: "Générer des QR codes", category: "Pointages", module: "hr" },

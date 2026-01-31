@@ -49,9 +49,9 @@ export const HR_PERMISSIONS = {
   // Attendance
   VIEW_ATTENDANCE: 'hr.view_attendance',
   VIEW_ALL_ATTENDANCE: 'hr.view_all_attendance',
-  CREATE_ATTENDANCE: 'hr.create_attendance',
-  UPDATE_ATTENDANCE: 'hr.update_attendance',
-  DELETE_ATTENDANCE: 'hr.delete_attendance',
+  // CREATE_ATTENDANCE: 'hr.create_attendance',
+  // UPDATE_ATTENDANCE: 'hr.update_attendance',
+  // DELETE_ATTENDANCE: 'hr.delete_attendance',
   APPROVE_ATTENDANCE: 'hr.approve_attendance',
   MANUAL_CHECKIN: 'hr.manual_checkin',
   CREATE_QR_SESSION: 'hr.create_qr_session',

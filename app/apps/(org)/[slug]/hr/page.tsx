@@ -81,10 +81,10 @@ export default function HRDashboardPage() {
       }
 
       // Handle department stats
-      if (deptStats.status === "fulfilled" && Array.isArray(deptStats.value)) {
-        setDepartmentStats(deptStats.value);
+      if (deptStats?.status === "fulfilled" && Array.isArray(deptStats?.value)) {
+        setDepartmentStats(deptStats?.value);
       } else {
-        console.error("Failed to load department stats:", deptStats.status === "rejected" ? deptStats.reason : "No data");
+        console.error("Failed to load department stats:", deptStats?.status === "rejected" ? deptStats?.reason : "No data");
         setDepartmentStats([]);
       }
 
@@ -128,31 +128,31 @@ export default function HRDashboardPage() {
 
     const items = [];
 
-    if (stats.pending_leave_requests > 0) {
+    if (stats?.pending_leave_requests > 0) {
       items.push({
         type: "warning",
         icon: Clock,
-        title: `${stats.pending_leave_requests} demande${stats.pending_leave_requests > 1 ? "s" : ""} de congé en attente`,
+        title: `${stats?.pending_leave_requests} demande${stats?.pending_leave_requests > 1 ? "s" : ""} de congé en attente`,
         permission: COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS,
         action: { label: "Traiter", href: `/apps/${slug}/hr/leaves` }
       });
     }
 
-    if (stats.expiring_contracts && stats.expiring_contracts > 0) {
+    if (stats?.expiring_contracts && stats?.expiring_contracts > 0) {
       items.push({
         type: "alert",
         icon: AlertTriangle,
-        title: `${stats.expiring_contracts} contrat${stats.expiring_contracts > 1 ? "s" : ""} expire${stats.expiring_contracts > 1 ? "nt" : ""} bientôt`,
+        title: `${stats?.expiring_contracts} contrat${stats?.expiring_contracts > 1 ? "s" : ""} expire${stats?.expiring_contracts > 1 ? "nt" : ""} bientôt`,
         permission: COMMON_PERMISSIONS.HR.VIEW_CONTRACTS,
         action: { label: "Voir", href: `/apps/${slug}/hr/contracts` }
       });
     }
 
-    if (stats.recent_hires && stats.recent_hires.length > 0) {
+    if (stats?.recent_hires && stats?.recent_hires.length > 0) {
       items.push({
         type: "success",
         icon: UserPlus,
-        title: `${stats.recent_hires.length} nouvelle${stats.recent_hires.length > 1 ? "s" : ""} recrue${stats.recent_hires.length > 1 ? "s" : ""} ce mois`,
+        title: `${stats?.recent_hires.length} nouvelle${stats?.recent_hires.length > 1 ? "s" : ""} recrue${stats?.recent_hires.length > 1 ? "s" : ""} ce mois`,
         permission: COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES,
         action: { label: "Voir", href: `/apps/${slug}/hr/employees` }
       });
@@ -163,14 +163,14 @@ export default function HRDashboardPage() {
   const statusData = useMemo(() => {
     if (!stats) return [];
     return [
-      { name: "Actifs", value: stats.active_employees, color: "#22c55e" },
-      { name: "Inactifs", value: stats.inactive_employees, color: "#94a3b8" },
-      { name: "En congé", value: stats.on_leave_employees, color: "#3b82f6" },
+      { name: "Actifs", value: stats?.active_employees, color: "#22c55e" },
+      { name: "Inactifs", value: stats?.inactive_employees, color: "#94a3b8" },
+      { name: "En congé", value: stats?.on_leave_employees, color: "#3b82f6" },
     ].filter((item) => item.value > 0);
   }, [stats]);
 
   const departmentData = useMemo(() => {
-    return departmentStats.slice(0, 6).map((dept) => ({
+    return departmentStats?.slice(0, 6).map((dept) => ({
       name:
         dept.department.name.length > 12
           ? dept.department.name.substring(0, 12) + "..."
@@ -182,8 +182,8 @@ export default function HRDashboardPage() {
   }, [departmentStats]);
 
   const activityRate = useMemo(() => {
-    if (!stats || stats.total_employees === 0) return 0;
-    return Math.round((stats.active_employees / stats.total_employees) * 100);
+    if (!stats || stats?.total_employees === 0) return 0;
+    return Math.round((stats?.active_employees / stats?.total_employees) * 100);
   }, [stats]);
 
   const quickActions = useMemo(() => {
@@ -194,7 +194,7 @@ export default function HRDashboardPage() {
         label: "Employés",
         href: `/apps/${slug}/hr/employees`,
         permission: COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES,
-        count: stats.total_employees,
+        count: stats?.total_employees,
       },
       {
         icon: Building2,
@@ -219,7 +219,7 @@ export default function HRDashboardPage() {
         label: "Congés",
         href: `/apps/${slug}/hr/leaves`,
         permission: COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS,
-        count: stats.pending_leave_requests,
+        count: stats?.pending_leave_requests,
       },
       {
         icon: FileText,
@@ -249,17 +249,18 @@ export default function HRDashboardPage() {
     );
   }
 
-  if (error || !stats) {
-    return (
-      <div className={cn("space-y-6")}>
-        <Alert variant="error">{error || "Impossible de charger les données"}</Alert>
-        <Button onClick={loadDashboardData}>Réessayer</Button>
-      </div>
-    );
-  }
+  // if (!stats) {
+  //   return (
+  //     <div className={cn("space-y-6")}>
+  //       <Alert variant="error">{error || "Impossible de charger les données"}</Alert>
+  //       <Button onClick={loadDashboardData}>Réessayer</Button>
+  //     </div>
+  //   );
+  // }
 
   return (
-    <div className={cn("space-y-7")}>
+   <Can anyPermissions={[COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES,COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS, COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS]} showMessage>
+     <div className={cn("space-y-7")}>
       {/* Header */}
       <div className={cn("flex flex-col md:flex-row md:items-center justify-between gap-4")}>
         <div>
@@ -332,7 +333,7 @@ export default function HRDashboardPage() {
             <div className={cn("flex items-start justify-between")}>
               <div>
                 <p className={cn("text-sm text-muted-foreground")}>Effectif total</p>
-                <p className={cn("text-3xl font-bold mt-1")}>{stats.total_employees}</p>
+                <p className={cn("text-3xl font-bold mt-1")}>{stats?.total_employees}</p>
                 <div className={cn("flex items-center gap-2 mt-2")}>
                   <Badge
                     variant="default"
@@ -341,7 +342,7 @@ export default function HRDashboardPage() {
                       "dark:bg-green-900/30 dark:text-green-400"
                     )}
                   >
-                    {stats.active_employees} actifs
+                    {stats?.active_employees} actifs
                   </Badge>
                 </div>
               </div>
@@ -371,7 +372,7 @@ export default function HRDashboardPage() {
               <div>
                 <p className={cn("text-sm text-muted-foreground")}>Masse salariale</p>
                 <p className={cn("text-3xl font-bold mt-1")}>
-                  {(stats.total_payroll_this_month / 1000000).toFixed(1)}
+                  {((stats?.total_payroll_this_month ?? 0) / 1000000).toFixed(1)}
                   <span className={cn("text-lg font-normal text-muted-foreground ml-1")}>M</span>
                 </p>
                 <p className={cn("text-sm text-muted-foreground mt-2")}>GNF ce mois</p>
@@ -384,8 +385,8 @@ export default function HRDashboardPage() {
               <div className={cn("flex items-center justify-between text-sm")}>
                 <span className={cn("text-muted-foreground")}>Moy. / employé</span>
                 <span className={cn("font-semibold")}>
-                  {stats.active_employees > 0
-                    ? Math.round(stats.total_payroll_this_month / stats.active_employees / 1000).toLocaleString() + "K"
+                  {(stats?.active_employees ?? 0) > 0
+                    ? Math.round((stats?.total_payroll_this_month ?? 0) / (stats?.active_employees ?? 0 )/ 1000).toLocaleString() + "K"
                     : "0"}
                 </span>
               </div>
@@ -399,7 +400,7 @@ export default function HRDashboardPage() {
             <div className={cn("flex items-start justify-between")}>
               <div>
                 <p className={cn("text-sm text-muted-foreground")}>Demandes de congé</p>
-                <p className={cn("text-3xl font-bold mt-1")}>{stats.pending_leave_requests}</p>
+                <p className={cn("text-3xl font-bold mt-1")}>{stats?.pending_leave_requests}</p>
                 <p className={cn("text-sm text-muted-foreground mt-2")}>en attente</p>
               </div>
               <div className={cn("size-12 rounded-2xl bg-amber-500/10 flex items-center justify-center")}>
@@ -410,7 +411,7 @@ export default function HRDashboardPage() {
               <div className={cn("flex items-center gap-4 text-sm")}>
                 <div className={cn("flex items-center gap-1")}>
                   <div className={cn("size-2 rounded-full bg-foreground")} />
-                  <span className={cn("text-muted-foreground")}>{stats.on_leave_employees} en congé</span>
+                  <span className={cn("text-muted-foreground")}>{stats?.on_leave_employees} en congé</span>
                 </div>
               </div>
             </div>
@@ -423,9 +424,9 @@ export default function HRDashboardPage() {
             <div className={cn("flex items-start justify-between")}>
               <div>
                 <p className={cn("text-sm text-muted-foreground")}>Contrats actifs</p>
-                <p className={cn("text-3xl font-bold mt-1")}>{stats.active_contracts || 0}</p>
+                <p className={cn("text-3xl font-bold mt-1")}>{stats?.active_contracts || 0}</p>
                 <p className={cn("text-sm text-muted-foreground mt-2")}>
-                  sur {stats.total_contracts || 0} total
+                  sur {stats?.total_contracts || 0} total
                 </p>
               </div>
               <div className={cn("size-12 rounded-2xl bg-purple-500/10 flex items-center justify-center")}>
@@ -433,10 +434,10 @@ export default function HRDashboardPage() {
               </div>
             </div>
             <div className={cn("mt-4 pt-4 border-t border-border/50")}>
-              {stats.expiring_contracts && stats.expiring_contracts > 0 ? (
+              {stats?.expiring_contracts && stats?.expiring_contracts > 0 ? (
                 <div className={cn("flex items-center gap-2 text-sm text-amber-600")}>
                   <AlertTriangle className={cn("size-4")} />
-                  <span>{stats.expiring_contracts} expirent bientôt</span>
+                  <span>{stats?.expiring_contracts} expirent bientôt</span>
                 </div>
               ) : (
                 <div className={cn("flex items-center gap-2 text-sm text-green-600")}>
@@ -582,7 +583,7 @@ export default function HRDashboardPage() {
             <div className={cn("flex items-center justify-between mb-6")}>
               <div>
                 <h3 className={cn("font-semibold")}>Répartition par département</h3>
-                <p className={cn("text-sm text-muted-foreground")}>{departmentStats.length} départements</p>
+                <p className={cn("text-sm text-muted-foreground")}>{departmentStats?.length} départements</p>
               </div>
               <Button variant="ghost" size="sm" asChild>
                 <Link href={`/apps/${slug}/hr/departments`}>
@@ -593,10 +594,10 @@ export default function HRDashboardPage() {
             </div>
             {departmentData.length > 0 ? (
               <div className={cn("space-y-4")}>
-                {departmentStats.slice(0, 5).map((dept, idx) => {
+                {departmentStats?.slice(0, 5).map((dept, idx) => {
                   const percentage =
-                    stats.total_employees > 0
-                      ? Math.round((dept.employee_count / stats.total_employees) * 100)
+                    (stats?.total_employees ?? 0 )> 0
+                      ? Math.round((dept.employee_count / (stats?.total_employees ?? 1)) * 100)
                       : 0;
                   return (
                     <div key={dept.department.id} className={cn("space-y-2")}>
@@ -657,7 +658,7 @@ export default function HRDashboardPage() {
         {/* Pending Leaves & Recent Hires */}
         <div className={cn("flex flex-col gap-6 w-full xl:w-1/2")}>
           {/* Pending Leaves */}
-          <Can permission={COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS}>
+          <Can permission={COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS}>
             <Card className={cn("p-4 md:p-6 border-0 shadow-sm h-full")}>
               <div className={cn("flex items-center justify-between mb-4")}>
                 <div>
@@ -714,9 +715,9 @@ export default function HRDashboardPage() {
                   <p className={cn("text-sm text-muted-foreground")}>Dernières embauches</p>
                 </div>
               </div>
-              {stats.recent_hires && stats.recent_hires.length > 0 ? (
+              {stats?.recent_hires && stats?.recent_hires.length > 0 ? (
                 <div className={cn("space-y-3")}>
-                  {stats.recent_hires.slice(0, 3).map((employee) => (
+                  {stats?.recent_hires.slice(0, 3).map((employee) => (
                     <Link
                       key={employee.id}
                       href={`/apps/${slug}/hr/employees/${employee.id}`}
@@ -755,5 +756,6 @@ export default function HRDashboardPage() {
         </div>
       </div>
     </div>
+   </Can>
   );
 }

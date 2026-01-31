@@ -191,7 +191,7 @@ export default function LeaveRequestDetailPage() {
   if (leave && user) {
     // user.id can be string or number, so toString both for safety if needed
     canDeleteOwn = (user.id === leave.employee) 
-      && leave.status !== 'approved';
+      && leave.status !== 'approved' && leave.status !== 'cancelled' &&  leave.status !== "rejected";
   }
 
   if (loading) {
@@ -579,19 +579,21 @@ export default function LeaveRequestDetailPage() {
                     </span>
                   </Alert>
                 )}
-                <Button 
-                  variant="outline"
-                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={handleDelete}
-                  disabled={actionLoading !== null}
-                >
-                  {actionLoading === 'delete' ? (
-                    <Loader2 className="size-4 mr-2 animate-spin" />
-                  ) : (
-                    <Trash2 className="size-4 mr-2" />
-                  )}
-                  Supprimer
-                </Button>
+               {
+                canDeleteOwn &&  <Button 
+                variant="outline"
+                className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleDelete}
+                disabled={actionLoading !== null}
+              >
+                {actionLoading === 'delete' ? (
+                  <Loader2 className="size-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="size-4 mr-2" />
+                )}
+                Supprimer
+              </Button>
+               }
               </div>
             </Card>
           )}

@@ -17,7 +17,7 @@ import {
   EmploymentStatus,
   Gender,
 } from "@/lib/types/hr";
-import { AVAILABLE_PERMISSIONS, type PermissionItem } from "@/lib/constants/hr";
+import { AVAILABLE_PERMISSIONS, type PermissionItem } from "@/lib/constants/permissions-data-label";
 import {
   HiOutlineUserCircle,
   HiOutlineArrowLeft,

@@ -26,6 +26,8 @@ import { getEmployeePayrolls, getEmployee, downloadPayrollPDF } from "@/lib/serv
 import type { Payroll, Employee, PayrollStatus } from "@/lib/types/hr";
 import { formatCurrency } from "@/lib/utils";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types";
 
 export default function EmployeePayrollHistoryPage() {
   const params = useParams();
@@ -99,7 +101,8 @@ export default function EmployeePayrollHistoryPage() {
   }
 
   return (
-    <div className="space-y-6">
+   <Can permission={COMMON_PERMISSIONS.HR.VIEW_PAYROLL} showMessage>
+       <div className="space-y-6">
       {error && <Alert variant="error">{error}</Alert>}
 
       {/* Header */}
@@ -247,5 +250,6 @@ export default function EmployeePayrollHistoryPage() {
         </div>
       </Card>
     </div>
+   </Can>
   );
 }

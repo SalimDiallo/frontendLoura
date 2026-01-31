@@ -8,7 +8,6 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import {
-  AreaChart,
   Area,
   BarChart,
   Bar,
@@ -24,11 +23,6 @@ import {
   ComposedChart,
   Legend,
   Tooltip,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
 } from "recharts";
 import type {
   WarehouseStockReport,

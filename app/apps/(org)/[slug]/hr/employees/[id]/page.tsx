@@ -316,15 +316,17 @@ export default function EmployeeDetailPage() {
             )}
           </TabsTrigger>
           </Can>
-          <Can permission={COMMON_PERMISSIONS.HR.MANAGE_EMPLOYEE_PERMISSIONS}>
+          <Can permission={COMMON_PERMISSIONS.HR.UPDATE_EMPLOYEES}>
               <TabsTrigger value="permissions">Rôles & Permissions</TabsTrigger>
           </Can>
-          <TabsTrigger value="payroll">
+         <Can permission={COMMON_PERMISSIONS.HR.VIEW_PAYROLL}>
+         <TabsTrigger value="payroll">
             Paie
             {payslips.length > 0 && (
               <Badge className="ml-2 bg-green-100 text-green-700">{payslips.length}</Badge>
             )}
           </TabsTrigger>
+         </Can>
           <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
@@ -513,6 +515,7 @@ export default function EmployeeDetailPage() {
         </TabsContent>
 
         {/* Permissions Tab */}
+        <Can permission={COMMON_PERMISSIONS.HR.UPDATE_EMPLOYEES}>
         <TabsContent value="permissions" className="space-y-4">
           {/* Header with Edit Button */}
           <div className="flex items-center justify-between">
@@ -665,8 +668,10 @@ export default function EmployeeDetailPage() {
             </div>
           </div>
         </TabsContent>
+        </Can>
 
         {/* Contracts Tab */}
+        <Can permission={COMMON_PERMISSIONS.HR.VIEW_CONTRACTS}>
         <TabsContent value="contracts" className="space-y-4">
           <div className="flex justify-between items-center">
             <div>
@@ -913,6 +918,7 @@ export default function EmployeeDetailPage() {
             </div>
           )}
         </TabsContent>
+        </Can>
 
         {/* Documents Tab */}
         <TabsContent value="documents" className="space-y-4">
@@ -932,6 +938,7 @@ export default function EmployeeDetailPage() {
         </TabsContent>
 
         {/* Payroll Tab */}
+        <Can permission={COMMON_PERMISSIONS.HR.VIEW_PAYROLL}>
         <TabsContent value="payroll" className="space-y-4">
           <div className="flex justify-between items-center">
             <div>
@@ -1013,6 +1020,7 @@ export default function EmployeeDetailPage() {
             </div>
           )}
         </TabsContent>
+        </Can>
       </Tabs>
     </div>
 

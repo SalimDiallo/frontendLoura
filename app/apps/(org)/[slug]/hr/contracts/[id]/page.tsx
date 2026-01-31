@@ -20,10 +20,11 @@ import {
 import { Button, Card, Alert, Badge } from "@/components/ui";
 import { contractService } from "@/lib/services/hr";
 import type { Contract } from "@/lib/types/hr";
-import { ProtectedRoute, Can } from "@/components/apps/common";
+import { Can } from "@/components/apps/common";
 import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
-import { ResourceType, PermissionAction } from "@/lib/types/shared";
+import { ResourceType, PermissionAction, COMMON_PERMISSIONS } from "@/lib/types/shared";
 import { API_CONFIG } from "@/lib/api/config";
+import { formatCurrency } from "@/lib";
 
 const CONTRACT_TYPE_INFO: Record<string, { label: string; description: string; color: string }> = {
   permanent: { label: "CDI", description: "Contrat à Durée Indéterminée", color: "bg-green-100 text-green-800 border-green-200" },
@@ -182,7 +183,7 @@ export default function ContractDetailPage() {
   }
 
   return (
-    <ProtectedRoute config={HR_ROUTE_PERMISSIONS['/hr/contracts/:id']}>
+    <Can permission={COMMON_PERMISSIONS.HR.VIEW_CONTRACTS} showMessage>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -224,7 +225,7 @@ export default function ContractDetailPage() {
           </div>
           
           <div className="flex items-center gap-2">
-            <Can permission={`${ResourceType.CONTRACT}.${PermissionAction.UPDATE}`}>
+            <Can permission={COMMON_PERMISSIONS.HR.UPDATE_CONTRACTS}>
               <Button 
                 variant="outline" 
                 onClick={handleToggleActive}
@@ -260,10 +261,7 @@ export default function ContractDetailPage() {
                 Salaire
               </div>
               <div className="text-3xl font-bold">
-                {contract.base_salary?.toLocaleString('fr-FR')}
-                <span className="text-lg font-normal text-muted-foreground ml-1">
-                  {contract.currency}
-                </span>
+                {formatCurrency(contract.base_salary)}
               </div>
               <div className="text-sm text-muted-foreground">
                 par {SALARY_PERIOD_LABELS[contract.salary_period || 'monthly']}
@@ -420,6 +418,6 @@ export default function ContractDetailPage() {
           </Can>
         </div>
       </div>
-    </ProtectedRoute>
+    </Can>
   );
 }

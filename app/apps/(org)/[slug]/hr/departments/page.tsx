@@ -33,7 +33,7 @@ import {
   HiOutlineUserGroup,
   HiOutlineQuestionMarkCircle,
 } from "react-icons/hi2";
-import { Can } from "@/components/apps/common";
+import { Can, usePermissionContext } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/shared";
 import { cn } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
@@ -42,9 +42,10 @@ import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui
 export default function DepartmentsPage() {
   const params = useParams();
   const router = useRouter();
+  const { hasPermission ,isLoading} = usePermissionContext();
   const slug = params.slug as string;
 
-  const [activeTab, setActiveTab] = useState("departments");
+  const [activeTab, setActiveTab] = useState(hasPermission(COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS) ? "departments" : "positions");
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +54,16 @@ export default function DepartmentsPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  useEffect(() => {
+    // Si les permissions sont encore en chargement, ne rien faire
+    if (isLoading) return;
+    // Si les permissions ne sont plus en chargement, réinitialiser l'onglet actif si besoin
+    if (hasPermission(COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS)) {
+      setActiveTab("departments");
+    } else {
+      setActiveTab("positions");
+    }
+  }, [isLoading, hasPermission]);
   
   // Modal état pour créer/éditer poste
   const [showPositionModal, setShowPositionModal] = useState(false);
@@ -247,7 +258,7 @@ export default function DepartmentsPage() {
   }
 
   return (
-  <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS} showMessage={true}>
+  <Can anyPermissions={[COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS, COMMON_PERMISSIONS.HR.VIEW_POSITIONS]} showMessage={true}>
       <div className="space-y-6">
       {/* Modal des raccourcis */}
       <ShortcutsHelpModal
@@ -285,7 +296,8 @@ export default function DepartmentsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 border-0 shadow-sm">
+       <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
+       <Card className="p-4 border-0 shadow-sm">
           <div className="text-sm text-muted-foreground">Départements</div>
           <div className="text-2xl font-bold mt-1">{departments?.length || 0}</div>
         </Card>
@@ -295,6 +307,9 @@ export default function DepartmentsPage() {
             {departments?.filter((d) => d.is_active).length || 0}
           </div>
         </Card>
+       </Can>
+
+       <Can permission={COMMON_PERMISSIONS.HR.VIEW_POSITIONS}>
         <Card className="p-4 border-0 shadow-sm">
           <div className="text-sm text-muted-foreground">Postes</div>
           <div className="text-2xl font-bold mt-1">{positions?.length || 0}</div>
@@ -305,20 +320,26 @@ export default function DepartmentsPage() {
             {positions?.filter((p) => p.is_active).length || 0}
           </div>
         </Card>
+       </Can>
+
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSelectedIndex(-1); setSearchQuery(""); }}>
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <TabsList>
-            <TabsTrigger value="departments" className="gap-2">
+          <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
+          <TabsTrigger value="departments" className="gap-2">
               <HiOutlineBriefcase className="size-4" />
               Départements
             </TabsTrigger>
-            <TabsTrigger value="positions" className="gap-2">
+          </Can>
+          <Can permission={COMMON_PERMISSIONS.HR.VIEW_POSITIONS}>
+          <TabsTrigger value="positions" className="gap-2">
               <HiOutlineUserGroup className="size-4" />
               Postes
             </TabsTrigger>
+          </Can>           
           </TabsList>
           
           {activeTab === "departments" ? (
@@ -359,7 +380,8 @@ export default function DepartmentsPage() {
         </Card>
 
         {/* Departments Tab */}
-        <TabsContent value="departments" className="mt-4">
+       <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
+       <TabsContent value="departments" className="mt-4">
           <Card className="border-0 shadow-sm">
             {filteredDepartments?.length === 0 ? (
               <div className="p-12 text-center">
@@ -489,9 +511,11 @@ export default function DepartmentsPage() {
             )}
           </Card>
         </TabsContent>
+       </Can>
 
         {/* Positions Tab */}
-        <TabsContent value="positions" className="mt-4">
+     <Can permission={COMMON_PERMISSIONS.HR.VIEW_POSITIONS}>
+     <TabsContent value="positions" className="mt-4">
           <Card className="border-0 shadow-sm">
             {filteredPositions?.length === 0 ? (
               <div className="p-12 text-center">
@@ -604,6 +628,7 @@ export default function DepartmentsPage() {
             )}
           </Card>
         </TabsContent>
+     </Can>
       </Tabs>
 
       {/* Hint */}

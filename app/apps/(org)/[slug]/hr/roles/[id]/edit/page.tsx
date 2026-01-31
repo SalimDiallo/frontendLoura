@@ -16,7 +16,7 @@ import {
   updateRole,
 } from "@/lib/services/hr/role.service";
 import type { Role } from "@/lib/types/hr";
-import { AVAILABLE_PERMISSIONS } from "@/lib/constants/hr";
+import { AVAILABLE_PERMISSIONS } from "@/lib/constants/permissions-data-label";
 import { PermissionSelector } from "@/components/apps/hr/permission-selector";
 import {
   HiOutlineShieldCheck,
