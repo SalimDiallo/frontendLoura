@@ -151,7 +151,7 @@ export function AppSidebar() {
               <Link href="/core/dashboard" className="gap-3">
                 <div className={cn(
                   "flex aspect-square items-center justify-center rounded-xl font-bold text-sm transition-all",
-                  "bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground",
+                  "bg-linear-to-br from-primary via-primary to-primary/80 text-primary-foreground",
                   "shadow-lg shadow-primary/20",
                   isCollapsed ? "size-10" : "size-10"
                 )}>
@@ -253,7 +253,7 @@ export function AppSidebar() {
         {/* {!isCollapsed && (
           <SidebarGroup className="px-0">
             <SidebarGroupContent>
-              <div className="mx-1 rounded-2xl bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 p-4 border border-primary/10">
+              <div className="mx-1 rounded-2xl bg-linear-to-br from-primary/5 via-primary/10 to-primary/5 p-4 border border-primary/10">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-1.5 rounded-lg bg-primary/10">
                     <Sparkles className="size-4 text-primary" />
@@ -289,7 +289,7 @@ export function AppSidebar() {
                   )}
                 >
                   <Avatar className={cn("rounded-xl", isCollapsed ? "size-9" : "size-9")}>
-                    <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold">
+                    <AvatarFallback className="rounded-xl bg-linear-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold">
                       {getInitials(user)}
                     </AvatarFallback>
                   </Avatar>

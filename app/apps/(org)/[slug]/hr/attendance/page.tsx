@@ -22,6 +22,7 @@ import {
   History,
   AlertCircle,
   Zap,
+  ListChecks,
 } from "lucide-react";
 import { Alert, Button, Card, Badge } from "@/components/ui";
 import { getTodayAttendance, checkIn, checkOut, startBreak, endBreak } from "@/lib/services/hr";
@@ -31,6 +32,8 @@ import { cn } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, KeyboardHint } from "@/components/ui/shortcuts-help";
 import { HelpCircle } from "lucide-react";
+import { COMMON_PERMISSIONS } from "@/lib/types";
+import { useHasPermission } from "@/lib/hooks";
 
 type AttendanceState = "not_started" | "checked_in" | "on_break" | "checked_out";
 
@@ -46,6 +49,8 @@ export default function AttendancePage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showShortcuts, setShowShortcuts] = useState(false);
   const router = useRouter();
+
+  const canManualCheckin  = useHasPermission(COMMON_PERMISSIONS.HR.MANUAL_CHECKIN);
 
   useEffect(() => {
     loadTodayAttendance();
@@ -160,7 +165,7 @@ export default function AttendancePage() {
     },
     checked_out: {
       color: "bg-foreground",
-      textColor: "text-foreground",
+      textColor: "text-background",
       label: "Journée terminée",
       description: "Vous avez terminé votre journée",
     },
@@ -234,16 +239,15 @@ export default function AttendancePage() {
           <Button variant="outline" size="sm" asChild>
             <Link href={`/apps/${slug}/hr/attendance/history`}>
               <History className="size-4 mr-2" />
-              Historique
+              Mon historique
               <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">H</kbd>
             </Link>
           </Button>
-          <Can anyPermissions={["can_approve_attendance"]}>
+          <Can permission={COMMON_PERMISSIONS.HR.VIEW_ALL_ATTENDANCE}>
             <Button variant="outline" size="sm" asChild>
-              <Link href={`/apps/${slug}/hr/attendance/approvals`}>
-                <Users className="size-4 mr-2" />
-                Approbations
-                <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">A</kbd>
+              <Link href={`/apps/${slug}/hr/attendance/all`}>
+                <ListChecks className="size-4 mr-2" />
+                Liste des pointages des autres
               </Link>
             </Button>
           </Can>
@@ -269,10 +273,10 @@ export default function AttendancePage() {
         {/* Background Gradient */}
         <div className={cn(
           "absolute inset-0 opacity-5",
-          state === "checked_in" && "bg-gradient-to-br from-green-500 to-emerald-600",
-          state === "on_break" && "bg-gradient-to-br from-amber-500 to-orange-600",
-          state === "checked_out" && "bg-gradient-to-br from-foreground to-indigo-600",
-          state === "not_started" && "bg-gradient-to-br from-slate-500 to-slate-600"
+          state === "checked_in" && "bg-linear-to-br from-green-500 to-emerald-600",
+          state === "on_break" && "bg-linear-to-br from-amber-500 to-orange-600",
+          state === "checked_out" && "bg-linear-to-br from-foreground to-indigo-600",
+          state === "not_started" && "bg-linear-to-br from-slate-500 to-slate-600"
         )} />
         
         <div className="relative">
@@ -310,8 +314,8 @@ export default function AttendancePage() {
                 {state === "checked_out" ? "Temps travaillé" : "Temps écoulé"}
               </p>
               <p className={cn(
-                "text-3xl font-mono font-bold",
-                stateConfig[state].textColor
+                "text-3xl font-mono font-bold text-secondary",
+                // stateConfig[state].textColor
               )}>
                 {formatElapsedTime(elapsedTime)}
               </p>
@@ -328,7 +332,7 @@ export default function AttendancePage() {
                   <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-white/20 px-1.5 font-mono text-xs">Q</kbd>
                 </Link>
               </Button>
-              <Can anyPermissions={["can_create_qr_session", "can_manual_checkin"]}>
+              <Can permission={COMMON_PERMISSIONS.HR.CREATE_QR_SESSION}>
                 <Button variant="outline" size="lg" asChild className="w-full sm:w-auto gap-2 h-14">
                   <Link href={`/apps/${slug}/hr/attendance/qr-display`}>
                     <QrCode className="size-5" />
@@ -339,8 +343,46 @@ export default function AttendancePage() {
             </div>
           </div>
 
-          {/* Action Buttons - Manual Check-in (Admin only) */}
-          <Can anyPermissions={["can_manual_checkin"]}>
+          
+          {!canManualCheckin && (
+                  <>
+                  {state === "checked_in" && (
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="gap-2 h-12"
+                      onClick={() => handleAction("start_break")}
+                      disabled={actionLoading === "start_break"}
+                    >
+                      {actionLoading === "start_break" ? (
+                        <div className="size-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Coffee className="size-5" />
+                      )}
+                      Commencer une pause
+                      <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-xs">B</kbd>
+                    </Button>
+                    )}
+                  {state === "on_break" && (
+                  <Button
+                    size="lg"
+                    className="gap-2 bg-amber-600 hover:bg-amber-700 h-12"
+                    onClick={() => handleAction("end_break")}
+                    disabled={actionLoading === "end_break"}
+                  >
+                    {actionLoading === "end_break" ? (
+                      <div className="size-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Play className="size-5" />
+                    )}
+                    Terminer la pause ({breakDuration} min)
+                    <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-white/20 px-1.5 font-mono text-xs">B</kbd>
+                  </Button>
+                )}
+                  </>
+                )}
+
+          <Can permission={COMMON_PERMISSIONS.HR.MANUAL_CHECKIN}>
             <div className="border-t pt-6">
               <p className="text-xs text-muted-foreground text-center mb-4">
                 Pointage manuel (Admin uniquement)
@@ -527,31 +569,39 @@ export default function AttendancePage() {
         </Card>
       )}
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Quick Links - Enhanced */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
         <Link
           href={`/apps/${slug}/hr/attendance/history`}
-          className="p-4 rounded-xl bg-muted/30 hover:bg-muted/60 transition-colors flex items-center gap-3"
+          className="relative group p-5 rounded-2xl border border-primary/20 bg-linear-to-br from-primary/5 to-primary/10 hover:from-primary/10 hover:to-primary/30 transition-all shadow ring-1 ring-primary/5 flex items-center gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
-          <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Calendar className="size-5 text-primary" />
+          <div className="size-12 min-w-12 rounded-xl bg-primary/20 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+            <Calendar className="size-6 text-primary shrink-0" />
           </div>
           <div>
-            <p className="font-medium">Historique</p>
-            <p className="text-xs text-muted-foreground">Voir mes pointages</p>
+            <p className="font-semibold text-primary text-base">Historique</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Voir mes pointages</p>
+          </div>
+          {/* Decorative arrow */}
+          <div className="absolute end-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary"><path d="M5 9h8m0 0-3-3m3 3-3 3"/></svg>
           </div>
         </Link>
-        <Can anyPermissions={["can_view_all_attendance"]}>
+        <Can permission={COMMON_PERMISSIONS.HR.VIEW_ALL_ATTENDANCE}>
           <Link
             href={`/apps/${slug}/hr/attendance/all`}
-            className="p-4 rounded-xl bg-muted/30 hover:bg-muted/60 transition-colors flex items-center gap-3"
+            className="relative group p-5 rounded-2xl border border-foreground/10 bg-linear-to-br from-foreground/5 to-foreground/10 hover:from-foreground/10 hover:to-foreground/30 transition-all shadow ring-1 ring-foreground/5 flex items-center gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2"
           >
-            <div className="size-10 rounded-lg bg-foreground/10 flex items-center justify-center">
-              <Users className="size-5 text-foreground" />
+            <div className="size-12 min-w-12 rounded-xl bg-foreground/20 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+              <Users className="size-6 text-foreground shrink-0" />
             </div>
             <div>
-              <p className="font-medium">Tous les pointages</p>
-              <p className="text-xs text-muted-foreground">Vue équipe</p>
+              <p className="font-semibold text-foreground text-base">Tous les pointages</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Voir les pointages des autres</p>
+            </div>
+            {/* Decorative arrow */}
+            <div className="absolute end-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" className="text-foreground"><path d="M5 9h8m0 0-3-3m3 3-3 3"/></svg>
             </div>
           </Link>
         </Can>

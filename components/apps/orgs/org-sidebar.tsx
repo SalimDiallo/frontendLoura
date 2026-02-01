@@ -69,6 +69,8 @@ import { useState, useEffect } from "react";
 import { authService, CurrentUser } from "@/lib/services/auth/auth.service";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { usePermissions } from "@/lib/hooks/use-permissions";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 // Types
 interface MenuItem {
@@ -83,19 +85,23 @@ interface MenuGroup {
   children: MenuItem[];
 }
 
+// Fonction utilitaire pour nettoyer les tableaux de menu (retirer les null / undefined / false)
+function filterNotNull<T>(arr: (T | null | undefined | false)[]): T[] {
+  return arr.filter((item): item is T => item !== null && item !== undefined && item !== false);
+}
+
 export function OrganisationSideBar() {
   const pathname = usePathname();
   const params = useParams();
   const router = useRouter();
   const { state } = useSidebar();
+  const { hasPermission,hasAnyPermission } = usePermissions();
   const isCollapsed = state === "collapsed";
   const orgSlug = params.slug as string;
 
-  const [openGroups, setOpenGroups] = useState<{ [key: string]: boolean }>({
-  });
+  const [openGroups, setOpenGroups] = useState<{ [key: string]: boolean }>({});
 
   const [user, setUser] = useState<CurrentUser>(null);
-
 
   useEffect(() => {
     let ignore = false;
@@ -107,8 +113,6 @@ export function OrganisationSideBar() {
       } catch {
         if (!ignore) setUser(null);
       }
-   
-      
     }
     fetchUser();
     return () => {
@@ -118,8 +122,12 @@ export function OrganisationSideBar() {
 
   const getInitials = (u: typeof user) => {
     if (!u) return "U";
-    if (u.last_name || u.last_name) {
-      return `${u.last_name?.[0] ?? ""}${u.last_name?.[0] ?? ""}`.toUpperCase() || "U";
+    // Correction de l'erreur ici: mettre l'initiale du prénom et du nom s'ils existent
+    if (u.last_name || u.first_name) {
+      const ln = u.last_name?.[0] ?? "";
+      const fn = u.first_name?.[0] ?? "";
+      const initials = `${ln}${fn}`.toUpperCase();
+      return initials || "U";
     }
     return u.email?.[0]?.toUpperCase() || "U";
   };
@@ -151,68 +159,69 @@ export function OrganisationSideBar() {
     },
   ];
 
-  // const comptaMenuGroups: MenuGroup[] = [
-  //   {
-  //     title: "Comptabilité",
-  //     icon: HiOutlineCurrencyDollar,
-  //     children: [
-  //       { title: "Factures", url: `/apps/${orgSlug}/compta/invoices`, icon: HiOutlineReceiptPercent },
-  //       { title: "Paiements", url: `/apps/${orgSlug}/compta/payments`, icon: HiOutlineBanknotes },
-  //       { title: "Banque", url: `/apps/${orgSlug}/compta/bank`, icon: HiOutlineInbox },
-  //       { title: "Clients", url: `/apps/${orgSlug}/compta/clients`, icon: HiOutlineIdentification },
-  //       { title: "Fournisseurs", url: `/apps/${orgSlug}/compta/suppliers`, icon: HiOutlineBriefcase },
-  //     ],
-  //   },
-  // ];
-
   const hrMenuGroups: MenuGroup[] = [
     {
       title: "RH",
       icon: HiOutlineUsers,
-      children: [
-        { title: "Vue d'ensemble", url: `/apps/${orgSlug}/hr`, icon: HiOutlineSquares2X2 },
-        { title: "Départements", url: `/apps/${orgSlug}/hr/departments`, icon: Building2 },
-        { title: "Employés", url: `/apps/${orgSlug}/hr/employees`, icon: HiOutlineUsers },
-        { title: "Rôles", url: `/apps/${orgSlug}/hr/roles`, icon: HiOutlineBriefcase },
-        { title: "Paie", url: `/apps/${orgSlug}/hr/payroll/`, icon: HiOutlineDocumentCurrencyDollar },
-        { title: "Contrats", url: `/apps/${orgSlug}/hr/contracts`, icon: HiOutlineIdentification },
+      children: filterNotNull([
+        hasAnyPermission([COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES,COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS, COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS]) && { title: "Vue d'ensemble", url: `/apps/${orgSlug}/hr`, icon: HiOutlineSquares2X2 } ,
+        hasPermission(COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS) && { title: "Départements", url: `/apps/${orgSlug}/hr/departments`, icon: Building2 },
+        hasPermission(COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES) && { title: "Employés", url: `/apps/${orgSlug}/hr/employees`, icon: HiOutlineUsers },
+        hasPermission(COMMON_PERMISSIONS.HR.VIEW_ROLES) && { title: "Rôles", url: `/apps/${orgSlug}/hr/roles`, icon: HiOutlineBriefcase },
+        hasPermission(COMMON_PERMISSIONS.HR.VIEW_PAYROLL) && { title: "Paie", url: `/apps/${orgSlug}/hr/payroll/`, icon: HiOutlineDocumentCurrencyDollar },
+        hasPermission(COMMON_PERMISSIONS.HR.VIEW_CONTRACTS) && { title: "Contrats", url: `/apps/${orgSlug}/hr/contracts`, icon: HiOutlineIdentification },
         { title: "Congés", url: `/apps/${orgSlug}/hr/leaves`, icon: HiOutlineBriefcase },
-        { title: "Pointage", url: `/apps/${orgSlug}/hr/attendance`, icon: HiOutlineClock },
-      ],
+        { title: "Pointage", url: `/apps/${orgSlug}/hr/attendance`, icon: HiOutlineClock }
+      ]),
     },
   ];
 
   const inventoryMenuGroups: MenuGroup[] = [
     {
-      title: "Stocks",
+      title: "Gestion des stocks",
       icon: HiOutlineCube,
-      children: [
-        // Accès rapide - Actions principales
+      children: filterNotNull([
         { title: "Tableau de bord", url: `/apps/${orgSlug}/inventory`, icon: HiOutlineSquares2X2 },
-        { title: "Caisse", url: `/apps/${orgSlug}/inventory/sales/quick`, icon: HiOutlineShoppingCart },
-        
-        // Gestion commerciale
-        { title: "Ventes", url: `/apps/${orgSlug}/inventory/sales`, icon: HiOutlineReceiptPercent },
-        { title: "Créances", url: `/apps/${orgSlug}/inventory/credit-sales`, icon: HiOutlineBanknotes },
-        { title: "Approvisionnement", url: `/apps/${orgSlug}/inventory/orders`, icon: HiOutlineTruck },
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.CREATE_SALES)
+          ? { title: "Caisse", url: `/apps/${orgSlug}/inventory/sales/quick`, icon: HiOutlineShoppingCart }
+          : null,
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES)
+          ? { title: "Ventes", url: `/apps/${orgSlug}/inventory/sales`, icon: HiOutlineReceiptPercent }
+          : null,
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES)
+          ? { title: "Créances", url: `/apps/${orgSlug}/inventory/credit-sales`, icon: HiOutlineBanknotes }
+          : null,
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS)
+          ? { title: "Approvisionnement", url: `/apps/${orgSlug}/inventory/orders`, icon: HiOutlineTruck }
+          : null,
         { title: "Dépenses", url: `/apps/${orgSlug}/inventory/expenses`, icon: HiOutlineCurrencyDollar },
-        
-        // Catalogue & Stock
-        { title: "Produits", url: `/apps/${orgSlug}/inventory/products`, icon: HiOutlineCube },
-        { title: "Catégories", url: `/apps/${orgSlug}/inventory/categories`, icon: HiOutlineTag },
-        { title: "Stock", url: `/apps/${orgSlug}/inventory/warehouses`, icon: HiOutlineArchiveBox },
-        { title: "Mouvements", url: `/apps/${orgSlug}/inventory/movements`, icon: HiOutlineArrowPath },
-        
-        // Contacts
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_PRODUCTS)
+          ? { title: "Produits", url: `/apps/${orgSlug}/inventory/products`, icon: HiOutlineCube }
+          : null,
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES)
+          ? { title: "Catégories", url: `/apps/${orgSlug}/inventory/categories`, icon: HiOutlineTag }
+          : null,
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES)
+          ? { title: "Stock", url: `/apps/${orgSlug}/inventory/warehouses`, icon: HiOutlineArchiveBox }
+          : null,
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK)
+          ? { title: "Mouvements", url: `/apps/${orgSlug}/inventory/movements`, icon: HiOutlineArrowPath }
+          : null,
         { title: "Clients", url: `/apps/${orgSlug}/inventory/customers`, icon: HiOutlineUsers },
-        { title: "Fournisseurs", url: `/apps/${orgSlug}/inventory/suppliers`, icon: HiOutlineBriefcase },
-        
-        // Documents & Rapports
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS)
+          ? { title: "Fournisseurs", url: `/apps/${orgSlug}/inventory/suppliers`, icon: HiOutlineBriefcase }
+          : null,
         { title: "Documents", url: `/apps/${orgSlug}/inventory/documents`, icon: HiOutlineDocumentText },
-        { title: "Inventaire", url: `/apps/${orgSlug}/inventory/stock-counts`, icon: HiOutlineDocumentText },
-        { title: "Alertes", url: `/apps/${orgSlug}/inventory/alerts`, icon: HiOutlineExclamationTriangle },
-        { title: "Rapports", url: `/apps/${orgSlug}/inventory/reports`, icon: HiOutlineChartBar },
-      ],
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK)
+          ? { title: "Inventaire", url: `/apps/${orgSlug}/inventory/stock-counts`, icon: HiOutlineDocumentText }
+          : null,
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK)
+          ? { title: "Alertes", url: `/apps/${orgSlug}/inventory/alerts`, icon: HiOutlineExclamationTriangle }
+          : null,
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK)
+          ? { title: "Rapports", url: `/apps/${orgSlug}/inventory/reports`, icon: HiOutlineChartBar }
+          : null,
+      ]),
     },
   ];
 
@@ -221,6 +230,12 @@ export function OrganisationSideBar() {
 
   // Render menu group - version collapsed avec tooltip
   const renderMenuGroup = (group: MenuGroup) => {
+  
+    // Hide group if no child
+    if (group.children.length === 0) {
+      return null;
+    }
+
     const isOpen = openGroups[group.title] ?? isGroupActive(group);
     const hasActiveChild = isGroupActive(group);
 
@@ -233,15 +248,15 @@ export function OrganisationSideBar() {
               <SidebarMenuButton
                 tooltip={group.title}
                 className={cn(
-                  "justify-center",
+                  "justify-center h-10 p-0",
                   hasActiveChild && "bg-primary/10 text-primary"
                 )}
               >
-                <group.icon className="size-5" />
+                <group.icon className="size-4" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="start" sideOffset={8}>
-              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
                 {group.title}
               </div>
               {group.children.map((child) => (
@@ -249,12 +264,12 @@ export function OrganisationSideBar() {
                   <Link
                     href={child.url}
                     className={cn(
-                      "gap-2 cursor-pointer",
+                      "gap-2 cursor-pointer text-sm",
                       (pathname === child.url || pathname.startsWith(child.url + "/")) &&
                         "bg-primary/10 text-primary"
                     )}
                   >
-                    <child.icon className="size-4" />
+                    <child.icon className="size-3.5" />
                     {child.title}
                   </Link>
                 </DropdownMenuItem>
@@ -279,17 +294,17 @@ export function OrganisationSideBar() {
           <CollapsibleTrigger asChild>
             <SidebarMenuButton
               className={cn(
-                "justify-between pr-2",
+                "justify-between pr-1 min-h-9 h-9",
                 hasActiveChild && "bg-primary/5 text-foreground font-medium"
               )}
             >
-              <span className="flex items-center gap-3">
-                <group.icon className={cn("size-5", hasActiveChild && "text-primary")} />
-                <span>{group.title}</span>
+              <span className="flex items-center gap-2">
+                <group.icon className={cn("size-4", hasActiveChild && "text-primary")} />
+                <span className="text-[14px]">{group.title}</span>
               </span>
               <HiOutlineChevronRight
                 className={cn(
-                  "size-4 text-muted-foreground transition-transform duration-200",
+                  "size-3.5 text-muted-foreground transition-transform duration-200",
                   isOpen && "rotate-90"
                 )}
               />
@@ -301,10 +316,10 @@ export function OrganisationSideBar() {
                 const isActive = pathname === child.url || pathname.startsWith(child.url + "/");
                 return (
                   <SidebarMenuSubItem key={child.title}>
-                    <SidebarMenuSubButton asChild isActive={isActive}>
-                      <Link href={child.url} className="gap-3">
-                        <child.icon className={cn("size-4", isActive && "text-primary")} />
-                        <span>{child.title}</span>
+                    <SidebarMenuSubButton asChild isActive={isActive} className="min-h-8 h-8">
+                      <Link href={child.url} className="gap-2">
+                        <child.icon className={cn("size-3.5", isActive && "text-primary")} />
+                        <span className="text-sm">{child.title}</span>
                       </Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
@@ -318,30 +333,27 @@ export function OrganisationSideBar() {
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
+    <Sidebar collapsible="icon" className="border-r-0 text-[14px]">
       {/* Header */}
-      <SidebarHeader className="h-16 flex items-center justify-center border-b border-border/30">
+      <SidebarHeader className="h-13 flex items-center justify-center border-b border-border/30">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              size="lg"
+              size="sm"
               asChild
               tooltip={orgSlug || "Organisation"}
-              className="hover:bg-transparent active:bg-transparent px-2"
+              className="hover:bg-transparent active:bg-transparent px-1.5"
+              style={{ minHeight: "44px", height: "44px" }}
             >
-              <Link href={`/apps/${orgSlug}/dashboard`} className="gap-3">
-
-
-              {/* logo sera ici de lentreprise  */}
-
-              <Image src={"/images/logo.png"} alt="logo de lentreprise" width={25} height={25} />
-
+              <Link href={`/apps/${orgSlug}/dashboard`} className="gap-2">
+                {/* logo sera ici de lentreprise  */}
+                <Image src={"/images/logo.png"} alt="logo de lentreprise" width={20} height={20} />
                 {!isCollapsed && (
                   <div className="grid flex-1 text-left leading-tight hover:text-primary">
-                    <span className="truncate font-bold text-sm capitalize hover:text-primary">
+                    <span className="truncate font-bold text-xs capitalize hover:text-primary">
                       {user?.organization?.name || "Organisation"}
                     </span>
-                    <span className="truncate text-[11px] text-muted-foreground">
+                    <span className="truncate text-[10px] text-muted-foreground">
                       Espace de travail
                     </span>
                   </div>
@@ -353,11 +365,11 @@ export function OrganisationSideBar() {
       </SidebarHeader>
 
       {/* Content */}
-      <SidebarContent className="px-2 py-4">
+      <SidebarContent className="px-1 py-3">
         {/* Navigation */}
         <SidebarGroup className="px-0">
           {!isCollapsed && (
-            <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
+            <SidebarGroupLabel className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
               Navigation
             </SidebarGroupLabel>
           )}
@@ -371,11 +383,11 @@ export function OrganisationSideBar() {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className={cn(isCollapsed && "justify-center")}
+                      className={cn(isCollapsed && "justify-center", "h-9 min-h-9")}
                     >
-                      <Link href={item.url} className="gap-3">
-                        <item.icon className={cn("size-5", isActive && "text-primary")} />
-                        {!isCollapsed && <span>{item.title}</span>}
+                      <Link href={item.url} className="gap-2">
+                        <item.icon className={cn("size-4", isActive && "text-primary")} />
+                        {!isCollapsed && <span className="text-[14px]">{item.title}</span>}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -385,44 +397,36 @@ export function OrganisationSideBar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Finances */}
-        {/* <SidebarGroup className="px-0 mt-4">
-          {!isCollapsed && (
-            <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
-              Finances
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>{comptaMenuGroups.map(renderMenuGroup)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup> */}
+        {/* RH — masqué entièrement si aucun children ne reste après filtrage */}
+        {hrMenuGroups.some((g) => g.children.length > 0) && (
+          <SidebarGroup className="px-0 mt-3">
+            {!isCollapsed && (
+              <SidebarGroupLabel className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
+                Ressources Humaines
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>{hrMenuGroups.map(renderMenuGroup)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-        {/* RH */}
-        <SidebarGroup className="px-0 mt-4">
-          {!isCollapsed && (
-            <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
-              Ressources Humaines
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>{hrMenuGroups.map(renderMenuGroup)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Stocks */}
-        <SidebarGroup className="px-0 mt-4">
-          {!isCollapsed && (
-            <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
-              Gestion des stocks
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>{inventoryMenuGroups.map(renderMenuGroup)}</SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Stocks — masqué entièrement si aucun children ne reste après filtrage */}
+        {inventoryMenuGroups.some((g) => g.children.length > 0) && (
+          <SidebarGroup className="px-0 mt-3">
+            {!isCollapsed && (
+              <SidebarGroupLabel className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
+                Gestion des stocks
+              </SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>{inventoryMenuGroups.map(renderMenuGroup)}</SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Spacer */}
-        <div className="flex-1 min-h-4" />
+        <div className="flex-1 min-h-2" />
 
         {/* Settings */}
         <SidebarGroup className="px-0 mt-auto">
@@ -433,14 +437,14 @@ export function OrganisationSideBar() {
                   asChild
                   isActive={pathname === `/apps/${orgSlug}/settings`}
                   tooltip="Paramètres"
-                  className={cn(isCollapsed && "justify-center")}
+                  className={cn(isCollapsed && "justify-center", "h-9 min-h-9")}
                 >
-                  <Link href={`/apps/${orgSlug}/settings`} className="gap-3">
+                  <Link href={`/apps/${orgSlug}/settings`} className="gap-2">
                     <HiOutlineCog6Tooth className={cn(
-                      "size-5",
+                      "size-4",
                       pathname === `/apps/${orgSlug}/settings` && "text-primary"
                     )} />
-                    {!isCollapsed && <span>Paramètres</span>}
+                    {!isCollapsed && <span className="text-[14px]">Paramètres</span>}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -456,53 +460,54 @@ export function OrganisationSideBar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
-                  size="lg"
+                  size="sm"
                   tooltip={getDisplayName(user)}
                   className={cn(
                     "w-full data-[state=open]:bg-primary",
-                    isCollapsed && "justify-center px-0"
+                    isCollapsed && "justify-center px-0 min-h-9 h-9"
                   )}
+                  style={{ minHeight: "36px", height: "36px" }}
                 >
-                  <Avatar className={cn("rounded-xl", isCollapsed ? "size-9" : "size-9")}>
-                    <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold">
+                  <Avatar className={cn("rounded-xl", isCollapsed ? "size-7" : "size-7")}>
+                    <AvatarFallback className="rounded-xl bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[11px] font-bold">
                       {getInitials(user)}
                     </AvatarFallback>
                   </Avatar>
                   {!isCollapsed && (
                     <>
-                      <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate font-semibold text-[13px]">
+                      <div className="grid flex-1 text-left text-[13px] leading-tight">
+                        <span className="truncate font-semibold text-xs">
                           {getDisplayName(user)}
                         </span>
-                        <span className="truncate text-[11px] text-muted-foreground">
+                        <span className="truncate text-[10px] text-muted-foreground">
                           {getDisplayEmail(user)}
                         </span>
                       </div>
-                      <ChevronUp className="size-4 text-muted-foreground" />
+                      <ChevronUp className="size-3.5 text-muted-foreground" />
                     </>
                   )}
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-64"
+                className="w-56"
                 side={isCollapsed ? "right" : "top"}
                 align={isCollapsed ? "start" : "start"}
                 sideOffset={8}
               >
-                <div className="px-3 py-3 border-b border-border/40">
-                  <p className="text-sm font-semibold">{getDisplayName(user)}</p>
+                <div className="px-3 py-2 border-b border-border/40">
+                  <p className="text-xs font-semibold">{getDisplayName(user)}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{getDisplayEmail(user)}</p>
                 </div>
                 <div className="p-1">
                   <DropdownMenuItem asChild>
-                    <Link href={`/apps/${orgSlug}/dashboard/profile`} className="cursor-pointer gap-3 py-2">
-                      <User className="size-4" />
+                    <Link href={`/apps/${orgSlug}/dashboard/profile`} className="cursor-pointer gap-2 py-1.5 text-sm">
+                      <User className="size-3.5" />
                       Mon profil
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href={`/apps/${orgSlug}/dashboard/settings`} className="cursor-pointer gap-3 py-2">
-                      <Settings className="size-4" />
+                    <Link href={`/apps/${orgSlug}/dashboard/settings`} className="cursor-pointer gap-2 py-1.5 text-sm">
+                      <Settings className="size-3.5" />
                       Paramètres du compte
                     </Link>
                   </DropdownMenuItem>
@@ -510,10 +515,10 @@ export function OrganisationSideBar() {
                 <DropdownMenuSeparator />
                 <div className="p-1">
                   <DropdownMenuItem
-                    className="cursor-pointer gap-3 py-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+                    className="cursor-pointer gap-2 py-1.5 text-destructive focus:text-destructive focus:bg-destructive/10 text-sm"
                     onClick={handleLogout}
                   >
-                    <LogOut className="size-4" />
+                    <LogOut className="size-3.5" />
                     Se déconnecter
                   </DropdownMenuItem>
                 </div>

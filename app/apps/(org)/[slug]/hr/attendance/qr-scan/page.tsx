@@ -403,7 +403,7 @@ export default function QRScanPage() {
   // Info Screen (Already checked in/out)
   if (scanState === 'info') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-gray-900 dark:to-blue-950/30">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-blue-50 to-cyan-100 dark:from-gray-900 dark:to-blue-950/30">
         <Card className="max-w-md w-full p-8 text-center border-0 shadow-xl">
           {/* Info Icon */}
           <div className="size-24 rounded-full bg-blue-100 dark:bg-blue-900/50 mx-auto mb-6 flex items-center justify-center">
@@ -444,7 +444,7 @@ export default function QRScanPage() {
     return (
       <div className={cn(
         "min-h-screen flex items-center justify-center p-4",
-        "bg-gradient-to-br",
+        "bg-linear-to-br",
         isCheckOut
           ? "from-amber-50 to-orange-100 dark:from-gray-900 dark:to-amber-950/30"
           : "from-emerald-50 to-green-100 dark:from-gray-900 dark:to-green-950/30"
@@ -510,7 +510,7 @@ export default function QRScanPage() {
   // Processing Screen
   if (scanState === 'processing') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         <Card className="max-w-md w-full p-8 text-center border-0 shadow-xl">
           <div className="size-20 rounded-full bg-primary/10 mx-auto mb-6 flex items-center justify-center">
             <Loader2 className="size-10 text-primary animate-spin" />
@@ -526,7 +526,7 @@ export default function QRScanPage() {
 
   // Main Scan Screen
   return (
-    <div className="min-h-screen p-4 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen p-4 bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-lg mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">

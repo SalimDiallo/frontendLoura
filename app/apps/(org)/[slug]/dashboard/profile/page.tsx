@@ -185,7 +185,7 @@ export default function ProfilePage() {
         <Card className="p-6 lg:col-span-1">
           <div className="flex flex-col items-center text-center">
             <div className="relative">
-              <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center text-4xl font-bold text-primary">
+              <div className="w-32 h-32 rounded-full bg-linear-to-br from-primary/20 to-primary/10 flex items-center justify-center text-4xl font-bold text-primary">
                 {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || "U"}
                 {user?.last_name?.[0] || ""}
               </div>

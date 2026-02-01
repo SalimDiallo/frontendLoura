@@ -53,10 +53,10 @@ import { useAuthStore } from "@/lib/store";
 // ============================================
 
 const EMPLOYMENT_STATUS_OPTIONS = [
-  { value: "active", label: "Actifs", icon: <HiOutlineCheckCircle className="size-4 text-green-500" /> },
-  { value: "on_leave", label: "En congé", icon: <LuCalendarOff className="size-4 text-foreground" /> },
-  { value: "suspended", label: "Suspendus", icon: <LuPause className="size-4 text-orange-500" /> },
-  { value: "terminated", label: "Terminés", icon: <LuBan className="size-4 text-red-500" /> },
+  { value: "active", label: "Actifs", icon: <HiOutlineCheckCircle className="size-3 text-green-500" /> },
+  { value: "on_leave", label: "En congé", icon: <LuCalendarOff className="size-3 text-foreground" /> },
+  { value: "suspended", label: "Suspendus", icon: <LuPause className="size-3 text-orange-500" /> },
+  { value: "terminated", label: "Terminés", icon: <LuBan className="size-3 text-red-500" /> },
 ];
 
 const GENDER_OPTIONS = [
@@ -158,13 +158,13 @@ export default function EmployeesPage() {
       {
         key: "status",
         label: "Statut",
-        icon: <LuUsers className="size-4" />,
+        icon: <LuUsers className="size-3" />,
         options: statusCounts,
       },
       {
         key: "department",
         label: "Département",
-        icon: <HiOutlineBriefcase className="size-4" />,
+        icon: <HiOutlineBriefcase className="size-3" />,
         options: departments.map((d) => ({
           value: d,
           label: d,
@@ -174,7 +174,7 @@ export default function EmployeesPage() {
       {
         key: "position",
         label: "Poste",
-        icon: <HiOutlineIdentification className="size-4" />,
+        icon: <HiOutlineIdentification className="size-3" />,
         options: positions.map((p) => ({
           value: p,
           label: p,
@@ -184,7 +184,7 @@ export default function EmployeesPage() {
       {
         key: "role",
         label: "Rôle",
-        icon: <HiOutlineShieldCheck className="size-4" />,
+        icon: <HiOutlineShieldCheck className="size-3" />,
         options: roles.map((r) => ({
           value: r,
           label: r,
@@ -386,11 +386,11 @@ export default function EmployeesPage() {
   if (loading) {
     return (
       <Can permission={COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES} showMessage={true}>
-        <div className="space-y-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-muted rounded w-1/4"></div>
-            <div className="h-32 bg-muted rounded"></div>
-            <div className="h-64 bg-muted rounded"></div>
+        <div className="space-y-4">
+          <div className="animate-pulse space-y-3">
+            <div className="h-6 bg-muted rounded w-1/4"></div>
+            <div className="h-20 bg-muted rounded"></div>
+            <div className="h-44 bg-muted rounded"></div>
           </div>
         </div>
       </Can>
@@ -399,7 +399,7 @@ export default function EmployeesPage() {
 
   return (
     <Can permission={COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES} showMessage={true}>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Shortcuts Modal */}
         <ShortcutsHelpModal
           isOpen={showShortcuts}
@@ -408,34 +408,35 @@ export default function EmployeesPage() {
           title="Raccourcis clavier - Employés"
         />
 
-        {error && <Alert variant="error">{error}</Alert>}
+        {error && <Alert variant="error" className="text-sm py-2 px-3">{error}</Alert>}
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <HiOutlineUserCircle className="size-7" />
+            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <HiOutlineUserCircle className="size-6" />
               Employés
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Gérez tous vos employés et leurs informations
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowShortcuts(true)}
               aria-label="Afficher les raccourcis clavier"
               title="Raccourcis clavier (?)"
+              className="h-7 px-2"
             >
-              <HiOutlineQuestionMarkCircle className="size-4" />
+              <HiOutlineQuestionMarkCircle className="size-3.5" />
             </Button>
             <Can permission={COMMON_PERMISSIONS.HR.CREATE_EMPLOYEES}>
-              <Button asChild>
+              <Button asChild size="sm" className="h-7 px-2">
                 <Link href={`/apps/${slug}/hr/employees/create`}>
-                  <HiOutlinePlusCircle className="size-4 mr-2" />
-                  Nouvel employé
+                  <HiOutlinePlusCircle className="size-3 mr-1" />
+                  <span className="text-xs">Nouvel employé</span>
                   <ShortcutBadge shortcut={shortcuts.find((s) => s.key === "n")!} />
                 </Link>
               </Button>
@@ -444,88 +445,88 @@ export default function EmployeesPage() {
         </div>
 
         {/* Stats Cards - Compact */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           <Card 
             className={cn(
-              "p-4 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-primary/20",
+              "p-2 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-primary/20",
               !filters.status && "ring-2 ring-primary/30"
             )}
             onClick={() => handleFilterChange("status", "")}
           >
-            <div className="text-xs text-muted-foreground">Total</div>
-            <div className="text-xl font-bold mt-0.5">{stats.total}</div>
+            <div className="text-[11px] text-muted-foreground">Total</div>
+            <div className="text-lg font-bold mt-0.5">{stats.total}</div>
           </Card>
           <Card 
             className={cn(
-              "p-4 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-green-500/20",
+              "p-2 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-green-500/20",
               filters.status === "active" && "ring-2 ring-green-500/50"
             )}
             onClick={() => handleFilterChange("status", filters.status === "active" ? "" : "active")}
           >
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <HiOutlineCheckCircle className="size-3 text-green-500" />
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <HiOutlineCheckCircle className="size-2.5 text-green-500" />
               Actifs
             </div>
-            <div className="text-xl font-bold mt-0.5 text-green-600 dark:text-green-400">
+            <div className="text-lg font-bold mt-0.5 text-green-600 dark:text-green-400">
               {stats.active}
             </div>
           </Card>
           <Card 
             className={cn(
-              "p-4 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-foreground/20",
+              "p-2 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-foreground/20",
               filters.status === "on_leave" && "ring-2 ring-foreground/50"
             )}
             onClick={() => handleFilterChange("status", filters.status === "on_leave" ? "" : "on_leave")}
           >
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <LuCalendarOff className="size-3 text-foreground" />
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <LuCalendarOff className="size-2.5 text-foreground" />
               En congé
             </div>
-            <div className="text-xl font-bold mt-0.5 text-foreground dark:text-blue-400">
+            <div className="text-lg font-bold mt-0.5 text-foreground dark:text-blue-400">
               {stats.onLeave}
             </div>
           </Card>
           <Card 
             className={cn(
-              "p-4 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-orange-500/20",
+              "p-2 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-orange-500/20",
               (filters.status === "suspended" || filters.status === "terminated") && "ring-2 ring-orange-500/50"
             )}
             onClick={() => handleFilterChange("status", filters.status === "suspended" ? "" : "suspended")}
           >
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <LuPause className="size-3 text-orange-500" />
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <LuPause className="size-2.5 text-orange-500" />
               Inactifs
             </div>
-            <div className="text-xl font-bold mt-0.5 text-orange-600 dark:text-orange-400">
+            <div className="text-lg font-bold mt-0.5 text-orange-600 dark:text-orange-400">
               {stats.inactive}
             </div>
           </Card>
-          <Card className="p-4 border-0 shadow-sm">
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <HiOutlineBanknotes className="size-3 text-emerald-500" />
+          <Card className="p-2 border-0 shadow-sm">
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+              <HiOutlineBanknotes className="size-2.5 text-emerald-500" />
               Masse Salariale
             </div>
-            <div className="text-lg font-bold mt-0.5 text-emerald-600 dark:text-emerald-400 truncate" title={formatCurrency(stats.totalSalary)}>
+            <div className="text-base font-bold mt-0.5 text-emerald-600 dark:text-emerald-400 truncate" title={formatCurrency(stats.totalSalary)}>
               {formatCurrency(stats.totalSalary)}
             </div>
           </Card>
         </div>
 
         {/* Search & Filters */}
-        <Card className="p-4 border-0 shadow-sm">
+        <Card className="p-2 border-0 shadow-sm">
           {/* Search Bar */}
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-4">
+          <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center mb-2">
             <div className="relative flex-1 w-full">
-              <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <HiOutlineMagnifyingGlass className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
                 ref={searchInputRef}
                 placeholder="Rechercher par nom, email ou matricule..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-16"
+                className="pl-8 pr-12 text-sm h-8"
                 aria-label="Rechercher des employés"
               />
-              <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs text-muted-foreground">
+              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1 font-mono text-[11px] text-muted-foreground">
                 ⌘K
               </kbd>
             </div>
@@ -538,20 +539,21 @@ export default function EmployeesPage() {
             onChange={handleFilterChange}
             onReset={handleResetFilters}
             quickFilterKey="status"
+             // assume SmartFilters supports "dense" mode
           />
         </Card>
 
         {/* Employees Table */}
         <Card className="border-0 shadow-sm overflow-hidden">
           {filteredEmployees.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-                  <HiOutlineUserCircle className="size-8 text-muted-foreground" />
+            <div className="p-6 text-center">
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex size-10 items-center justify-center rounded-full bg-muted">
+                  <HiOutlineUserCircle className="size-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">Aucun employé trouvé</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <h3 className="text-sm font-semibold">Aucun employé trouvé</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
                     {searchQuery || hasActiveFilters
                       ? "Aucun résultat pour ces critères"
                       : "Commencez par ajouter votre premier employé"}
@@ -559,9 +561,9 @@ export default function EmployeesPage() {
                 </div>
                 {!(searchQuery || hasActiveFilters) && (
                   <Can permission={COMMON_PERMISSIONS.HR.CREATE_EMPLOYEES}>
-                    <Button asChild>
+                    <Button asChild size="sm" className="h-7 px-2">
                       <Link href={`/apps/${slug}/hr/employees/create`}>
-                        <HiOutlinePlusCircle className="size-4 mr-2" />
+                        <HiOutlinePlusCircle className="size-3 mr-1" />
                         Ajouter un employé
                       </Link>
                     </Button>
@@ -572,14 +574,14 @@ export default function EmployeesPage() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Employé</TableHead>
-                  <TableHead className="hidden md:table-cell">Matricule</TableHead>
-                  <TableHead className="hidden lg:table-cell">Département</TableHead>
-                  <TableHead className="hidden lg:table-cell">Poste</TableHead>
-                  <TableHead className="hidden xl:table-cell">Paiement</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className="h-8">
+                  <TableHead className="text-xs py-1">Employé</TableHead>
+                  <TableHead className="hidden md:table-cell text-xs py-1">Matricule</TableHead>
+                  <TableHead className="hidden lg:table-cell text-xs py-1">Département</TableHead>
+                  <TableHead className="hidden lg:table-cell text-xs py-1">Poste</TableHead>
+                  <TableHead className="hidden xl:table-cell text-xs py-1">Paiement</TableHead>
+                  <TableHead className="text-xs py-1">Statut</TableHead>
+                  <TableHead className="text-right text-xs py-1">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -592,7 +594,8 @@ export default function EmployeesPage() {
                       "transition-colors",
                       !isCurrentUser && "cursor-pointer",
                       selectedIndex === index && "bg-primary/10 ring-1 ring-primary",
-                      isCurrentUser && "bg-accent/50 border-l-2 border-l-primary"
+                      isCurrentUser && "bg-accent/50 border-l-2 border-l-primary",
+                      "h-10"
                     )}
                     onClick={() => !isCurrentUser && setSelectedIndex(index)}
                     onDoubleClick={() => !isCurrentUser && routerNav.push(`/apps/${slug}/hr/employees/${employee.id}`)}
@@ -600,10 +603,10 @@ export default function EmployeesPage() {
                     role="row"
                     aria-selected={selectedIndex === index}
                   >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
+                    <TableCell className="py-1 align-middle">
+                      <div className="flex items-center gap-2">
                         <div className={cn(
-                          "flex size-10 items-center justify-center rounded-full font-semibold text-sm shrink-0",
+                          "flex size-7 items-center justify-center rounded-full font-semibold text-xs shrink-0",
                           isCurrentUser ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
                         )}>
                           {employee.full_name
@@ -617,60 +620,60 @@ export default function EmployeesPage() {
                             : "?"}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-medium truncate flex items-center gap-1.5">
+                          <div className="font-medium truncate flex items-center gap-1.5 text-sm">
                             {employee.full_name || "Sans nom"}
                             {isCurrentUser && (
-                              <span className="text-xs font-normal text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                              <span className="text-[10px] font-normal text-primary bg-primary/10 px-1 py-0.5 rounded-full">
                                 Vous
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-1 truncate">
-                            <HiOutlineEnvelope className="size-3 shrink-0" />
+                          <div className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                            <HiOutlineEnvelope className="size-2.5 shrink-0" />
                             <span className="truncate">{employee.email}</span>
                           </div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="flex items-center gap-1 text-sm">
-                        <HiOutlineIdentification className="size-4 text-muted-foreground" />
+                    <TableCell className="hidden md:table-cell py-1">
+                      <div className="flex items-center gap-1 text-xs">
+                        <HiOutlineIdentification className="size-3 text-muted-foreground" />
                         {employee.employee_id || "-"}
                       </div>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <span className="text-sm">{employee.department_name || "-"}</span>
+                    <TableCell className="hidden lg:table-cell py-1">
+                      <span className="text-xs">{employee.department_name || "-"}</span>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <span className="text-sm text-muted-foreground">{employee.position_title || "-"}</span>
+                    <TableCell className="hidden lg:table-cell py-1">
+                      <span className="text-xs text-muted-foreground">{employee.position_title || "-"}</span>
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell">
+                    <TableCell className="hidden xl:table-cell py-1">
                       {employee.base_salary ? (
-                        <div className="text-sm">
+                        <div className="text-xs">
                           <div className="font-medium text-green-600 dark:text-green-400">
                             {formatCurrency(employee.base_salary)}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-[10px] text-muted-foreground">
                             {employee.salary_period_display || employee.salary_period}
                           </div>
                         </div>
                       ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
+                        <span className="text-xs text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <EmploymentStatusBadge status={employee.employment_status} />
+                    <TableCell className="py-1">
+                      <EmploymentStatusBadge status={employee.employment_status}  />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right py-1">
                       <TooltipProvider delayDuration={300}>
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-0.5">
                           {/* Utilisateur courant: uniquement bouton Mon profil */}
                           {isCurrentUser ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-8" asChild>
+                                <Button variant="ghost" size="sm" className="size-7" asChild>
                                   <Link href={`/apps/${slug}/dashboard/profile`}>
-                                    <HiOutlineUserCircle className="size-4 text-primary" />
+                                    <HiOutlineUserCircle className="size-3 text-primary" />
                                   </Link>
                                 </Button>
                               </TooltipTrigger>
@@ -682,9 +685,9 @@ export default function EmployeesPage() {
                               <Can permission={COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="size-8" asChild>
+                                    <Button variant="ghost" size="sm" className="size-7" asChild>
                                       <Link href={`/apps/${slug}/hr/employees/${employee.id}`}>
-                                        <HiOutlineEye className="size-4" />
+                                        <HiOutlineEye className="size-3" />
                                       </Link>
                                     </Button>
                                   </TooltipTrigger>
@@ -696,9 +699,9 @@ export default function EmployeesPage() {
                               <Can permission={COMMON_PERMISSIONS.HR.UPDATE_EMPLOYEES}>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="size-8" asChild>
+                                    <Button variant="ghost" size="sm" className="size-7" asChild>
                                       <Link href={`/apps/${slug}/hr/employees/${employee.id}/edit`}>
-                                        <HiOutlinePencil className="size-4" />
+                                        <HiOutlinePencil className="size-3" />
                                       </Link>
                                     </Button>
                                   </TooltipTrigger>
@@ -712,17 +715,17 @@ export default function EmployeesPage() {
                                   <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
-                                      size="icon"
-                                      className="size-8"
+                                      size="sm"
+                                      className="size-7"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleToggleStatus(employee.id, employee.is_active);
                                       }}
                                     >
                                       {employee.is_active ? (
-                                        <HiOutlineXCircle className="size-4 text-orange-500" />
+                                        <HiOutlineXCircle className="size-3 text-orange-500" />
                                       ) : (
-                                        <HiOutlineCheckCircle className="size-4 text-green-500" />
+                                        <HiOutlineCheckCircle className="size-3 text-green-500" />
                                       )}
                                     </Button>
                                   </TooltipTrigger>
@@ -738,15 +741,15 @@ export default function EmployeesPage() {
                                   <TooltipTrigger asChild>
                                     <Button
                                       variant="ghost"
-                                      size="icon"
-                                      className="size-8 text-destructive hover:text-destructive"
+                                      size="sm"
+                                      className="size-7 text-destructive hover:text-destructive"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleDelete(employee.id);
                                       }}
                                       disabled={deleting === employee.id}
                                     >
-                                      <HiOutlineTrash className="size-4" />
+                                      <HiOutlineTrash className="size-3" />
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>Supprimer</TooltipContent>
@@ -767,29 +770,31 @@ export default function EmployeesPage() {
 
         {/* Pagination */}
         {!(searchQuery || hasActiveFilters) && totalCount > 20 && (
-          <Card className="p-4 border-0 shadow-sm">
+          <Card className="p-2 border-0 shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 Page {currentPage} sur {Math.ceil(totalCount / 20)} • {totalCount} employés
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1">
                 <Button
                   variant="outline"
                   size="sm"
+                  className="h-7 px-2"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={!hasPrevious || loading}
                 >
-                  <HiOutlineChevronLeft className="size-4 mr-1" />
-                  Précédent
+                  <HiOutlineChevronLeft className="size-3 mr-1" />
+                  <span className="text-xs">Précédent</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
+                  className="h-7 px-2"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={!hasNext || loading}
                 >
-                  Suivant
-                  <HiOutlineChevronRight className="size-4 ml-1" />
+                  <span className="text-xs">Suivant</span>
+                  <HiOutlineChevronRight className="size-3 ml-1" />
                 </Button>
               </div>
             </div>

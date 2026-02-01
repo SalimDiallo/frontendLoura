@@ -55,9 +55,7 @@ export default function DepartmentsPage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   useEffect(() => {
-    // Si les permissions sont encore en chargement, ne rien faire
     if (isLoading) return;
-    // Si les permissions ne sont plus en chargement, réinitialiser l'onglet actif si besoin
     if (hasPermission(COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS)) {
       setActiveTab("departments");
     } else {
@@ -65,7 +63,6 @@ export default function DepartmentsPage() {
     }
   }, [isLoading, hasPermission]);
   
-  // Modal état pour créer/éditer poste
   const [showPositionModal, setShowPositionModal] = useState(false);
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
   const [positionTitle, setPositionTitle] = useState("");
@@ -76,11 +73,7 @@ export default function DepartmentsPage() {
 
   useEffect(() => {
     loadData();
-    
   }, [slug]);
-    console.log("Departements -------------------")
-    console.log(departments);
-
 
   const loadData = async () => {
     try {
@@ -109,10 +102,8 @@ export default function DepartmentsPage() {
       await deleteDepartment(id);
       await loadData();
     } catch (err: unknown) {
-      // Extraire le message d'erreur du backend (ApiError)
       let errorMessage = "Erreur lors de la suppression";
       if (err && typeof err === 'object') {
-        // ApiError a une propriété data qui contient la réponse du backend
         const apiErr = err as { data?: { error?: string }; message?: string };
         if (apiErr.data?.error) {
           errorMessage = apiErr.data.error;
@@ -197,7 +188,6 @@ export default function DepartmentsPage() {
     pos.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Raccourcis clavier
   const shortcuts: KeyboardShortcut[] = useMemo(() => [
     commonShortcuts.search(() => searchInputRef.current?.focus()),
     commonShortcuts.new(() => {
@@ -246,11 +236,11 @@ export default function DepartmentsPage() {
   if (loading) {
     return (
       <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS} showMessage={true}>
-        <div className="space-y-6">
-          <div className="animate-pulse space-y-4">
+        <div className="space-y-4">
+          <div className="animate-pulse space-y-2">
             <div className="h-8 bg-muted rounded w-1/4"></div>
-            <div className="h-32 bg-muted rounded"></div>
-            <div className="h-64 bg-muted rounded"></div>
+            <div className="h-24 bg-muted rounded"></div>
+            <div className="h-56 bg-muted rounded"></div>
           </div>
         </div>
       </Can>
@@ -268,13 +258,13 @@ export default function DepartmentsPage() {
         title="Raccourcis clavier - Départements & Postes"
       />
 
-      {error && <Alert variant="error">{error}</Alert>}
+      {error && <Alert variant="error" className="text-base py-3">{error}</Alert>}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <HiOutlineBriefcase className="size-7" />
+            <HiOutlineBriefcase className="size-8" />
             Organisation
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -284,12 +274,13 @@ export default function DepartmentsPage() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            size="sm"
+            size="default"
             onClick={() => setShowShortcuts(true)}
             aria-label="Afficher les raccourcis clavier"
             title="Raccourcis clavier (?)"
+            className="h-9 px-3"
           >
-            <HiOutlineQuestionMarkCircle className="size-4" />
+            <HiOutlineQuestionMarkCircle className="size-5" />
           </Button>
         </div>
       </div>
@@ -299,11 +290,11 @@ export default function DepartmentsPage() {
        <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
        <Card className="p-4 border-0 shadow-sm">
           <div className="text-sm text-muted-foreground">Départements</div>
-          <div className="text-2xl font-bold mt-1">{departments?.length || 0}</div>
+          <div className="text-xl font-bold mt-1">{departments?.length || 0}</div>
         </Card>
         <Card className="p-4 border-0 shadow-sm">
           <div className="text-sm text-muted-foreground">Dép. actifs</div>
-          <div className="text-2xl font-bold mt-1 text-green-600">
+          <div className="text-xl font-bold mt-1 text-green-600">
             {departments?.filter((d) => d.is_active).length || 0}
           </div>
         </Card>
@@ -312,11 +303,11 @@ export default function DepartmentsPage() {
        <Can permission={COMMON_PERMISSIONS.HR.VIEW_POSITIONS}>
         <Card className="p-4 border-0 shadow-sm">
           <div className="text-sm text-muted-foreground">Postes</div>
-          <div className="text-2xl font-bold mt-1">{positions?.length || 0}</div>
+          <div className="text-xl font-bold mt-1">{positions?.length || 0}</div>
         </Card>
         <Card className="p-4 border-0 shadow-sm">
           <div className="text-sm text-muted-foreground">Postes actifs</div>
-          <div className="text-2xl font-bold mt-1 text-green-600">
+          <div className="text-xl font-bold mt-1 text-green-600">
             {positions?.filter((p) => p.is_active).length || 0}
           </div>
         </Card>
@@ -327,34 +318,34 @@ export default function DepartmentsPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSelectedIndex(-1); setSearchQuery(""); }}>
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <TabsList>
-          <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
-          <TabsTrigger value="departments" className="gap-2">
-              <HiOutlineBriefcase className="size-4" />
-              Départements
-            </TabsTrigger>
-          </Can>
-          <Can permission={COMMON_PERMISSIONS.HR.VIEW_POSITIONS}>
-          <TabsTrigger value="positions" className="gap-2">
-              <HiOutlineUserGroup className="size-4" />
-              Postes
-            </TabsTrigger>
-          </Can>           
+          <TabsList className="min-h-10 gap-2">
+            <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
+              <TabsTrigger value="departments" className="gap-2 px-4 py-2 text-base h-10 rounded">
+                <HiOutlineBriefcase className="size-5" />
+                Départements
+              </TabsTrigger>
+            </Can>
+            <Can permission={COMMON_PERMISSIONS.HR.VIEW_POSITIONS}>
+              <TabsTrigger value="positions" className="gap-2 px-4 py-2 text-base h-10 rounded">
+                <HiOutlineUserGroup className="size-5" />
+                Postes
+              </TabsTrigger>
+            </Can>
           </TabsList>
           
           {activeTab === "departments" ? (
             <Can permission={COMMON_PERMISSIONS.HR.CREATE_DEPARTMENTS}>
-              <Button asChild>
+              <Button size="default" className="h-10 px-4 py-2 text-base" asChild>
                 <Link href={`/apps/${slug}/hr/departments/create`}>
-                  <HiOutlinePlusCircle className="size-4 mr-2" />
+                  <HiOutlinePlusCircle className="size-5 mr-2" />
                   Nouveau département
                 </Link>
               </Button>
             </Can>
           ) : (
             <Can permission={COMMON_PERMISSIONS.HR.CREATE_POSITIONS}>
-              <Button onClick={() => openPositionModal()}>
-                <HiOutlinePlusCircle className="size-4 mr-2" />
+              <Button size="default" className="h-10 px-4 py-2 text-base" onClick={() => openPositionModal()}>
+                <HiOutlinePlusCircle className="size-5 mr-2" />
                 Nouveau poste
               </Button>
             </Can>
@@ -362,315 +353,313 @@ export default function DepartmentsPage() {
         </div>
 
         {/* Search */}
-        <Card className="p-6 border-0 shadow-sm mt-4">
+        <Card className="p-5 border-0 shadow-sm mt-4">
           <div className="relative">
-            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
             <Input
               ref={searchInputRef}
               placeholder={activeTab === "departments" ? "Rechercher par nom ou code..." : "Rechercher par titre..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-20"
+              className="pl-12 pr-20 py-3 min-h-10 text-base rounded"
               aria-label="Rechercher"
             />
-            <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs text-muted-foreground">
+            <kbd className="absolute right-4 top-1/2 transform -translate-y-1/2 hidden sm:inline-flex h-7 items-center gap-1 rounded border bg-muted px-2 font-mono text-sm text-muted-foreground">
               Ctrl+K
             </kbd>
           </div>
         </Card>
 
         {/* Departments Tab */}
-       <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
-       <TabsContent value="departments" className="mt-4">
-          <Card className="border-0 shadow-sm">
-            {filteredDepartments?.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-                    <HiOutlineBriefcase className="size-8 text-muted-foreground" />
+        <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
+          <TabsContent value="departments" className="mt-4">
+            <Card className="border-0 shadow-sm">
+              {filteredDepartments?.length === 0 ? (
+                <div className="p-14 text-center">
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="flex size-16 items-center justify-center rounded-full bg-muted">
+                      <HiOutlineBriefcase className="size-8 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold">Aucun département</h3>
+                      <p className="text-base text-muted-foreground mt-2">
+                        {searchQuery
+                          ? "Aucun résultat pour cette recherche"
+                          : "Commencez par créer votre premier département"}
+                      </p>
+                    </div>
+                    {!searchQuery && (
+                      <Can permission={COMMON_PERMISSIONS.HR.CREATE_DEPARTMENTS}>
+                        <Button size="default" className="h-10 px-4 py-2 text-base" asChild>
+                          <Link href={`/apps/${slug}/hr/departments/create`}>
+                            <HiOutlinePlusCircle className="size-5 mr-2" />
+                            Créer un département
+                          </Link>
+                        </Button>
+                      </Can>
+                    )}
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">Aucun département</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {searchQuery
-                        ? "Aucun résultat pour cette recherche"
-                        : "Commencez par créer votre premier département"}
-                    </p>
-                  </div>
-                  {!searchQuery && (
-                    <Can permission={COMMON_PERMISSIONS.HR.CREATE_DEPARTMENTS}>
-                      <Button asChild>
-                      <Link href={`/apps/${slug}/hr/departments/create`}>
-                        <HiOutlinePlusCircle className="size-4 mr-2" />
-                        Créer un département
-                      </Link>
-                    </Button>
-                    </Can>
-                  )}
                 </div>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDepartments?.map((department, index) => (
-                    <TableRow
-                      key={department.id}
-                      className={cn(
-                        "cursor-pointer transition-colors",
-                        selectedIndex === index && "bg-primary/10 ring-1 ring-primary"
-                      )}
-                      onClick={() => setSelectedIndex(index)}
-                      onDoubleClick={() => router.push(`/apps/${slug}/hr/departments/${department.id}`)}
-                      tabIndex={0}
-                      role="row"
-                      aria-selected={selectedIndex === index}
-                    >
-                      <TableCell className="font-medium">{department.name}</TableCell>
-                      <TableCell>
-                        <code className="text-xs bg-muted px-2 py-1 rounded">
-                          {department.code}
-                        </code>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {department.description || "-"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={department.is_active ? "success" : "outline"}>
-                          {department.is_active ? "Actif" : "Inactif"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <TooltipProvider delayDuration={300}>
-                          <div className="flex items-center justify-end gap-1">
-                            {/* Voir les détails */}
-                            <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="size-8" asChild>
-                                    <Link href={`/apps/${slug}/hr/departments/${department.id}`}>
-                                      <HiOutlineEye className="size-4" />
-                                    </Link>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Voir les détails</TooltipContent>
-                              </Tooltip>
-                            </Can>
-
-                            {/* Modifier */}
-                            <Can permission={COMMON_PERMISSIONS.HR.UPDATE_DEPARTMENTS}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="size-8" asChild>
-                                    <Link href={`/apps/${slug}/hr/departments/${department.id}/edit`}>
-                                      <HiOutlinePencil className="size-4" />
-                                    </Link>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Modifier</TooltipContent>
-                              </Tooltip>
-                            </Can>
-
-                            {/* Supprimer */}
-                            <Can permission={COMMON_PERMISSIONS.HR.DELETE_DEPARTMENTS}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8 text-destructive hover:text-destructive"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteDepartment(department.id);
-                                    }}
-                                    disabled={deleting === department.id}
-                                  >
-                                    <HiOutlineTrash className="size-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Supprimer</TooltipContent>
-                              </Tooltip>
-                            </Can>
-                          </div>
-                        </TooltipProvider>
-                      </TableCell>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-base p-4">Nom</TableHead>
+                      <TableHead className="text-base p-4">Code</TableHead>
+                      <TableHead className="text-base p-4">Description</TableHead>
+                      <TableHead className="text-base p-4">Statut</TableHead>
+                      <TableHead className="text-base p-4 text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
-        </TabsContent>
-       </Can>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDepartments?.map((department, index) => (
+                      <TableRow
+                        key={department.id}
+                        className={cn(
+                          "cursor-pointer transition-colors text-lg",
+                          selectedIndex === index && "bg-primary/10 ring-2 ring-primary"
+                        )}
+                        style={{ minHeight: "52px" }}
+                        onClick={() => setSelectedIndex(index)}
+                        onDoubleClick={() => router.push(`/apps/${slug}/hr/departments/${department.id}`)}
+                        tabIndex={0}
+                        role="row"
+                        aria-selected={selectedIndex === index}
+                      >
+                        <TableCell className="font-medium text-base p-4">{department.name}</TableCell>
+                        <TableCell className="p-4">
+                          <code className="text-sm bg-muted px-3 py-1 rounded">
+                            {department.code}
+                          </code>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <span className="text-base text-muted-foreground">
+                            {department.description || "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <Badge variant={department.is_active ? "success" : "outline"} className="text-sm px-3 py-1">
+                            {department.is_active ? "Actif" : "Inactif"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right p-4">
+                          <TooltipProvider delayDuration={300}>
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Voir les détails */}
+                              <Can permission={COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="default" className="size-9" asChild>
+                                      <Link href={`/apps/${slug}/hr/departments/${department.id}`}>
+                                        <HiOutlineEye className="size-5" />
+                                      </Link>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-base p-2 px-3">Voir les détails</TooltipContent>
+                                </Tooltip>
+                              </Can>
+                              {/* Modifier */}
+                              <Can permission={COMMON_PERMISSIONS.HR.UPDATE_DEPARTMENTS}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="default" className="size-9" asChild>
+                                      <Link href={`/apps/${slug}/hr/departments/${department.id}/edit`}>
+                                        <HiOutlinePencil className="size-5" />
+                                      </Link>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-base p-2 px-3">Modifier</TooltipContent>
+                                </Tooltip>
+                              </Can>
+                              {/* Supprimer */}
+                              <Can permission={COMMON_PERMISSIONS.HR.DELETE_DEPARTMENTS}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="default"
+                                      className="size-9 text-destructive hover:text-destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteDepartment(department.id);
+                                      }}
+                                      disabled={deleting === department.id}
+                                    >
+                                      <HiOutlineTrash className="size-5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-base p-2 px-3">Supprimer</TooltipContent>
+                                </Tooltip>
+                              </Can>
+                            </div>
+                          </TooltipProvider>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </Card>
+          </TabsContent>
+        </Can>
 
         {/* Positions Tab */}
-     <Can permission={COMMON_PERMISSIONS.HR.VIEW_POSITIONS}>
-     <TabsContent value="positions" className="mt-4">
-          <Card className="border-0 shadow-sm">
-            {filteredPositions?.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-                    <HiOutlineUserGroup className="size-8 text-muted-foreground" />
+        <Can permission={COMMON_PERMISSIONS.HR.VIEW_POSITIONS}>
+          <TabsContent value="positions" className="mt-4">
+            <Card className="border-0 shadow-sm">
+              {filteredPositions?.length === 0 ? (
+                <div className="p-14 text-center">
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="flex size-16 items-center justify-center rounded-full bg-muted">
+                      <HiOutlineUserGroup className="size-8 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold">Aucun poste</h3>
+                      <p className="text-base text-muted-foreground mt-2">
+                        {searchQuery
+                          ? "Aucun résultat pour cette recherche"
+                          : "Commencez par créer votre premier poste"}
+                      </p>
+                    </div>
+                    {!searchQuery && (
+                      <Can permission={COMMON_PERMISSIONS.HR.CREATE_POSITIONS}>
+                        <Button size="default" className="h-10 px-4 py-2 text-base" onClick={() => openPositionModal()}>
+                          <HiOutlinePlusCircle className="size-5 mr-2" />
+                          Créer un poste
+                        </Button>
+                      </Can>
+                    )}
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">Aucun poste</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {searchQuery
-                        ? "Aucun résultat pour cette recherche"
-                        : "Commencez par créer votre premier poste"}
-                    </p>
-                  </div>
-                  {!searchQuery && (
-                    <Can permission={COMMON_PERMISSIONS.HR.CREATE_POSITIONS}>
-                      <Button onClick={() => openPositionModal()}>
-                        <HiOutlinePlusCircle className="size-4 mr-2" />
-                        Créer un poste
-                      </Button>
-                    </Can>
-                  )}
                 </div>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Titre</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPositions?.map((position, index) => (
-                    <TableRow
-                      key={position.id}
-                      className={cn(
-                        "cursor-pointer transition-colors",
-                        selectedIndex === index && "bg-primary/10 ring-1 ring-primary"
-                      )}
-                      onClick={() => setSelectedIndex(index)}
-                      tabIndex={0}
-                      role="row"
-                      aria-selected={selectedIndex === index}
-                    >
-                      <TableCell className="font-medium">{position.title}</TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {position.description || "-"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={position.is_active ? "success" : "outline"}>
-                          {position.is_active ? "Actif" : "Inactif"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <TooltipProvider delayDuration={300}>
-                          <div className="flex items-center justify-end gap-1">
-                            {/* Modifier */}
-                            <Can permission={COMMON_PERMISSIONS.HR.UPDATE_POSITIONS}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openPositionModal(position);
-                                    }}
-                                  >
-                                    <HiOutlinePencil className="size-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Modifier</TooltipContent>
-                              </Tooltip>
-                            </Can>
-
-                            {/* Supprimer */}
-                            <Can permission={COMMON_PERMISSIONS.HR.DELETE_POSITIONS}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-8 text-destructive hover:text-destructive"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeletePosition(position.id);
-                                    }}
-                                    disabled={deleting === position.id}
-                                  >
-                                    <HiOutlineTrash className="size-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Supprimer</TooltipContent>
-                              </Tooltip>
-                            </Can>
-                          </div>
-                        </TooltipProvider>
-                      </TableCell>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-base p-4">Titre</TableHead>
+                      <TableHead className="text-base p-4">Description</TableHead>
+                      <TableHead className="text-base p-4">Statut</TableHead>
+                      <TableHead className="text-base p-4 text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
-        </TabsContent>
-     </Can>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPositions?.map((position, index) => (
+                      <TableRow
+                        key={position.id}
+                        className={cn(
+                          "cursor-pointer transition-colors text-lg",
+                          selectedIndex === index && "bg-primary/10 ring-2 ring-primary"
+                        )}
+                        style={{ minHeight: "52px" }}
+                        onClick={() => setSelectedIndex(index)}
+                        tabIndex={0}
+                        role="row"
+                        aria-selected={selectedIndex === index}
+                      >
+                        <TableCell className="font-medium text-base p-4">{position.title}</TableCell>
+                        <TableCell className="p-4">
+                          <span className="text-base text-muted-foreground">
+                            {position.description || "-"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="p-4">
+                          <Badge variant={position.is_active ? "success" : "outline"} className="text-sm px-3 py-1">
+                            {position.is_active ? "Actif" : "Inactif"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right p-4">
+                          <TooltipProvider delayDuration={300}>
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Modifier */}
+                              <Can permission={COMMON_PERMISSIONS.HR.UPDATE_POSITIONS}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="default"
+                                      className="size-9"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openPositionModal(position);
+                                      }}
+                                    >
+                                      <HiOutlinePencil className="size-5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-base p-2 px-3">Modifier</TooltipContent>
+                                </Tooltip>
+                              </Can>
+                              {/* Supprimer */}
+                              <Can permission={COMMON_PERMISSIONS.HR.DELETE_POSITIONS}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="default"
+                                      className="size-9 text-destructive hover:text-destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeletePosition(position.id);
+                                      }}
+                                      disabled={deleting === position.id}
+                                    >
+                                      <HiOutlineTrash className="size-5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="text-base p-2 px-3">Supprimer</TooltipContent>
+                                </Tooltip>
+                              </Can>
+                            </div>
+                          </TooltipProvider>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </Card>
+          </TabsContent>
+        </Can>
       </Tabs>
 
-      {/* Hint */}
       <KeyboardHint />
 
       {/* Modal Poste */}
       {showPositionModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+          <div className="bg-background rounded-lg shadow-xl w-full max-w-md mx-2 p-8">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">
+              <h3 className="text-2xl font-semibold">
                 {editingPosition ? "Modifier le poste" : "Créer un poste"}
               </h3>
               <button
                 onClick={closePositionModal}
-                className="p-1 hover:bg-muted rounded"
+                className="p-1.5 hover:bg-muted rounded"
               >
-                <HiOutlineXMark className="size-5" />
+                <HiOutlineXMark className="size-6" />
               </button>
             </div>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Titre du poste *</label>
+                <label className="block text-base font-medium mb-2">Titre du poste *</label>
                 <input
                   type="text"
                   value={positionTitle}
                   onChange={(e) => setPositionTitle(e.target.value)}
                   placeholder="ex: Développeur Senior"
-                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="w-full h-12 rounded-md border border-input bg-background px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   autoFocus
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
+                <label className="block text-base font-medium mb-2">Description</label>
                 <textarea
                   value={positionDescription}
                   onChange={(e) => setPositionDescription(e.target.value)}
                   placeholder="Description du poste..."
-                  rows={3}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  rows={4}
+                  className="w-full rounded-md border border-input bg-background px-4 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
               
@@ -678,12 +667,16 @@ export default function DepartmentsPage() {
                 <Button
                   type="button"
                   variant="outline"
+                  size="default"
+                  className="h-10 px-4 py-2 text-base"
                   onClick={closePositionModal}
                 >
                   Annuler
                 </Button>
                 <Button
                   type="button"
+                  size="default"
+                  className="h-10 px-4 py-2 text-base"
                   disabled={!positionTitle.trim() || savingPosition}
                   onClick={handleSavePosition}
                 >

@@ -541,7 +541,7 @@ export function GeneratePayslipsModal({
               {/* Step 3: Confirmation */}
               {step === "confirm" && (
                 <div className="space-y-6 p-4">
-                  <Card className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+                  <Card className="p-6 bg-linear-to-br from-primary/5 to-primary/10 border-primary/20">
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                       <HiOutlineDocumentCheck className="size-5" />
                       Récapitulatif

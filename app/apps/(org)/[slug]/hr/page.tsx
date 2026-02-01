@@ -727,7 +727,7 @@ export default function HRDashboardPage() {
                       )}
                     >
                       <div
-                        className={cn("size-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center font-semibold text-primary")}
+                        className={cn("size-10 rounded-full bg-linear-to-br from-primary/20 to-primary/10 flex items-center justify-center font-semibold text-primary")}
                       >
                         {employee.full_name?.split(" ").map((n) => n[0]).join("").slice(0, 2)}
                       </div>

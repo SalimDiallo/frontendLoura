@@ -29,7 +29,6 @@ import { getLeaveRequests, approveLeaveRequest, rejectLeaveRequest } from "@/lib
 import type { LeaveRequest } from "@/lib/types/hr";
 import { ApiError } from "@/lib/api/client";
 import { useUser } from "@/lib/hooks";
-import { getPermissions } from "@/lib/services/hr/permission.service";
 import {
   Table,
   TableHeader,
@@ -57,7 +56,6 @@ const LEAVE_TYPE_COLORS: Record<string, string> = {
   "Sans solde": "bg-gray-100 text-gray-800",
   "Maladie": "bg-pink-100 text-pink-800",
   "Exceptionnel": "bg-yellow-100 text-yellow-800",
-  // Ajoute plus si besoin selon leave_type_name
 };
 
 export default function LeavesPage() {

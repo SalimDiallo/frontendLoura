@@ -218,7 +218,7 @@ function StatsCards({ data, title }: { data: Record<string, unknown>; title?: st
           <div
             key={key}
             className={cn(
-              "rounded-xl border bg-gradient-to-br p-4 transition-all hover:shadow-lg hover:scale-[1.02]",
+              "rounded-xl border bg-linear-to-br p-4 transition-all hover:shadow-lg hover:scale-[1.02]",
               getCardStyle(key, value)
             )}
           >

@@ -64,7 +64,7 @@ function AvatarFallback({
         // Forme
         "rounded-full",
         // Gradient de fond premium
-        "bg-gradient-to-br from-primary/20 to-primary/10",
+        "bg-linear-to-br from-primary/20 to-primary/10",
         "dark:from-primary/30 dark:to-primary/20",
         // Texte
         "text-sm font-bold text-primary dark:text-primary-foreground",

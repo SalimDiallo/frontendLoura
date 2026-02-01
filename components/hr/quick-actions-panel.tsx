@@ -119,10 +119,10 @@ export function QuickActionsPanel({
               action.disabled && "opacity-50 cursor-not-allowed",
               !action.disabled && "cursor-pointer",
               // Fond avec gradient selon la variante
-              action.variant === "success" && "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800",
-              action.variant === "warning" && "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800",
-              action.variant === "danger" && "bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border border-red-200 dark:border-red-800",
-              action.variant === "info" && "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800",
+              action.variant === "success" && "bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800",
+              action.variant === "warning" && "bg-linear-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800",
+              action.variant === "danger" && "bg-linear-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border border-red-200 dark:border-red-800",
+              action.variant === "info" && "bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800",
               !action.variant && "bg-muted/50 hover:bg-muted border border-border"
             )}
             disabled={action.disabled || processingId === action.id}

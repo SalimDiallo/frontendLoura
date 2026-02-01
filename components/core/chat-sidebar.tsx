@@ -344,7 +344,7 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
         {/* Header avec effet glassmorphism */}
         <div className="flex h-14 items-center justify-between border-b bg-background/80 backdrop-blur-md px-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-lg shadow-primary/20 transition-transform hover:scale-105 active:scale-95">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary/60 shadow-lg shadow-primary/20 transition-transform hover:scale-105 active:scale-95">
               <HiOutlineSparkles className="size-5 text-primary-foreground" />
             </div>
             <div>
@@ -507,8 +507,8 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
                     className={cn(
                       "flex size-8 shrink-0 items-center justify-center rounded-xl shadow-sm transition-transform hover:scale-110",
                       msg.role === "assistant"
-                        ? "bg-gradient-to-br from-primary to-primary/60 text-primary-foreground"
-                        : "bg-gradient-to-br from-muted to-muted-foreground/20"
+                        ? "bg-linear-to-br from-primary to-primary/60 text-primary-foreground"
+                        : "bg-linear-to-br from-muted to-muted-foreground/20"
                     )}
                   >
                     {msg.role === "assistant" ? (
@@ -621,7 +621,7 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
               {/* Typing indicator */}
               {isTyping && (
                 <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground shadow-sm">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary/60 text-primary-foreground shadow-sm">
                     <HiOutlineSparkles className="size-4" />
                   </div>
                   <div className="bg-muted/80 rounded-2xl rounded-tl-sm shadow-sm">
@@ -646,7 +646,7 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
                   <div className={cn(
                     "p-1.5 rounded-lg transition-all duration-300",
                     agentMode 
-                      ? "bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/30" 
+                      ? "bg-linear-to-br from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/30" 
                       : "bg-muted text-muted-foreground"
                   )}>
                     {agentMode ? (

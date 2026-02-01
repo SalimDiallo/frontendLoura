@@ -148,7 +148,7 @@ function DeniedMinimal({ message }: DeniedViewProps) {
  */
 function DeniedCard({ message, showBackButton, onBack }: DeniedViewProps) {
   return (
-    <div className="rounded-xl border border-amber-200/50 bg-gradient-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/10 dark:border-amber-800/30 p-4">
+    <div className="rounded-xl border border-amber-200/50 bg-linear-to-br from-amber-50/80 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/10 dark:border-amber-800/30 p-4">
       <div className="flex items-start gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/40">
           <HiOutlineExclamationTriangle className="size-5 text-amber-600 dark:text-amber-400" />
@@ -183,7 +183,7 @@ function DeniedFullpage({ message, showBackButton, onBack }: DeniedViewProps) {
     <div className="flex min-h-[400px] items-center justify-center p-6">
       <div className="max-w-md text-center">
         {/* Icon */}
-        <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/20">
+        <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-2xl bg-linear-to-br from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/20">
           <HiOutlineShieldExclamation className="size-10 text-red-500 dark:text-red-400" />
         </div>
         

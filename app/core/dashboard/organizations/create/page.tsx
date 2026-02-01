@@ -404,7 +404,7 @@ export default function CreateOrganizationPage() {
             <div className="sticky top-8 space-y-6">
               
               {/* Preview Card */}
-              <div className="bg-gradient-to-br from-card to-muted/50 dark:from-slate-900 dark:to-slate-950 border border-border dark:border-slate-800 rounded-xl p-6 shadow-sm">
+              <div className="bg-linear-to-br from-card to-muted/50 dark:from-slate-900 dark:to-slate-950 border border-border dark:border-slate-800 rounded-xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4 text-sm font-medium text-muted-foreground">
                   <Monitor className="w-4 h-4" />
                   Aperçu

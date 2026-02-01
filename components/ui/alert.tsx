@@ -93,7 +93,7 @@ export const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
       >
         {/* Décoration de fond */}
         <div className="absolute inset-0 -z-10 opacity-50">
-          <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-gradient-to-br from-current to-transparent opacity-10 blur-3xl" />
+          <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-linear-to-br from-current to-transparent opacity-10 blur-3xl" />
         </div>
 
         <div className="flex gap-4">

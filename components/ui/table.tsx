@@ -3,7 +3,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-// Design Premium SaaS - Tables modernes avec effets élégants
+// Amélioration du rendu des lignes du tableau : survol, sélection, alternance, épaisseur, couleur plus nette
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
@@ -34,12 +34,10 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
     <thead
       data-slot="table-header"
       className={cn(
-        // Fond avec gradient subtil
         "[&_tr]:border-b-0",
         "[&_th]:bg-gradient-to-b [&_th]:from-slate-50 [&_th]:to-slate-100/80",
         "[&_th]:dark:from-slate-800/80 [&_th]:dark:to-slate-800/60",
         "[&_th]:backdrop-blur-sm",
-        // Première et dernière cellule arrondies
         "[&_tr>th:first-child]:rounded-tl-xl",
         "[&_tr>th:last-child]:rounded-tr-xl",
         className
@@ -55,9 +53,14 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
       data-slot="table-body"
       className={cn(
         "[&_tr:last-child]:border-0",
-        "[&_tr]:hover:z-10",
+        // Alternance des lignes pour une meilleure lisibilité
+        "[&_tr:nth-child(even)]:bg-slate-50/70 dark:[&_tr:nth-child(even)]:bg-slate-800/40",
+        "[&_tr]:hover:z-30",
+        "[&_tr]:relative",
         // Animation des lignes au survol
-        "[&_tr]:transition-all [&_tr]:duration-150",
+        "[&_tr]:transition-[background,box-shadow] [&_tr]:duration-150",
+        // Soft shadow on hover for 'lift' effect
+        "[&_tr:hover]:shadow-md [&_tr:hover]:z-40",
         className
       )}
       {...props}
@@ -88,13 +91,16 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        // Hover avec effet de surlignage
-        "hover:bg-primary/[0.03] dark:hover:bg-primary/[0.05]",
-        "data-[state=selected]:bg-primary/5 dark:data-[state=selected]:bg-primary/10",
-        // Bordure inférieure subtile
-        "border-b border-border/30 dark:border-slate-700/30",
-        // Transition fluide
-        "transition-colors duration-150",
+        // Fond alterné déjà sur TableBody, on n'en rajoute pas ici.
+        // Hover amélioré + effet visuel plus engageant
+        "hover:bg-primary/10 dark:hover:bg-primary/20",
+        "data-[state=selected]:bg-primary/20 dark:data-[state=selected]:bg-primary/30",
+        // Soulignement plus fort et net
+        "border-b-2 border-border/60 dark:border-slate-700/50",
+        // Ajout d'un effet d'ombre très léger au survol
+        "hover:shadow-md hover:z-50",
+        // Transition très fluide
+        "transition-all duration-200",
         className
       )}
       {...props}
@@ -102,33 +108,27 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   )
 }
 
-function TableHead({ 
-  className, 
-  "data-active": dataActive, 
-  ...props 
+function TableHead({
+  className,
+  "data-active": dataActive,
+  ...props
 }: React.ComponentProps<"th"> & { "data-active"?: boolean }) {
   return (
     <th
       data-slot="table-head"
       data-active={dataActive}
       className={cn(
-        // Style de base
         "h-12 px-4 text-left align-middle font-semibold text-xs uppercase tracking-wider",
         "text-muted-foreground/80 dark:text-slate-400",
         "whitespace-nowrap",
-        // Bordure inférieure stylée
         "border-b-2 border-border/40 dark:border-slate-700/40",
-        // Active state (pour tabs)
         dataActive && [
           "text-primary dark:text-primary",
           "border-b-2 border-primary",
           "bg-primary/5 dark:bg-primary/10",
         ],
-        // Hover
         !dataActive && "hover:text-foreground hover:bg-muted/50",
-        // Checkbox alignment
         "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
-        // Cursor
         "cursor-pointer select-none",
         "transition-all duration-150",
         className
@@ -147,6 +147,8 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
         "p-4 align-middle",
         "text-sm text-foreground/90",
         "whitespace-nowrap",
+        // Renforce la séparation visuelle
+        "border-b border-border/30 dark:border-slate-700/30",
         "[&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}

@@ -200,7 +200,7 @@ function QRDisplayContent() {
     const ModeIcon = modeConfig[session.mode || 'auto'].icon;
 
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
         <Card className="max-w-2xl w-full p-8 border-0 shadow-2xl">
           {/* Header with employees */}
           <div className="text-center mb-6 pb-6 border-b">
@@ -336,7 +336,7 @@ function QRDisplayContent() {
 
   // Employee Selection State
   return (
-    <div className="min-h-screen p-4 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen p-4 bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
