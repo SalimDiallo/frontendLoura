@@ -13,6 +13,7 @@ import type {
 
 /**
  * Liste toutes les fiches de paie d'une organisation
+ * @param excludeOwn - Si true, exclut les propres fiches de l'utilisateur (pour les gestionnaires)
  */
 export async function getPayrolls(
   organizationSlug: string,
@@ -23,6 +24,7 @@ export async function getPayrolls(
     period_end?: string;
     page?: number;
     page_size?: number;
+    exclude_own?: boolean;  // Nouveau: exclure ses propres fiches
   }
 ): Promise<PayrollListResponse> {
   try {
@@ -35,6 +37,7 @@ export async function getPayrolls(
     if (params?.period_end) searchParams.append('period_end', params.period_end);
     if (params?.page) searchParams.append('page', String(params.page));
     if (params?.page_size) searchParams.append('page_size', String(params.page_size));
+    if (params?.exclude_own) searchParams.append('exclude_own', 'true');
 
     const queryString = searchParams.toString();
     const url = `${API_ENDPOINTS.HR.PAYSLIPS.LIST}?${queryString}`;
@@ -42,6 +45,34 @@ export async function getPayrolls(
     return await apiClient.get<PayrollListResponse>(url);
   } catch (error) {
     console.error('Error fetching payrolls:', error);
+    return {
+      count: 0,
+      next: undefined,
+      previous: undefined,
+      results: [],
+    };
+  }
+}
+
+/**
+ * Récupère l'historique de ses propres fiches de paie
+ * Utilise l'endpoint /history/ qui retourne uniquement les paies de l'utilisateur connecté
+ */
+export async function getMyPayslips(params?: {
+  status?: string;
+}): Promise<PayrollListResponse> {
+  try {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.append('status', params.status);
+
+    const queryString = searchParams.toString();
+    const url = queryString
+      ? `${API_ENDPOINTS.HR.PAYSLIPS.HISTORY}?${queryString}`
+      : API_ENDPOINTS.HR.PAYSLIPS.HISTORY;
+
+    return await apiClient.get<PayrollListResponse>(url);
+  } catch (error) {
+    console.error('Error fetching my payslips:', error);
     return {
       count: 0,
       next: undefined,

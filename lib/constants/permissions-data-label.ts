@@ -52,6 +52,9 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   { code: COMMON_PERMISSIONS.HR.VIEW_PAYROLL, label: "Voir la paie", category: "Paie", module: "hr" },
   { code: COMMON_PERMISSIONS.HR.CREATE_PAYROLL, label: "Créer des bulletins", category: "Paie", module: "hr" },
   { code: COMMON_PERMISSIONS.HR.UPDATE_PAYROLL, label: "Modifier la paie", category: "Paie", module: "hr" },
+  { code: COMMON_PERMISSIONS.HR.DELETE_PAYROLL, label: "Supprimer la paie", category: "Paie", module: "hr" },
+  { code: COMMON_PERMISSIONS.HR.APPROVE_PAYROLL, label: "Approuver des avances", category: "Paie", module: "hr" },
+  { code: COMMON_PERMISSIONS.HR.PROCESS_PAYROLL, label: "Marquer comme payée", category: "Paie", module: "hr" },
   { code: COMMON_PERMISSIONS.HR.EXPORT_PAYROLL, label: "Exporter la paie", category: "Paie", module: "hr" },
 
   // Attendance

@@ -406,10 +406,10 @@ function AttendanceHistoryContent() {
         <div className="flex bg-muted/20 p-0.5 rounded-md border border-border/40 self-start sm:self-auto">
           <Button
             size="sm"
-            variant={viewMode === "calendar" ? "secondary" : "ghost"}
+            variant={viewMode === "calendar" ? "premium" : "ghost"}
             className={cn(
               "rounded px-3 py-1 text-xs shadow-none",
-              viewMode === "calendar" && "bg-background border border-border/30"
+              viewMode === "calendar" && "bg-foreground text-background border border-border/30"
             )}
             onClick={() => setViewMode("calendar")}
           >
@@ -418,10 +418,10 @@ function AttendanceHistoryContent() {
           </Button>
           <Button
             size="sm"
-            variant={viewMode === "table" ? "secondary" : "ghost"}
+            variant={viewMode === "table" ? "premium" : "ghost"}
             className={cn(
               "rounded px-3 py-1 text-xs shadow-none",
-              viewMode === "table" && "bg-background border border-border/30"
+              viewMode === "table" && "bg-foreground text-background border border-border/30"
             )}
             onClick={() => setViewMode("table")}
           >

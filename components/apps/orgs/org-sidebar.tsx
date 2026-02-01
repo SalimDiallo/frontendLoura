@@ -168,7 +168,7 @@ export function OrganisationSideBar() {
         hasPermission(COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS) && { title: "Départements", url: `/apps/${orgSlug}/hr/departments`, icon: Building2 },
         hasPermission(COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES) && { title: "Employés", url: `/apps/${orgSlug}/hr/employees`, icon: HiOutlineUsers },
         hasPermission(COMMON_PERMISSIONS.HR.VIEW_ROLES) && { title: "Rôles", url: `/apps/${orgSlug}/hr/roles`, icon: HiOutlineBriefcase },
-        hasPermission(COMMON_PERMISSIONS.HR.VIEW_PAYROLL) && { title: "Paie", url: `/apps/${orgSlug}/hr/payroll/`, icon: HiOutlineDocumentCurrencyDollar },
+        { title: "Paie", url: `/apps/${orgSlug}/hr/payroll/`, icon: HiOutlineDocumentCurrencyDollar },
         hasPermission(COMMON_PERMISSIONS.HR.VIEW_CONTRACTS) && { title: "Contrats", url: `/apps/${orgSlug}/hr/contracts`, icon: HiOutlineIdentification },
         { title: "Congés", url: `/apps/${orgSlug}/hr/leaves`, icon: HiOutlineBriefcase },
         { title: "Pointage", url: `/apps/${orgSlug}/hr/attendance`, icon: HiOutlineClock }

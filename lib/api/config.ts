@@ -143,6 +143,7 @@ export const API_ENDPOINTS = {
     PAYSLIPS: {
       LIST: '/hr/payslips/',
       CREATE: '/hr/payslips/',
+      HISTORY: '/hr/payslips/history/',  // Historique personnel de l'utilisateur
       DETAIL: (id: string) => `/hr/payslips/${id}/`,
       UPDATE: (id: string) => `/hr/payslips/${id}/`,
       DELETE: (id: string) => `/hr/payslips/${id}/`,
@@ -153,13 +154,12 @@ export const API_ENDPOINTS = {
     PAYROLL_ADVANCES: {
       LIST: '/hr/payroll-advances/',
       CREATE: '/hr/payroll-advances/',
+      HISTORY: '/hr/payroll-advances/history/',  // Historique personnel de l'utilisateur
       DETAIL: (id: string) => `/hr/payroll-advances/${id}/`,
       UPDATE: (id: string) => `/hr/payroll-advances/${id}/`,
       DELETE: (id: string) => `/hr/payroll-advances/${id}/`,
       APPROVE: (id: string) => `/hr/payroll-advances/${id}/approve/`,
       REJECT: (id: string) => `/hr/payroll-advances/${id}/reject/`,
-      MARK_PAID: (id: string) => `/hr/payroll-advances/${id}/mark_as_paid/`,
-      DEDUCT_FROM_PAYSLIP: (id: string) => `/hr/payroll-advances/${id}/deduct_from_payslip/`,
     },
     // Calendrier
     CALENDAR: {

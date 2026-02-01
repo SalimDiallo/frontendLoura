@@ -466,7 +466,6 @@ export interface PayrollCreate {
   base_salary: number;
   allowances?: PayrollItem[];  // Liste des primes et indemnités
   deductions?: PayrollItem[];  // Liste des déductions
-  currency?: string;
   worked_hours?: number;
   overtime_hours?: number;
   leave_days_taken?: number;

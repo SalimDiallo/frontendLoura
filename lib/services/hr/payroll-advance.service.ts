@@ -12,22 +12,44 @@ import type {
 
 /**
  * Liste toutes les demandes d'avances
+ * @param excludeOwn - Si true, exclut les propres demandes de l'utilisateur (pour les gestionnaires)
  */
 export async function getPayrollAdvances(params?: {
   organization_subdomain?: string;
   status?: string;
   employee?: string;
+  exclude_own?: boolean;  // Nouveau: exclure ses propres demandes
 }): Promise<PayrollAdvance[]> {
   const searchParams = new URLSearchParams();
 
   if (params?.organization_subdomain) searchParams.append('organization_subdomain', params.organization_subdomain);
   if (params?.status) searchParams.append('status', params.status);
   if (params?.employee) searchParams.append('employee', params.employee);
+  if (params?.exclude_own) searchParams.append('exclude_own', 'true');
 
   const queryString = searchParams.toString();
   const url = queryString
     ? `${API_ENDPOINTS.HR.PAYROLL_ADVANCES.LIST}?${queryString}`
     : API_ENDPOINTS.HR.PAYROLL_ADVANCES.LIST;
+
+  const response = await apiClient.get<{ count: number; results: PayrollAdvance[] }>(url);
+  return response.results || [];
+}
+
+/**
+ * Récupère l'historique de ses propres demandes d'avances
+ * Utilise l'endpoint /history/ qui retourne uniquement les avances de l'utilisateur connecté
+ */
+export async function getMyPayrollAdvances(params?: {
+  status?: string;
+}): Promise<PayrollAdvance[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.status) searchParams.append('status', params.status);
+
+  const queryString = searchParams.toString();
+  const url = queryString
+    ? `${API_ENDPOINTS.HR.PAYROLL_ADVANCES.HISTORY}?${queryString}`
+    : API_ENDPOINTS.HR.PAYROLL_ADVANCES.HISTORY;
 
   const response = await apiClient.get<{ count: number; results: PayrollAdvance[] }>(url);
   return response.results || [];
@@ -42,6 +64,7 @@ export async function getPayrollAdvance(id: string): Promise<PayrollAdvance> {
 
 /**
  * Crée une nouvelle demande d'avance
+ * Si employee n'est pas spécifié, crée une demande pour l'utilisateur connecté
  */
 export async function createPayrollAdvance(data: PayrollAdvanceCreate): Promise<PayrollAdvance> {
   return apiClient.post<PayrollAdvance>(API_ENDPOINTS.HR.PAYROLL_ADVANCES.CREATE, data);
@@ -63,6 +86,7 @@ export async function deletePayrollAdvance(id: string): Promise<void> {
 
 /**
  * Approuve une demande d'avance
+ * Note: Un utilisateur ne peut pas approuver sa propre demande
  */
 export async function approvePayrollAdvance(id: string, data?: Partial<PayrollAdvanceApproval>): Promise<PayrollAdvance> {
   return apiClient.post<PayrollAdvance>(
@@ -73,6 +97,7 @@ export async function approvePayrollAdvance(id: string, data?: Partial<PayrollAd
 
 /**
  * Rejette une demande d'avance
+ * Note: Un utilisateur ne peut pas rejeter sa propre demande
  */
 export async function rejectPayrollAdvance(id: string, reason: string): Promise<PayrollAdvance> {
   return apiClient.post<PayrollAdvance>(
@@ -83,4 +108,3 @@ export async function rejectPayrollAdvance(id: string, reason: string): Promise<
 
 // Les fonctions markAdvanceAsPaid et deductAdvanceFromPayslip ont été supprimées
 // car le workflow simplifié déduit automatiquement les avances approuvées lors de la génération de paie
-

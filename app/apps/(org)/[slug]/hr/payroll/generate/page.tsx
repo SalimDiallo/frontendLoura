@@ -93,6 +93,7 @@ interface EmployeeWithContract extends EmployeeListItem {
 // ============================================
 // Simple Checkbox component
 // ============================================
+// Make sure Checkbox never creates a button inside a button (use a span if needed)
 const Checkbox = ({ checked, onChange, id, className, disabled }: { 
   checked: boolean; 
   onChange?: () => void; 
@@ -100,22 +101,31 @@ const Checkbox = ({ checked, onChange, id, className, disabled }: {
   className?: string;
   disabled?: boolean;
 }) => (
-  <button
-    type="button"
+  <span
+    role="checkbox"
+    aria-checked={checked}
+    aria-disabled={disabled}
     id={id}
+    tabIndex={disabled ? -1 : 0}
     onClick={disabled ? undefined : onChange}
-    disabled={disabled}
+    onKeyPress={disabled ? undefined : (e) => {
+      if (onChange && (e.key === "Enter" || e.key === " ")) {
+        e.preventDefault();
+        onChange();
+      }
+    }}
     className={cn(
-      "size-5 rounded border-2 flex items-center justify-center transition-colors shrink-0",
+      "size-5 rounded border-2 flex items-center justify-center transition-colors shrink-0 select-none",
       disabled && "opacity-50 cursor-not-allowed",
       checked 
         ? "bg-primary border-primary text-white" 
         : "border-muted-foreground/30 hover:border-primary/50",
-      className
+      className,
+      "cursor-pointer"
     )}
   >
-    {checked && <HiOutlineCheck className="size-3.5" />}
-  </button>
+    {checked && <HiOutlineCheck className="size-3.5 pointer-events-none" />}
+  </span>
 );
 
 // ============================================
@@ -155,6 +165,7 @@ const AddItemButton = ({
             ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400"
             : "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400"
         )}
+        type="button"
       >
         <HiOutlinePlus className="size-3" />
         Ajouter
@@ -179,6 +190,7 @@ const AddItemButton = ({
                 key={s}
                 onClick={() => setName(s)}
                 className="text-xs px-2 py-0.5 bg-muted rounded hover:bg-muted/80"
+                type="button"
               >
                 {s}
               </button>
@@ -205,6 +217,7 @@ const AddItemButton = ({
               setAmount('');
             }}
             className="flex-1 h-7 text-xs"
+            type="button"
           >
             Annuler
           </Button>
@@ -216,6 +229,7 @@ const AddItemButton = ({
               "flex-1 h-7 text-xs",
               type === 'allowance' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
             )}
+            type="button"
           >
             Ajouter
           </Button>
@@ -255,7 +269,6 @@ export default function GeneratePayslipsPage() {
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [filterPosition, setFilterPosition] = useState<string>("all");
   const [autoApprove, setAutoApprove] = useState(false);
-  const [autoDeductAdvances, setAutoDeductAdvances] = useState(true);
 
   // Period creation dialog
   const [showPeriodDialog, setShowPeriodDialog] = useState(false);
@@ -266,6 +279,14 @@ export default function GeneratePayslipsPage() {
     end_date: "",
     payment_date: "",
   });
+
+  // --------------------------------------------
+  // Utility: Get effective base salary (custom or from contract)
+  // To fix ReferenceError, declare this before code that needs it (e.g., in useMemo below).
+  // --------------------------------------------
+  const getEffectiveBaseSalary = (emp: EmployeeWithContract): number => {
+    return emp.customBaseSalary !== null ? emp.customBaseSalary : (emp.contract?.base_salary ? emp.contract.base_salary : 0);
+  };
 
   // ============================================
   // Load Data
@@ -521,11 +542,6 @@ export default function GeneratePayslipsPage() {
     ));
   };
 
-  // Get effective base salary (custom or from contract)
-  const getEffectiveBaseSalary = (emp: EmployeeWithContract): number => {
-    return emp.customBaseSalary !== null ? emp.customBaseSalary : (emp.contract?.base_salary || 0);
-  };
-
   // Add an allowance to an employee
   const addAllowance = (employeeId: string, name: string, amount: number) => {
     setEmployees(prev => prev.map(emp => {
@@ -670,7 +686,6 @@ export default function GeneratePayslipsPage() {
       }
 
       const result = await generateBulkPayslips(selectedPeriod || null, {
-        auto_deduct_advances: autoDeductAdvances,
         auto_approve: autoApprove,
         employee_ids: selectedEmployeeIds,
         employee_custom_data: employeeCustomData,
@@ -925,16 +940,24 @@ export default function GeneratePayslipsPage() {
             {/* Summary row */}
             <div className="flex items-center justify-between mb-4 p-3 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-4">
-                <button
+                <span
                   onClick={toggleAll}
-                  className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  className="flex items-center gap-2 text-sm font-medium text-primary hover:underline cursor-pointer"
+                  tabIndex={0}
+                  role="button"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleAll();
+                    }
+                  }}
                 >
                   <Checkbox 
                     checked={selectableEmployees.length > 0 && selectableEmployees.every(emp => emp.selected)} 
                     onChange={toggleAll}
                   />
                   {selectableEmployees.every(emp => emp.selected) ? "Tout désélectionner" : "Tout sélectionner"}
-                </button>
+                </span>
                 <span className="text-sm text-muted-foreground">
                   {filteredEmployees.length} employé(s) affiché(s)
                 </span>
@@ -1127,6 +1150,7 @@ export default function GeneratePayslipsPage() {
                                                 <button 
                                                   onClick={() => removeItem(employee.id, item.id, false)}
                                                   className="text-red-500 hover:text-red-700"
+                                                  type="button"
                                                 >
                                                   <HiOutlineTrash className="size-3" />
                                                 </button>
@@ -1161,6 +1185,7 @@ export default function GeneratePayslipsPage() {
                                                 <button 
                                                   onClick={() => removeItem(employee.id, item.id, true)}
                                                   className="text-red-500 hover:text-red-700"
+                                                  type="button"
                                                 >
                                                   <HiOutlineTrash className="size-3" />
                                                 </button>
@@ -1275,19 +1300,6 @@ export default function GeneratePayslipsPage() {
             <div className="space-y-4">
               <label className="flex items-start gap-3 cursor-pointer">
                 <Checkbox
-                  checked={autoDeductAdvances}
-                  onChange={() => setAutoDeductAdvances(!autoDeductAdvances)}
-                />
-                <div>
-                  <p className="font-medium text-sm">Déduire les avances</p>
-                  <p className="text-xs text-muted-foreground">
-                    Les avances approuvées seront automatiquement déduites du salaire
-                  </p>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3 cursor-pointer">
-                <Checkbox
                   checked={autoApprove}
                   onChange={() => setAutoApprove(!autoApprove)}
                 />
@@ -1313,7 +1325,7 @@ export default function GeneratePayslipsPage() {
 
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Total salaires bruts</span>
-                <span className="font-semibold">{formatCurrency(selectedTotal, "GNF")}</span>
+                <span className="font-semibold">{formatCurrency(selectedTotal)}</span>
               </div>
 
               {selectedPeriod && (

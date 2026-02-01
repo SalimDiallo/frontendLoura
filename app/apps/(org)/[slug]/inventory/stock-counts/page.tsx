@@ -21,7 +21,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/shared";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
@@ -407,7 +407,7 @@ export default function StockCountsPage() {
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                        <span>{new Date(count.count_date).toLocaleDateString('fr-FR')}</span>
+                        <span>{formatDate(count.count_date)}</span>
                       </div>
                     </td>
                     <td className="p-4">{getStatusBadgeNode(count.status)}</td>

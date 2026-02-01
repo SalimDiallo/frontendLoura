@@ -55,6 +55,9 @@ export const HR_PERMISSIONS = {
   VIEW_PAYROLL: 'hr.view_payroll',
   CREATE_PAYROLL: 'hr.create_payroll',
   UPDATE_PAYROLL: 'hr.update_payroll',
+  DELETE_PAYROLL: 'hr.delete_payroll',
+  APPROVE_PAYROLL: 'hr.approve_payroll',  // Approuver les avances sur salaire
+  PROCESS_PAYROLL: 'hr.process_payroll',  // Marquer les bulletins comme payés
   EXPORT_PAYROLL: 'hr.export_payroll',
 
   // Attendance

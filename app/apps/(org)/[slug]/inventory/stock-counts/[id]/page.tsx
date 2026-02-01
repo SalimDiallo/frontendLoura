@@ -52,7 +52,7 @@ import {
   Copy,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 
 export default function StockCountDetailPage() {
@@ -509,8 +509,8 @@ export default function StockCountDetailPage() {
   const itemsWithDiscrepancy = stockCount.items?.filter(
     (item) => item.difference !== undefined && item.difference !== 0
   ).length || 0;
-  const totalExpected = stockCount.items?.reduce((sum, item) => sum + item.expected_quantity, 0) || 0;
-  const totalCounted = stockCount.items?.reduce((sum, item) => sum + item.counted_quantity, 0) || 0;
+  const totalExpected = stockCount.items?.reduce((sum, item) => sum + Number(item.expected_quantity), 0) || 0;
+  const totalCounted = stockCount.items?.reduce((sum, item) => sum + Number(item.counted_quantity), 0) || 0;
 
   return (
     <div className="space-y-6 p-6">
@@ -912,7 +912,7 @@ export default function StockCountDetailPage() {
               </span>
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" aria-hidden="true" />
-                {new Date(stockCount.count_date).toLocaleDateString("fr-FR")}
+                {formatDate(stockCount.count_date)}
               </span>
             </p>
           </div>

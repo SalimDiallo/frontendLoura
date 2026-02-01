@@ -53,7 +53,35 @@ export interface UnifiedUser {
   phone?: string;
   avatar_url?: string;
   user_type: 'admin' | 'employee';
+  date_of_birth?: string,
+  address?:string,
   is_active: boolean;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  nationality?: string;
+  emergency_contact?: {
+    name?: string;
+    phone?: string;
+    relationship?: string;
+  };
+  contract?: {
+    id: string;
+    name: string;
+    type?: string;
+    start_date?: string;
+    end_date?: string;
+  };
+  hire_date?: string;
+  termination_date?: string;
+  manager?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    user_type: "admin" | "employee";
+  };
+  role?: { id: string; name: string };
   created_at: string;
   // Fields spécifiques Admin
   organizations?: Array<{

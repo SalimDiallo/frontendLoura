@@ -165,7 +165,7 @@ export default function AttendancePage() {
     },
     checked_out: {
       color: "bg-foreground",
-      textColor: "text-background",
+      textColor: "dark:text-black text-white",
       label: "Journée terminée",
       description: "Vous avez terminé votre journée",
     },
@@ -285,13 +285,22 @@ export default function AttendancePage() {
             <div className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-full",
               stateConfig[state].color,
-              "text-white font-medium"
+              "text-white dark:text-black font-medium "
             )}>
-              <span className="relative flex size-2">
+              <span className="relative flex size-2 items-center">
                 {(state === "checked_in" || state === "on_break") && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                  <span className="absolute inline-flex h-full w-full rounded-full animate-ping bg-black dark:bg-white opacity-75" />
                 )}
-                <span className="relative inline-flex rounded-full size-2 bg-white" />
+                <span
+                  className={cn(
+                    "relative inline-flex rounded-full size-2",
+                    (state === "checked_in" || state === "on_break")
+                      ? "bg-black dark:bg-white"
+                      : state === "checked_out"
+                      ? "bg-secondary"
+                      : "bg-slate-500 dark:bg-slate-300"
+                  )}
+                />
               </span>
               {stateConfig[state].label}
             </div>

@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { organizationService } from "@/lib/services/core";
@@ -11,45 +11,36 @@ import { API_CONFIG } from "@/lib/api/config";
 import {
   Users,
   Package,
-  BarChart3,
-  Receipt,
   Settings,
   ArrowRight,
   Calendar,
   Loader2,
 } from "lucide-react";
+import { usePermissionContext } from "@/components/apps/common";
+import { PERMISSIONS } from "@/lib/constants/permissions";
 
-const quickLinks = [
+// Liens principaux par module uniquement
+const MODULE_LINKS = [
   {
     title: "Ressources Humaines",
-    description: "Gérer les employés et la paie",
+    description: "RH: employés, paie & absences",
     href: "/hr",
     icon: Users,
+    permission: PERMISSIONS.HR.VIEW_EMPLOYEES,
   },
   {
-    title: "Inventaire",
-    description: "Stocks et mouvements",
+    title: "Stocks / Inventaire",
+    description: "Inventaire: produits, mouvements, ventes",
     href: "/inventory",
     icon: Package,
-  },
-  {
-    title: "Rapports",
-    description: "Analyses et statistiques",
-    href: "/inventory/reports",
-    icon: BarChart3,
-  },
-  {
-    title: "Documents",
-    description: "Devis et factures",
-    href: "/inventory/documents",
-    icon: Receipt,
+    permission: PERMISSIONS.INVENTORY.VIEW_STOCK,
   },
 ];
 
 export default function OrganizationDashboardPage() {
   const params = useParams();
   const slug = params.slug as string;
-  
+  const { hasPermission } = usePermissionContext();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [greeting, setGreeting] = useState("Bonjour");
@@ -108,9 +99,14 @@ export default function OrganizationDashboardPage() {
   };
 
   const orgName = organization?.name || formatOrgName(slug);
-  const logoUrl = organization?.logo 
+  const logoUrl = organization?.logo
     ? (organization.logo.startsWith('http') ? organization.logo : `${API_CONFIG.baseURL}/media/${organization.logo}`)
     : null;
+
+  // Accès rapide simplifiés: juste module par module si accès!
+  const quickLinks = useMemo(() => {
+    return MODULE_LINKS.filter(link => hasPermission(link.permission));
+  }, [hasPermission]);
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-6">
@@ -157,11 +153,18 @@ export default function OrganizationDashboardPage() {
         <p className="text-sm font-medium text-muted-foreground mb-4">
           Accès rapide
         </p>
-        
+
+        {quickLinks.length === 0 && (
+          <div className="text-muted-foreground p-8 text-center text-sm">
+            Aucun accès rapide disponible.<br />
+            Contactez un administrateur pour plus d'accès.
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {quickLinks.map((link) => (
-            <Link 
-              key={link.title} 
+            <Link
+              key={link.title}
               href={`/apps/${slug}${link.href}`}
               className="group"
             >

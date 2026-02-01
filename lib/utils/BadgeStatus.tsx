@@ -11,7 +11,7 @@ export type StatusBadgeVariant =
   | "success"
   | "warning"
   | "error"
-  | "secondary";
+  | "secondary"
 
 export interface StatusBadgeMapping {
   variant: StatusBadgeVariant;
@@ -21,10 +21,10 @@ export interface StatusBadgeMapping {
 
 /**
  * Mappe le statut vers variant/label/icon pour badge d'affichage.
- * @param status Statut (ex: "present", "late", "absent", "half_day", "on_leave", "draft", "pending", "paid", "cancelled", "processing", "processing_payment", "closed", "finalized", "approved", "rejected")
+ * @param status Statut (ex: "present", "late", "absent", "half_day", "on_leave", "draft", "pending", "paid", "cancelled", "processing", "processing_payment", "closed", "finalized", "approved", "rejected", "validated", "deducted")
  * @returns { variant: StatusBadgeVariant; label: string; icon?: JSX.Element }
  * 
- * L'icône est incluse pour certains statuts (ex: "paid", "overdue", "partial") comme dans CreditSale (voir page.tsx ligne 78+).
+ * L'icône est incluse pour certains statuts (ex: "paid", "overdue", "partial", "validated", "deducted") comme dans CreditSale (voir page.tsx ligne 78+).
  */
 export function getStatusBadge(status: string): StatusBadgeMapping {
   // Variant mapping (global)
@@ -39,6 +39,7 @@ export function getStatusBadge(status: string): StatusBadgeMapping {
     draft: "default",
     pending: "warning",
     paid: "success",
+    deducted: "success", // Added as success
     cancelled: "error",
     processing: "warning",
     processing_payment: "warning",
@@ -50,6 +51,8 @@ export function getStatusBadge(status: string): StatusBadgeMapping {
     // credit sales statuses
     overdue: "error",
     partial: "warning",
+    // validated status
+    validated: "success",
     // Pour matcher le code HR/Leaves: "cancelled": "default",
   };
 
@@ -64,6 +67,7 @@ export function getStatusBadge(status: string): StatusBadgeMapping {
     draft: "Brouillon",
     pending: "En attente",
     paid: "Payé",
+    deducted: "Déduit", // Added human label
     cancelled: "Annulé",
     processing: "Traitement",
     processing_payment: "Paiement en cours",
@@ -75,6 +79,8 @@ export function getStatusBadge(status: string): StatusBadgeMapping {
     // Credit Sales
     overdue: "En retard",
     partial: "Partiel",
+    // validated
+    validated: "Validé",
     // cancelled est déjà couvert
   };
 
@@ -84,14 +90,20 @@ export function getStatusBadge(status: string): StatusBadgeMapping {
     case "paid":
       icon = <CheckCircle className="h-5 w-5 text-green-600" />;
       break;
+    case "deducted":
+      icon = <CheckCircle className="h-5 w-5 text-green-600" />; // Same as paid, green check
+      break;
     case "overdue":
       icon = <AlertCircle className="h-5 w-5 text-red-600" />;
       break;
     case "partial":
       icon = <Clock className="h-5 w-5 text-orange-600" />;
       break;
+    case "validated":
+      icon = <CheckCircle className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />;
+      break;
     default:
-      if (["pending","draft","processing","processing_payment"].includes(status)) {
+      if (["pending", "draft", "processing", "processing_payment"].includes(status)) {
         icon = <Clock className="h-5 w-5 text-yellow-600" />;
       }
       break;
@@ -151,6 +163,14 @@ export function getLeaveStatusConfig(status: string) {
         bgClass: 'bg-gray-50 dark:bg-gray-800',
         textClass: 'text-gray-600 dark:text-gray-400',
       };
+    case 'validated':
+      return {
+        label: 'Validé',
+        variant: 'validated' as const,
+        icon: require('lucide-react').CheckCircle,
+        bgClass: 'bg-emerald-50 dark:bg-emerald-950/30',
+        textClass: 'text-emerald-700 dark:text-emerald-400',
+      };
     default:
       return {
         label: 'En attente',
@@ -166,12 +186,14 @@ export function getLeaveStatusConfig(status: string) {
 
 /**
  * Retourne l'icône correspondant au statut de paiement d'une créance.
- * @param status Le statut de la créance (ex: "paid", "partial", "pending", "overdue", "cancelled")
+ * @param status Le statut de la créance (ex: "paid", "deducted", "partial", "pending", "overdue", "cancelled", "validated")
  * @returns JSX.Element L'icône correspondante
  */
 export const getStatusIcon = (status: string) => {
   switch (status) {
     case "paid":
+      return <CheckCircle className="h-4 w-4 text-green-600" />;
+    case "deducted":
       return <CheckCircle className="h-4 w-4 text-green-600" />;
     case "partial":
       return <Clock className="h-4 w-4 text-orange-600" />;
@@ -181,6 +203,8 @@ export const getStatusIcon = (status: string) => {
       return <AlertCircle className="h-4 w-4 text-red-600" />;
     case "cancelled":
       return <XCircle className="h-4 w-4 text-gray-600" />;
+    case "validated":
+      return <CheckCircle className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />;
     default:
       return <Clock className="h-4 w-4" />;
   }
@@ -188,8 +212,8 @@ export const getStatusIcon = (status: string) => {
 
 /**
  * Retourne la variante de badge correspondant au statut de paiement d'une créance.
- * @param status Le statut de la créance (ex: "paid", "partial", "pending", "overdue")
- * @returns "success" | "warning" | "error" | "default"
+ * @param status Le statut de la créance (ex: "paid", "deducted", "partial", "pending", "overdue", "validated")
+ * @returns "success" | "warning" | "error" | "default" | "validated"
  */
 export const getStatusVariant = (
   status: string
@@ -197,12 +221,16 @@ export const getStatusVariant = (
   switch (status) {
     case "paid":
       return "success";
+    case "deducted":
+      return "success";
     case "partial":
       return "warning";
     case "pending":
       return "warning";
     case "overdue":
       return "error";
+    case "validated":
+      return "success";
     default:
       return "default";
   }
@@ -224,7 +252,7 @@ export function getBadgeWIthOutIconAdLabel({ status, label, className }: { statu
 
 /**
  * Mappe le statut d'une commande d'achat à son label, couleurs, et icône pour affichage.
- * @param status Statut de la commande ("draft", "pending", "confirmed", "received", "cancelled")
+ * @param status Statut de la commande ("draft", "pending", "confirmed", "received", "cancelled", "validated", "deducted")
  * @returns Un objet { label, color, bg, icon }
  */
 export function getStatusInfo(status: string) {
@@ -260,6 +288,18 @@ export function getStatusInfo(status: string) {
       color: "text-red-600",
       bg: "bg-red-100 dark:bg-red-900/30",
       icon: "XCircle",
+    },
+    validated: {
+      label: "Validé",
+      color: "text-emerald-700 dark:text-emerald-400",
+      bg: "bg-emerald-50 dark:bg-emerald-950/30",
+      icon: "CheckCircle",
+    },
+    deducted: {
+      label: "Déduit",
+      color: "text-green-600",
+      bg: "bg-green-50 dark:bg-green-950/30",
+      icon: "CheckCircle",
     },
   };
 
