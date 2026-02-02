@@ -24,7 +24,6 @@ export default function EditWarehousePage() {
     code: "",
     address: "",
     city: "",
-    postal_code: "",
     country: "",
     is_active: true,
   });
@@ -44,7 +43,6 @@ export default function EditWarehousePage() {
         code: data.code,
         address: data.address || "",
         city: data.city || "",
-        postal_code: data.postal_code || "",
         country: data.country || "",
         is_active: data.is_active,
       });
@@ -66,7 +64,7 @@ export default function EditWarehousePage() {
   };
 
   const handleGenerateCode = () => {
-    const code = generateWarehouseCode(formData.name, formData.city);
+    const code = generateWarehouseCode(formData?.name ?? "", formData.city);
     if (code) {
       setFormData(prev => ({ ...prev, code }));
     }
@@ -193,15 +191,15 @@ export default function EditWarehousePage() {
                   placeholder="Ex: Conakry"
                 />
               </div>
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium mb-2">Code postal</label>
                 <Input
                   name="postal_code"
-                  value={formData.postal_code}
+                  value={formData?.postal_code}
                   onChange={handleChange}
                   placeholder="Ex: 00000"
                 />
-              </div>
+              </div> */}
               <div>
                 <label className="block text-sm font-medium mb-2">Pays</label>
                 <Input

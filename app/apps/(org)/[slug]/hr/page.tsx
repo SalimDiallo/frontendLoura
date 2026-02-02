@@ -54,7 +54,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function HRDashboardPage() {
   const params = useParams();

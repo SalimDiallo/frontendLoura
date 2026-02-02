@@ -28,7 +28,7 @@ import {
 import { Alert, Button, Card, Form, Badge } from "@/components/ui";
 import { FormInputField, FormSelectField } from "@/components/ui/form-fields";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn } from "@/lib/utils";
 import { formatApiErrorsForDisplay } from "@/lib/utils/format-api-errors";
 

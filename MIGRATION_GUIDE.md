@@ -511,7 +511,7 @@ import {
 } from "@/components/common";
 import { Button } from "@/components/ui";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { getRoles, deleteRole } from "@/lib/services/hr";
 import type { Role } from "@/lib/types/hr";
 import {

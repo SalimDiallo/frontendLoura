@@ -8,7 +8,6 @@
 import React, { PropsWithChildren } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePermissionContext } from './permission-provider';
-import { normalizePermissionCode, PERMISSIONS } from '@/lib/constants/permissions';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { HiOutlineShieldExclamation } from 'react-icons/hi2';
@@ -192,18 +191,15 @@ export function Can({
   }
   // Vérifier une permission unique
   else if (permission) {
-    const normalizedPerm = normalizePermissionCode(permission);
-    hasAccess = isAdmin || hasPermission(normalizedPerm);
+    hasAccess = isAdmin || hasPermission(permission);
   }
   // Vérifier au moins une permission (OR)
   else if (anyPermissions && anyPermissions.length > 0) {
-    const normalizedPerms = anyPermissions.map(normalizePermissionCode);
-    hasAccess = isAdmin || normalizedPerms.some((perm) => hasPermission(perm));
+    hasAccess = isAdmin || anyPermissions.some((perm) => hasPermission(perm));
   }
   // Vérifier toutes les permissions (AND)
   else if (allPermissions && allPermissions.length > 0) {
-    const normalizedPerms = allPermissions.map(normalizePermissionCode);
-    hasAccess = isAdmin || normalizedPerms.every((perm) => hasPermission(perm));
+    hasAccess = isAdmin || allPermissions.every((perm) => hasPermission(perm));
   }
 
   if (!hasAccess) {
@@ -263,8 +259,7 @@ export function Cannot({ children, permission, fallback = null }: CanProps) {
     return <>{fallback}</>;
   }
 
-  const normalizedPerm = permission ? normalizePermissionCode(permission) : '';
-  const cannotAccess = normalizedPerm ? !hasPermission(normalizedPerm) : false;
+  const cannotAccess = permission ? !hasPermission(permission) : false;
 
   if (!cannotAccess) {
     return <>{fallback}</>;
@@ -273,8 +268,3 @@ export function Cannot({ children, permission, fallback = null }: CanProps) {
   return <>{children}</>;
 }
 
-// ============================================
-// Re-exports pour compatibilité
-// ============================================
-
-export { PERMISSIONS };

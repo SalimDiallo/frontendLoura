@@ -32,8 +32,8 @@ import { cn } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, KeyboardHint } from "@/components/ui/shortcuts-help";
 import { HelpCircle } from "lucide-react";
-import { COMMON_PERMISSIONS } from "@/lib/types";
 import { useHasPermission } from "@/lib/hooks";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 type AttendanceState = "not_started" | "checked_in" | "on_break" | "checked_out";
 

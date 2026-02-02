@@ -27,7 +27,7 @@ import type { Payroll, Employee, PayrollStatus } from "@/lib/types/hr";
 import { formatCurrency } from "@/lib/utils";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function EmployeePayrollHistoryPage() {
   const params = useParams();

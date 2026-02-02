@@ -70,45 +70,72 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   // ============================================
   // INVENTORY MODULE
   // ============================================
-  
-  // Products
-  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_PRODUCTS, label: "Voir les produits", category: "Produits", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_PRODUCTS, label: "Créer des produits", category: "Produits", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS, label: "Modifier des produits", category: "Produits", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_PRODUCTS, label: "Supprimer des produits", category: "Produits", module: "inventory" },
 
-  // Stock
-  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK, label: "Voir le stock", category: "Stock", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK, label: "Entrées/Sorties", category: "Stock", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.ADJUST_STOCK, label: "Inventaires", category: "Stock", module: "inventory" },
-  
-  // Warehouses
-  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES, label: "Voir les entrepôts", category: "Entrepôts", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_WAREHOUSES, label: "Créer des entrepôts", category: "Entrepôts", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_WAREHOUSES, label: "Modifier des entrepôts", category: "Entrepôts", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_WAREHOUSES, label: "Supprimer des entrepôts", category: "Entrepôts", module: "inventory" },
-
-  // Suppliers
-  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS, label: "Voir les fournisseurs", category: "Fournisseurs", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_SUPPLIERS, label: "Créer des fournisseurs", category: "Fournisseurs", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_SUPPLIERS, label: "Modifier des fournisseurs", category: "Fournisseurs", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_SUPPLIERS, label: "Supprimer des fournisseurs", category: "Fournisseurs", module: "inventory" },
-
-  // Categories
+  // === CATEGORIES ===
   { code: COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES, label: "Voir les catégories", category: "Catégories", module: "inventory" },
   { code: COMMON_PERMISSIONS.INVENTORY.CREATE_CATEGORIES, label: "Créer des catégories", category: "Catégories", module: "inventory" },
   { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_CATEGORIES, label: "Modifier des catégories", category: "Catégories", module: "inventory" },
   { code: COMMON_PERMISSIONS.INVENTORY.DELETE_CATEGORIES, label: "Supprimer des catégories", category: "Catégories", module: "inventory" },
 
-  // Sales
+  // === WAREHOUSES ===
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES, label: "Voir les entrepôts", category: "Entrepôts", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_WAREHOUSES, label: "Créer des entrepôts", category: "Entrepôts", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_WAREHOUSES, label: "Modifier des entrepôts", category: "Entrepôts", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_WAREHOUSES, label: "Supprimer des entrepôts", category: "Entrepôts", module: "inventory" },
+
+  // === SUPPLIERS ===
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS, label: "Voir les fournisseurs", category: "Fournisseurs", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_SUPPLIERS, label: "Créer des fournisseurs", category: "Fournisseurs", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_SUPPLIERS, label: "Modifier des fournisseurs", category: "Fournisseurs", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_SUPPLIERS, label: "Supprimer des fournisseurs", category: "Fournisseurs", module: "inventory" },
+
+  // === PRODUCTS ===
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_PRODUCTS, label: "Voir les produits", category: "Produits", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_PRODUCTS, label: "Créer des produits", category: "Produits", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS, label: "Modifier des produits", category: "Produits", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_PRODUCTS, label: "Supprimer des produits", category: "Produits", module: "inventory" },
+
+  // === STOCK ===
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK, label: "Voir les stocks", category: "Stocks", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK, label: "Gérer les stocks", category: "Stocks", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.ADJUST_STOCK, label: "Ajuster les stocks", category: "Stocks", module: "inventory" },
+
+  // === MOVEMENTS ===
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_MOVEMENTS, label: "Voir les mouvements", category: "Mouvements", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_MOVEMENTS, label: "Créer des mouvements", category: "Mouvements", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_MOVEMENTS, label: "Modifier des mouvements", category: "Mouvements", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_MOVEMENTS, label: "Annuler des mouvements", category: "Mouvements", module: "inventory" },
+
+  // === ORDERS ===
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS, label: "Voir les commandes", category: "Commandes", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_ORDERS, label: "Créer des commandes", category: "Commandes", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS, label: "Modifier des commandes", category: "Commandes", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_ORDERS, label: "Annuler des commandes", category: "Commandes", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.RECEIVE_ORDERS, label: "Réceptionner des commandes", category: "Commandes", module: "inventory" },
+
+  // === STOCK COUNTS ===
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK_COUNTS, label: "Voir les inventaires", category: "Inventaires", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_STOCK_COUNTS, label: "Créer des inventaires", category: "Inventaires", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.VALIDATE_STOCK_COUNTS, label: "Valider des inventaires", category: "Inventaires", module: "inventory" },
+
+  // === SALES ===
   { code: COMMON_PERMISSIONS.INVENTORY.VIEW_SALES, label: "Voir les ventes", category: "Ventes", module: "inventory" },
   { code: COMMON_PERMISSIONS.INVENTORY.CREATE_SALES, label: "Créer des ventes", category: "Ventes", module: "inventory" },
   { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_SALES, label: "Modifier des ventes", category: "Ventes", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_SALES, label: "Supprimer des ventes", category: "Ventes", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_SALES, label: "Annuler des ventes", category: "Ventes", module: "inventory" },
 
-  // Orders (Purchases)
-  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS, label: "Voir les commandes", category: "Achats", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_ORDERS, label: "Créer des commandes", category: "Achats", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS, label: "Modifier des commandes", category: "Achats", module: "inventory" },
-  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_ORDERS, label: "Supprimer des commandes", category: "Achats", module: "inventory" },
+  // === CUSTOMERS ===
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_CUSTOMERS, label: "Voir les clients", category: "Clients", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_CUSTOMERS, label: "Créer des clients", category: "Clients", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_CUSTOMERS, label: "Modifier des clients", category: "Clients", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_CUSTOMERS, label: "Supprimer des clients", category: "Clients", module: "inventory" },
+
+  // === PAYMENTS ===
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_PAYMENTS, label: "Voir les paiements", category: "Paiements", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_PAYMENTS, label: "Enregistrer des paiements", category: "Paiements", module: "inventory" },
+
+  // === REPORTS ===
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_REPORTS, label: "Voir les rapports", category: "Rapports", module: "inventory" },
+  { code: COMMON_PERMISSIONS.INVENTORY.EXPORT_REPORTS, label: "Exporter les rapports", category: "Rapports", module: "inventory" },
+
 ];

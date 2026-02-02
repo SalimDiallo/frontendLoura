@@ -23,7 +23,7 @@ import {
 import Link from "next/link";
 import { cn, formatDate } from "@/lib/utils";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 
 export default function StockCountsPage() {

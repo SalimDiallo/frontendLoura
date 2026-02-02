@@ -30,8 +30,6 @@ export type {
 } from './store';
 
 // Constants
-export * from './constants';
-
 // Utils
 export { cn, formatCurrency } from './utils';
 

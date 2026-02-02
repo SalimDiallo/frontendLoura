@@ -41,7 +41,7 @@ import {
 import { LuUsers, LuCalendarOff, LuPause, LuBan } from "react-icons/lu";
 import { Alert, Button, Card, Input } from "@/components/ui";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";

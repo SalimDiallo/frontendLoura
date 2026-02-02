@@ -8,6 +8,8 @@ import type { SupplierUpdate } from "@/lib/types/inventory";
 import { ArrowLeft, Save, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { generateSupplierCode } from "@/lib/utils/code-generator";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function EditSupplierPage() {
   const params = useParams();
@@ -113,7 +115,8 @@ export default function EditSupplierPage() {
   }
 
   return (
-    <div className="space-y-6 p-6 max-w-4xl">
+   <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_SUPPLIERS} showMessage>
+         <div className="space-y-6 p-6 max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={`/apps/${slug}/inventory/suppliers/${supplierId}`}>
@@ -347,5 +350,6 @@ export default function EditSupplierPage() {
         </div>
       </form>
     </div>
+   </Can>
   );
 }

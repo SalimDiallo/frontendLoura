@@ -36,7 +36,7 @@ import {
 } from "react-icons/hi2";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS, PermissionAction, ResourceType } from "@/lib/types/shared";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function EmployeeDetailPage() {
   const params = useParams();

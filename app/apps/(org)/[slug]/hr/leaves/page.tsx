@@ -15,7 +15,7 @@ import {
   HiOutlineXCircle,
 } from "react-icons/hi2";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import {
   ShortcutsHelpModal,
   KeyboardHint,

@@ -7,6 +7,8 @@ import { createWarehouse } from "@/lib/services/inventory";
 import type { WarehouseCreate } from "@/lib/types/inventory";
 import { ArrowLeft, Save, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 // Fonction utilitaire pour générer un code à partir du nom et de la date
 function generateCode(name: string, city: string) {
@@ -89,6 +91,7 @@ export default function NewWarehousePage() {
   };
 
   return (
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_WAREHOUSES} showMessage>
     <div className="space-y-6 p-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -264,5 +267,7 @@ export default function NewWarehousePage() {
         </Card>
       </form>
     </div>
+    </Can>
+
   );
 }

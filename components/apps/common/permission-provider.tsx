@@ -8,7 +8,6 @@
 import { createContext, useContext, useEffect, useState, PropsWithChildren, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuthStore, usePermissionsStore } from '@/lib/store';
-import { normalizePermissionCode } from '@/lib/constants/permissions';
 
 // ============================================
 // Types
@@ -145,9 +144,7 @@ export function PermissionProvider({ children, organizationSlug: propSlug }: Per
       if (isAdmin) return true;
       
       // Normaliser le code (support des anciens formats)
-      const normalizedCode = normalizePermissionCode(code);
-      
-      return permissions.includes(normalizedCode);
+      return permissions.includes(code);
     },
     [isAdmin, permissions]
   );

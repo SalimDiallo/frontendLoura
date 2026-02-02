@@ -34,7 +34,7 @@ import {
 } from "react-icons/hi2";
 import { Can, ProtectedRoute } from "@/components/apps/common";
 import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
-import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";

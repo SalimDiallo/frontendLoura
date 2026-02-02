@@ -13,7 +13,7 @@ import { Alert, Button, Card, Badge } from "@/components/ui";
 import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function EmployeeRolesPermissionsPage() {
   const params = useParams();

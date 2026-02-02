@@ -16,6 +16,8 @@ import {
   Calendar,
 } from "lucide-react";
 import Link from "next/link";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { Can } from "@/components/apps/common";
 
 export default function CategoryDetailPage() {
   const params = useParams();
@@ -92,7 +94,8 @@ export default function CategoryDetailPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES}>
+     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -122,15 +125,20 @@ export default function CategoryDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/apps/${slug}/inventory/categories/${categoryId}/edit`}>
+         <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_CATEGORIES}>
+         <Link href={`/apps/${slug}/inventory/categories/${categoryId}/edit`}>
             <Button variant="outline">
               <Edit className="mr-2 h-4 w-4" />
               Modifier
             </Button>
           </Link>
-          <Button variant="ghost" onClick={handleDelete}>
+         </Can>
+         <Can permission={COMMON_PERMISSIONS.INVENTORY.DELETE_CATEGORIES}>
+         <Button variant="ghost" onClick={handleDelete}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
+         </Can>
+         
         </div>
       </div>
 
@@ -191,17 +199,18 @@ export default function CategoryDetailPage() {
       )}
 
       {/* Products in this category */}
-      <Card className="p-6">
+     <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_PRODUCTS}>
+     <Card className="p-6">
+        <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Produits dans cette catégorie</h2>
-          <Link href={`/apps/${slug}/inventory/products/new?category=${categoryId}`}>
             <Button variant="outline" size="sm">
               <Package className="mr-2 h-4 w-4" />
               Ajouter un produit
             </Button>
-          </Link>
         </div>
 
+        </Can>
         {products.length === 0 ? (
           <div className="text-center py-12">
             <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -264,6 +273,9 @@ export default function CategoryDetailPage() {
           </div>
         )}
       </Card>
+     </Can>
     </div>
+    </Can>
+  
   );
 }

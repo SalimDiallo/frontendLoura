@@ -127,6 +127,7 @@ export interface WarehouseUpdate extends Partial<WarehouseCreate> {}
 
 export interface WarehouseStats {
   product_count: number;
+  // postal_code?: string;
   unique_products?: number;
   total_quantity?: number;
   total_stock_value: number;

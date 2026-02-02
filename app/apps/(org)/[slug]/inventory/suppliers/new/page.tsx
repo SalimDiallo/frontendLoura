@@ -8,6 +8,8 @@ import type { SupplierCreate } from "@/lib/types/inventory";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { generateSupplierCode } from "@/lib/utils/code-generator"; // On suppose que le générateur existe déjà
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function NewSupplierPage() {
   const params = useParams();
@@ -83,7 +85,8 @@ export default function NewSupplierPage() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-4xl">
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SUPPLIERS} showMessage>
+            <div className="space-y-6 p-6 max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={`/apps/${slug}/inventory/suppliers`}>
@@ -279,5 +282,7 @@ export default function NewSupplierPage() {
         </div>
       </form>
     </div>
+    </Can>
+
   );
 }

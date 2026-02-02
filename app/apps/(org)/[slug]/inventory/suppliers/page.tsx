@@ -19,11 +19,14 @@ import {
   Keyboard,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
 import { Can } from "@/components/apps/common/protected-route";
-import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+
+// Importer DeleteConfirmation du composant de confirmation générique
+import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
 
 export default function SuppliersPage() {
   const params = useParams();
@@ -36,6 +39,13 @@ export default function SuppliersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+
+  // État du dialogue de suppression
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    supplier: Supplier | null;
+    loading: boolean;
+  }>({ open: false, supplier: null, loading: false });
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,16 +66,22 @@ export default function SuppliersPage() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le fournisseur "${name}" ?`)) {
-      return;
-    }
+  // Nouvelle fonction de suppression avec le dialogue
+  const handleDelete = (supplier: Supplier) => {
+    setDeleteDialog({ open: true, supplier, loading: false });
+  };
 
+  // Fonction appelée à la confirmation du dialogue
+  const confirmDelete = async () => {
+    if (!deleteDialog.supplier) return;
+    setDeleteDialog((prev) => ({ ...prev, loading: true }));
     try {
-      await deleteSupplier(id);
+      await deleteSupplier(deleteDialog.supplier.id);
       await loadSuppliers();
+      setDeleteDialog({ open: false, supplier: null, loading: false });
     } catch (err: any) {
-      alert(err.message || "Erreur lors de la suppression");
+      setDeleteDialog((prev) => ({ ...prev, loading: false }));
+      setError(err.message || "Erreur lors de la suppression");
     }
   };
 
@@ -125,6 +141,15 @@ export default function SuppliersPage() {
 
   return (
     <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS} showMessage={true}>
+      {/* Modal confirmation suppression */}
+      <DeleteConfirmation
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open, supplier: open ? prev.supplier : null, loading: false }))}
+        itemName={deleteDialog.supplier?.name}
+        onConfirm={confirmDelete}
+        loading={deleteDialog.loading}
+      />
+
       <div className="space-y-6 p-6">
         {/* Modal des raccourcis */}
         <ShortcutsHelpModal
@@ -143,6 +168,7 @@ export default function SuppliersPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Ce bouton est toujours visible */}
             <Button
               variant="outline"
               size="sm"
@@ -152,6 +178,7 @@ export default function SuppliersPage() {
             >
               <Keyboard className="h-4 w-4" />
             </Button>
+            {/* Masquer le bouton "nouveau fournisseur" selon la permission */}
             <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SUPPLIERS}>
               <Button asChild>
                 <Link href={`/apps/${slug}/inventory/suppliers/new`}>
@@ -199,6 +226,7 @@ export default function SuppliersPage() {
             <Card className="p-12 text-center col-span-full">
               <Truck className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" aria-hidden="true" />
               <p className="text-muted-foreground">Aucun fournisseur trouvé</p>
+              {/* Masquer l'indicateur selon la permission */}
               <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SUPPLIERS}>
                 <p className="text-sm mt-2 text-muted-foreground">
                   Appuyez sur <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">N</kbd> pour créer un nouveau fournisseur
@@ -231,7 +259,7 @@ export default function SuppliersPage() {
                       </p>
                     </div>
                   </div>
-                  <Badge variant={supplier.is_active ? "default" : "secondary"}>
+                  <Badge variant={supplier.is_active ? "success" : "secondary"}>
                     {supplier.is_active ? "Actif" : "Inactif"}
                   </Badge>
                 </div>
@@ -271,21 +299,22 @@ export default function SuppliersPage() {
                   <div>
                     <p className="text-xs text-muted-foreground">Total</p>
                     <p className="text-lg font-bold">
-                      {new Intl.NumberFormat('fr-FR', {
-                        notation: 'compact',
-                        compactDisplay: 'short',
-                      }).format(supplier.total_orders_amount || 0)} GNF
+                      {formatCurrency(supplier.total_orders_amount ?? 0)}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Link href={`/apps/${slug}/inventory/suppliers/${supplier.id}`} className="flex-1">
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Eye className="h-4 w-4 mr-2" />
-                      Voir
-                    </Button>
-                  </Link>
+                  {/* Masquer le bouton "voir" selon la permission VIEW_SUPPLIERS */}
+                  <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS}>
+                    <Link href={`/apps/${slug}/inventory/suppliers/${supplier.id}`} className="flex-1">
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Voir
+                      </Button>
+                    </Link>
+                  </Can>
+                  {/* Masquer le bouton éditer selon la permission UPDATE_SUPPLIERS */}
                   <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_SUPPLIERS}>
                     <Link href={`/apps/${slug}/inventory/suppliers/${supplier.id}/edit`}>
                       <Button variant="ghost" size="sm" aria-label={`Éditer ${supplier.name}`}>
@@ -293,13 +322,14 @@ export default function SuppliersPage() {
                       </Button>
                     </Link>
                   </Can>
+                  {/* Masquer le bouton supprimer selon la permission DELETE_SUPPLIERS */}
                   <Can permission={COMMON_PERMISSIONS.INVENTORY.DELETE_SUPPLIERS}>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(supplier.id, supplier.name);
+                        handleDelete(supplier);
                       }}
                       aria-label={`Supprimer ${supplier.name}`}
                     >

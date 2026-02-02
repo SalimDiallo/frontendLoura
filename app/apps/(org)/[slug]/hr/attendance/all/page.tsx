@@ -21,7 +21,7 @@ import type { Attendance } from "@/lib/types/hr";
 import { usePermissions } from "@/lib/hooks";
 import { Can } from "@/components/apps/common/protected-route";
 import { formatDate, formatDuration, formatTime } from "@/lib/utils";
-import { COMMON_PERMISSIONS } from "@/lib/types";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import {
   Check,
   X,

@@ -53,7 +53,7 @@ import {
 import type { PayrollAdvance } from "@/lib/types/hr";
 import { PayrollAdvanceStatus } from "@/lib/types/hr";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { parseApiError } from "@/lib/utils/format-api-errors";
 import { useAuth } from "@/lib/hooks/use-auth";
 import Link from "next/link";

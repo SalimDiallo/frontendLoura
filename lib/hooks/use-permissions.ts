@@ -7,7 +7,6 @@
 
 import { usePermissionsStore, permissionsSelectors } from '@/lib/store/permissions-store';
 import { useAuthStore } from '@/lib/store';
-import { normalizePermissionCode } from '@/lib/constants/permissions';
 
 // ============================================
 // Hooks de base
@@ -44,8 +43,7 @@ export function useHasPermission(code: string) {
   // Admin a toutes les permissions
   if (userType === 'admin') return true;
   
-  const normalizedCode = normalizePermissionCode(code);
-  return hasPermission(normalizedCode);
+  return hasPermission(code);
 }
 
 /**
@@ -57,8 +55,7 @@ export function useHasAnyPermission(codes: string[]) {
   
   if (userType === 'admin') return true;
   
-  const normalizedCodes = codes.map(normalizePermissionCode);
-  return hasAnyPermission(normalizedCodes);
+  return hasAnyPermission(codes);
 }
 
 /**
@@ -70,8 +67,7 @@ export function useHasAllPermissions(codes: string[]) {
   
   if (userType === 'admin') return true;
   
-  const normalizedCodes = codes.map(normalizePermissionCode);
-  return hasAllPermissions(normalizedCodes);
+  return hasAllPermissions(codes);
 }
 
 /**
@@ -115,8 +111,7 @@ export function usePermissions() {
    */
   const hasPermission = (code: string): boolean => {
     if (isAdmin) return true;
-    const normalizedCode = normalizePermissionCode(code);
-    return usePermissionsStore.getState().hasPermission(normalizedCode);
+    return usePermissionsStore.getState().hasPermission(code);
   };
 
   /**
@@ -124,8 +119,7 @@ export function usePermissions() {
    */
   const hasAnyPermission = (codes: string[]): boolean => {
     if (isAdmin) return true;
-    const normalizedCodes = codes.map(normalizePermissionCode);
-    return usePermissionsStore.getState().hasAnyPermission(normalizedCodes);
+    return usePermissionsStore.getState().hasAnyPermission(codes);
   };
 
   /**
@@ -133,8 +127,7 @@ export function usePermissions() {
    */
   const hasAllPermissions = (codes: string[]): boolean => {
     if (isAdmin) return true;
-    const normalizedCodes = codes.map(normalizePermissionCode);
-    return usePermissionsStore.getState().hasAllPermissions(normalizedCodes);
+    return usePermissionsStore.getState().hasAllPermissions(codes);
   };
 
   // Alias pour compatibilité

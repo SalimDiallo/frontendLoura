@@ -1,4 +1,3 @@
-export * from './base';
 export * from './hr';
 export * from './inventory';
 
@@ -12,5 +11,4 @@ import { INVENTORY_PERMISSIONS } from './inventory';
 export const COMMON_PERMISSIONS = {
   HR: HR_PERMISSIONS,
   INVENTORY: INVENTORY_PERMISSIONS,
-  // Add other modules here
 } as const;

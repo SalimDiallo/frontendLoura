@@ -39,7 +39,7 @@ import { API_CONFIG } from "@/lib/api/config";
 import { Alert, Button, Card, Input, Badge } from "@/components/ui";
 import { ProtectedRoute, Can } from "@/components/apps/common";
 import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
-import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { PDFPreviewModal } from '@/components/ui';
 import { cn, formatCurrency } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";

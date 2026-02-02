@@ -22,7 +22,7 @@ import {
 import Link from "next/link";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Can } from "@/components/apps/common/protected-route";
-import { COMMON_PERMISSIONS } from "@/lib/types/shared";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { getStatusInfo } from "@/lib/utils/BadgeStatus";
 
 export default function OrdersPage() {

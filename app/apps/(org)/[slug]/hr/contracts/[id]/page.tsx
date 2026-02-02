@@ -22,9 +22,9 @@ import { contractService } from "@/lib/services/hr";
 import type { Contract } from "@/lib/types/hr";
 import { Can } from "@/components/apps/common";
 import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
-import { ResourceType, PermissionAction, COMMON_PERMISSIONS } from "@/lib/types/shared";
 import { API_CONFIG } from "@/lib/api/config";
 import { formatCurrency } from "@/lib";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 const CONTRACT_TYPE_INFO: Record<string, { label: string; description: string; color: string }> = {
   permanent: { label: "CDI", description: "Contrat à Durée Indéterminée", color: "bg-green-100 text-green-800 border-green-200" },
@@ -404,7 +404,7 @@ export default function ContractDetailPage() {
             Dernière modification : {new Date(contract.updated_at).toLocaleDateString('fr-FR')} à {new Date(contract.updated_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
           </div>
           
-          <Can permission={`${ResourceType.CONTRACT}.${PermissionAction.DELETE}`}>
+          <Can permission={COMMON_PERMISSIONS.HR.DELETE_CONTRACTS}>
             <Button
               variant="ghost"
               size="sm"

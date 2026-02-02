@@ -25,7 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import { Can } from '@/components/apps/common/protected-route';
-import { COMMON_PERMISSIONS } from '@/lib/types/shared/permissions';
+import { COMMON_PERMISSIONS } from '@/lib/types/permissions/permissions';
 import { cn } from '@/lib/utils';
 
 type AttendanceMode = 'auto' | 'check_in' | 'check_out';

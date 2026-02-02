@@ -22,8 +22,8 @@ import { getPayroll, markPayrollAsPaid, deletePayroll, downloadPayrollPDF } from
 import type { Payroll, PayrollStatus } from "@/lib/types/hr";
 import { formatCurrency } from "@/lib/utils";
 import { Can } from "@/components/apps/common";
-import { ResourceType, PermissionAction } from "@/lib/types/shared";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function PayrollDetailPage() {
   const params = useParams();
@@ -156,7 +156,7 @@ export default function PayrollDetailPage() {
               Télécharger PDF
             </Button>
             {(payroll.status === "pending" || payroll.status === "draft") && (
-              <Can permission={`${ResourceType.EMPLOYEE}.${PermissionAction.UPDATE}`}>
+              <Can permission={COMMON_PERMISSIONS.HR.UPDATE_PAYROLL}>
                 <Button
                   variant="outline"
                   onClick={handleMarkAsPaid}
@@ -168,7 +168,7 @@ export default function PayrollDetailPage() {
                 </Button>
               </Can>
             )}
-            <Can permission={`${ResourceType.EMPLOYEE}.${PermissionAction.UPDATE}`}>
+            <Can permission={COMMON_PERMISSIONS.HR.UPDATE_PAYROLL}>
               <Button variant="outline" asChild disabled={payroll.status === "paid"}>
                 <Link href={`/apps/${slug}/hr/payroll/${id}/edit`}>
                   <HiOutlinePencil className="size-4 mr-2" />
@@ -176,7 +176,7 @@ export default function PayrollDetailPage() {
                 </Link>
               </Button>
             </Can>
-            <Can permission={`${ResourceType.EMPLOYEE}.${PermissionAction.DELETE}`}>
+            <Can permission={COMMON_PERMISSIONS.HR.DELETE_PAYROLL}>
               <Button
                 variant="destructive"
                 onClick={handleDelete}

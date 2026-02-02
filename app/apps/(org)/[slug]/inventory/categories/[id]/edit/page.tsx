@@ -7,6 +7,8 @@ import { getCategory, updateCategory, getCategories } from "@/lib/services/inven
 import type { CategoryUpdate, Category } from "@/lib/types/inventory";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function EditCategoryPage() {
   const params = useParams();
@@ -94,7 +96,8 @@ export default function EditCategoryPage() {
   }
 
   return (
-    <div className="space-y-6 p-6 max-w-4xl">
+  <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_CATEGORIES}>
+      <div className="space-y-6 p-6 max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={`/apps/${slug}/inventory/categories/${categoryId}`}>
@@ -214,5 +217,6 @@ export default function EditCategoryPage() {
         </div>
       </form>
     </div>
+  </Can>
   );
 }

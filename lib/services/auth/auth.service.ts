@@ -7,7 +7,7 @@
 
 import { apiClient, tokenManager } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
-import { useAuthStore, usePermissionsStore } from '@/lib/store';
+import { useAuthStore, usePermissionsStore, User } from '@/lib/store';
 import type { AdminUser } from '@/lib/types/core';
 import type { Employee } from '@/lib/types/hr';
 
@@ -128,10 +128,10 @@ export const authService = {
       { requiresAuth: false }
     );
 
-    if (response.access && response.refresh) {
+    if (response.access && response.refresh && response) {
       tokenManager.setTokens(response.access, response.refresh);
       tokenManager.saveUser({ ...response.user, userType: response.user_type });
-      useAuthStore.getState().setUser(response.user, response.user_type);
+      useAuthStore.getState().setUser(response?.user as User, response.user_type);
     }
 
     return response;
@@ -153,7 +153,7 @@ export const authService = {
       tokenManager.saveUser({ ...response.user, userType: response.user_type });
       
       // Mettre à jour le store Zustand
-      useAuthStore.getState().setUser(response.user, response.user_type);
+      useAuthStore.getState().setUser(response.user as User, response.user_type);
 
       // Si Employee, charger les permissions
       if (response.user_type === 'employee' && response.user.permissions) {
@@ -221,7 +221,7 @@ export const authService = {
     const userType = storedUser?.userType || 'admin';
     
     tokenManager.saveUser({ ...response.user, userType });
-    useAuthStore.getState().setUser(response.user, userType);
+    useAuthStore.getState().setUser(response.user as User, userType);
     
     return response.user;
   },

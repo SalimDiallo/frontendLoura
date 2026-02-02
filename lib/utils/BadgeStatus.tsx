@@ -54,6 +54,7 @@ export function getStatusBadge(status: string): StatusBadgeMapping {
     // validated status
     validated: "success",
     // Pour matcher le code HR/Leaves: "cancelled": "default",
+    received :  'success'
   };
 
   const labels: Record<string, string> = {
@@ -82,6 +83,7 @@ export function getStatusBadge(status: string): StatusBadgeMapping {
     // validated
     validated: "Validé",
     // cancelled est déjà couvert
+    received: "Recu"
   };
 
   // Optionally inject an icon for some statuses (cf. page.tsx)

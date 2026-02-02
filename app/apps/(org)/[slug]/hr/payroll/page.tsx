@@ -42,7 +42,7 @@ import { getPayrollPeriods } from "@/lib/services/hr/payroll-period.service";
 import type { Payroll, PayrollPeriod } from "@/lib/types/hr";
 import { API_CONFIG } from "@/lib/api/config";
 import { PDFPreviewModal } from "@/components/ui";
-import { COMMON_PERMISSIONS } from "@/lib/types";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import Link from "next/link";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 import { useHasPermission, useIsAdmin, useUser } from "@/lib/hooks";
