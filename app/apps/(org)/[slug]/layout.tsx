@@ -1,6 +1,8 @@
 "use client";
 
 import { PropsWithChildren, useState, useEffect, useCallback } from "react";
+import { NotificationPanel } from "@/components/core/notification-panel";
+import { useNotifications } from "@/lib/hooks/use-notifications";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import {
   SidebarProvider,
@@ -30,7 +32,14 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
   const router = useRouter();
   const slug = params.slug as string;
   const [chatOpen, setChatOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const { unreadCount, refreshUnreadCount } = useNotifications();
+
+  // Charge le compteur de non lues à la première vue
+  useEffect(() => {
+    refreshUnreadCount();
+  }, [refreshUnreadCount]);
 
   // --- Nouveau useEffect pour synchroniser la currency dans localStorage ---
   useEffect(() => {
@@ -207,11 +216,19 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                   variant="ghost"
                   size="icon"
                   className="relative size-9 rounded-xl"
+                  onClick={() => setNotifOpen(true)}
+                  aria-label="Notifications"
                 >
                   <Bell className="size-4" />
-                  {/* Notification badge */}
-                  <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-destructive" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full bg-destructive text-white text-[9px] font-bold leading-none">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
                 </Button>
+
+                {/* Panneau notifications */}
+                <NotificationPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
 
                 {/* Theme toggle */}
                 <ThemeToggle />
