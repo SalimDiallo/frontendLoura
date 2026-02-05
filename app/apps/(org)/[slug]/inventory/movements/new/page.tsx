@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 const MOVEMENT_TYPES = [
   {
@@ -230,7 +232,8 @@ export default function NewMovementPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK} showMessage>
+            <div className="p-6 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href={`/apps/${slug}/inventory/movements`}>
@@ -464,7 +467,9 @@ export default function NewMovementPage() {
             </>
           )}
         </Button>
-      </form>
-    </div>
+        </form>
+      </div>
+    </Can>
+
   );
 }

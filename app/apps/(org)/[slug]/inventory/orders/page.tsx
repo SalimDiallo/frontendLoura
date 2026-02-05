@@ -24,6 +24,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { Can } from "@/components/apps/common/protected-route";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { getStatusInfo } from "@/lib/utils/BadgeStatus";
+import { ConfirmationDialog } from "@/components/common/confirmation-dialog";
 
 export default function OrdersPage() {
   const params = useParams();
@@ -37,8 +38,14 @@ export default function OrdersPage() {
   const [filterStatus, setFilterStatus] = useState<string | undefined>(undefined);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  // Dialog UI state for each action (use IDs to avoid conflict)
+  const [confirmDialogOrderId, setConfirmDialogOrderId] = useState<string | null>(null);
+  const [receiveDialogOrderId, setReceiveDialogOrderId] = useState<string | null>(null);
+  const [cancelDialogOrderId, setCancelDialogOrderId] = useState<string | null>(null);
+
   useEffect(() => {
     loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, filterStatus]);
 
   const loadOrders = async () => {
@@ -81,7 +88,6 @@ export default function OrdersPage() {
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm("Annuler cette commande ?")) return;
     try {
       setActionLoading(id);
       await cancelOrder(id);
@@ -98,7 +104,6 @@ export default function OrdersPage() {
     o.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.supplier_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
 
   // Stats
   const stats = {
@@ -120,6 +125,11 @@ export default function OrdersPage() {
       </Can>
     );
   }
+
+  // Find selected order for dialogs
+  const selectedConfirmOrder = orders.find(o => o.id === confirmDialogOrderId);
+  const selectedReceiveOrder = orders.find(o => o.id === receiveDialogOrderId);
+  const selectedCancelOrder = orders.find(o => o.id === cancelDialogOrderId);
 
   return (
     <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS} showMessage={true}>
@@ -291,25 +301,74 @@ export default function OrdersPage() {
                         <div className="flex items-center gap-1">
                           {(order.status === "draft" || order.status === "pending") && (
                             <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS}>
-                              <Button size="sm" variant="outline" onClick={() => handleConfirm(order.id)}>
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Confirmer
-                              </Button>
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setConfirmDialogOrderId(order.id)}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Confirmer
+                                </Button>
+                                <ConfirmationDialog
+                                  open={confirmDialogOrderId === order.id}
+                                  onOpenChange={open => setConfirmDialogOrderId(open ? order.id : null)}
+                                  title="Confirmer la commande"
+                                  description={`Voulez-vous confirmer la commande « ${order.order_number} » auprès de ${order.supplier_name || "ce fournisseur"} ?`}
+                                  confirmLabel="Confirmer"
+                                  onConfirm={() => handleConfirm(order.id)}
+                                  loading={actionLoading === order.id}
+                                  icon="info"
+                                />
+                              </>
                             </Can>
                           )}
                           {order.status === "confirmed" && (
-                            <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS}>
-                              <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleReceive(order.id)}>
-                                <Package className="h-4 w-4 mr-1" />
-                                Réceptionner
-                              </Button>
+                            <Can permission={COMMON_PERMISSIONS.INVENTORY.RECEIVE_ORDERS}>
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => setReceiveDialogOrderId(order.id)}
+                                >
+                                  <Package className="h-4 w-4 mr-1" />
+                                  Réceptionner
+                                </Button>
+                                <ConfirmationDialog
+                                  open={receiveDialogOrderId === order.id}
+                                  onOpenChange={open => setReceiveDialogOrderId(open ? order.id : null)}
+                                  title="Réceptionner la commande"
+                                  description={`Marquer la commande « ${order.order_number} » comme réceptionnée ?`}
+                                  confirmLabel="Réceptionner"
+                                  onConfirm={() => handleReceive(order.id)}
+                                  loading={actionLoading === order.id}
+                                  icon="success"
+                                />
+                              </>
                             </Can>
                           )}
                           {order.status !== "received" && order.status !== "cancelled" && (
-                            <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS}>
-                              <Button size="sm" variant="ghost" onClick={() => handleCancel(order.id)}>
-                                <XCircle className="h-4 w-4 text-red-500" />
-                              </Button>
+                            <Can permission={COMMON_PERMISSIONS.INVENTORY.DELETE_ORDERS}>
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setCancelDialogOrderId(order.id)}
+                                >
+                                  <XCircle className="h-4 w-4 text-red-500" />
+                                </Button>
+                                <ConfirmationDialog
+                                  open={cancelDialogOrderId === order.id}
+                                  onOpenChange={open => setCancelDialogOrderId(open ? order.id : null)}
+                                  title="Annuler la commande"
+                                  description={`Êtes-vous sûr de vouloir annuler la commande « ${order.order_number} » ? Cette action est irréversible.`}
+                                  confirmLabel="Annuler"
+                                  confirmVariant="destructive"
+                                  onConfirm={() => handleCancel(order.id)}
+                                  loading={actionLoading === order.id}
+                                  icon="warning"
+                                />
+                              </>
                             </Can>
                           )}
                           <Button size="sm" variant="ghost" asChild>

@@ -18,6 +18,10 @@ import {
   Building,
 } from "lucide-react";
 import Link from "next/link";
+// IMPORTANT: import DeleteConfirmation dialog
+import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 const movementTypeConfig: Record<MovementType, { label: string; icon: any; variant: "default" | "success" | "warning" | "error" }> = {
   in: { label: "Entrée", icon: ArrowDown, variant: "success" },
@@ -36,8 +40,13 @@ export default function MovementDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // For delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     loadMovementDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [movementId]);
 
   const loadMovementDetails = async () => {
@@ -57,15 +66,15 @@ export default function MovementDetailPage() {
   const handleDelete = async () => {
     if (!movement) return;
 
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer ce mouvement ?`)) {
-      return;
-    }
-
+    setDeleting(true);
     try {
       await deleteMovement(movementId);
       router.push(`/apps/${slug}/inventory/movements`);
     } catch (err: any) {
-      alert(err.message || "Erreur lors de la suppression");
+      setError(err.message || "Erreur lors de la suppression");
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -122,9 +131,25 @@ export default function MovementDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={handleDelete}>
+        <Can permission={COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK}>
+        <Button
+            variant="ghost"
+            onClick={() => setDeleteDialogOpen(true)}
+            disabled={deleting}
+          >
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
+          <DeleteConfirmation
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
+            itemName={
+              "du mouvement" +
+              (movement.reference ? ` "${movement.reference}"` : "")
+            }
+            onConfirm={handleDelete}
+            loading={deleting}
+          />
+        </Can>
         </div>
       </div>
 
@@ -156,8 +181,8 @@ export default function MovementDetailPage() {
             <div>
               <p className="text-muted-foreground text-xs">Quantité</p>
               <p className="text-2xl font-bold">
-                {movement.movement_type === 'out' && '-'}
-                {movement.movement_type === 'in' && '+'}
+                {movement.movement_type === "out" && "-"}
+                {movement.movement_type === "in" && "+"}
                 {movement.quantity}
               </p>
             </div>
@@ -172,7 +197,9 @@ export default function MovementDetailPage() {
           <div className="space-y-3 text-sm">
             <div>
               <p className="text-muted-foreground text-xs">
-                {movement.movement_type === 'transfer' ? 'Entrepôt source' : 'Entrepôt'}
+                {movement.movement_type === "transfer"
+                  ? "Entrepôt source"
+                  : "Entrepôt"}
               </p>
               <Link
                 href={`/apps/${slug}/inventory/warehouses/${movement.warehouse}`}
@@ -181,7 +208,7 @@ export default function MovementDetailPage() {
                 {movement.warehouse_name || movement.warehouse}
               </Link>
             </div>
-            {movement.movement_type === 'transfer' && movement.destination_warehouse && (
+            {movement.movement_type === "transfer" && movement.destination_warehouse && (
               <div>
                 <p className="text-muted-foreground text-xs">Entrepôt destination</p>
                 <Link
@@ -206,25 +233,25 @@ export default function MovementDetailPage() {
           <div>
             <p className="text-muted-foreground text-xs">Date du mouvement</p>
             <p className="font-medium">
-              {new Date(movement.movement_date).toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
+              {new Date(movement.movement_date).toLocaleDateString("fr-FR", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
               })}
             </p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Date de création</p>
             <p className="text-sm text-muted-foreground">
-              {new Date(movement.created_at).toLocaleString('fr-FR')}
+              {new Date(movement.created_at).toLocaleString("fr-FR")}
             </p>
           </div>
           {movement.updated_at !== movement.created_at && (
             <div>
               <p className="text-muted-foreground text-xs">Dernière modification</p>
               <p className="text-sm text-muted-foreground">
-                {new Date(movement.updated_at).toLocaleString('fr-FR')}
+                {new Date(movement.updated_at).toLocaleString("fr-FR")}
               </p>
             </div>
           )}

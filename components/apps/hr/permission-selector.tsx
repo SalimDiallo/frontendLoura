@@ -24,6 +24,7 @@ export interface PermissionItem {
   label: string;
   category: string;
   module: "hr" | "inventory";
+  depends: string[]; // Dependencies: list of permission codes required
 }
 
 interface PermissionSelectorProps {
@@ -41,6 +42,8 @@ interface PermissionSelectorProps {
   maxHeight?: string;
   /** Compact mode for smaller forms */
   compact?: boolean;
+  /** If true, automatically add required dependencies when selecting a permission */
+  autoAddDependencies?: boolean;
 }
 
 // ============================================
@@ -76,6 +79,8 @@ interface PermissionCheckboxProps {
   permission: PermissionItem;
   isSelected: boolean;
   isFromRole: boolean;
+  isDependencyMissing: boolean;
+  missingDependencies?: string[];
   onToggle: () => void;
   compact?: boolean;
 }
@@ -84,22 +89,29 @@ function PermissionCheckbox({
   permission,
   isSelected,
   isFromRole,
+  isDependencyMissing,
+  missingDependencies = [],
   onToggle,
   compact,
 }: PermissionCheckboxProps) {
+  const isDisabled = isFromRole || isDependencyMissing;
+  
   return (
     <button
       type="button"
       onClick={onToggle}
-      disabled={isFromRole}
+      disabled={isDisabled}
+      title={isDependencyMissing ? `Requiert: ${missingDependencies.join(', ')}` : undefined}
       className={cn(
         "flex items-center gap-2 rounded-lg text-left transition-all w-full",
         compact ? "p-2 text-xs" : "p-3",
         isFromRole
           ? "bg-blue-50/50 dark:bg-blue-950/20 cursor-not-allowed opacity-70"
-          : isSelected
-            ? "bg-primary/5 ring-1 ring-primary/30 hover:bg-primary/10"
-            : "bg-muted/30 hover:bg-muted/60"
+          : isDependencyMissing
+            ? "bg-amber-50/50 dark:bg-amber-950/20 cursor-not-allowed opacity-60"
+            : isSelected
+              ? "bg-primary/5 ring-1 ring-primary/30 hover:bg-primary/10"
+              : "bg-muted/30 hover:bg-muted/60"
       )}
     >
       {/* Checkbox */}
@@ -109,12 +121,14 @@ function PermissionCheckbox({
           compact ? "size-4" : "size-5",
           isFromRole
             ? "bg-foreground border-foreground text-white"
-            : isSelected
-              ? "bg-primary border-primary text-white"
-              : "border-muted-foreground/30"
+            : isDependencyMissing
+              ? "border-amber-400/50 bg-amber-100/50 dark:bg-amber-900/20"
+              : isSelected
+                ? "bg-primary border-primary text-white"
+                : "border-muted-foreground/30"
         )}
       >
-        {(isSelected || isFromRole) && (
+        {(isSelected || isFromRole) && !isDependencyMissing && (
           <HiOutlineCheck className={compact ? "size-2.5" : "size-3"} />
         )}
       </div>
@@ -125,7 +139,8 @@ function PermissionCheckbox({
           className={cn(
             "font-medium truncate",
             compact ? "text-xs" : "text-sm",
-            isFromRole && "text-blue-700 dark:text-blue-300"
+            isFromRole && "text-blue-700 dark:text-blue-300",
+            isDependencyMissing && "text-amber-700 dark:text-amber-300"
           )}
         >
           {permission.label}
@@ -134,6 +149,12 @@ function PermissionCheckbox({
           <span className="text-[10px] text-foreground dark:text-blue-400 flex items-center gap-1">
             <LuLock className="size-2.5" />
             Du rôle
+          </span>
+        )}
+        {isDependencyMissing && missingDependencies.length > 0 && (
+          <span className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            <LuLock className="size-2.5" />
+            Requiert: {missingDependencies.slice(0, 2).join(', ')}{missingDependencies.length > 2 ? '...' : ''}
           </span>
         )}
       </div>
@@ -146,6 +167,8 @@ interface CategoryGroupProps {
   permissions: PermissionItem[];
   selectedPermissions: string[];
   rolePermissionCodes: string[];
+  allGrantedCodes: Set<string>;
+  allPermissions: PermissionItem[];
   onToggle: (code: string) => void;
   onToggleAll: () => void;
   isExpanded: boolean;
@@ -158,6 +181,8 @@ function CategoryGroup({
   permissions,
   selectedPermissions,
   rolePermissionCodes,
+  allGrantedCodes,
+  allPermissions,
   onToggle,
   onToggleAll,
   isExpanded,
@@ -177,6 +202,21 @@ function CategoryGroup({
   const someSelected = nonRolePerms.some((p) =>
     selectedPermissions.includes(p.code)
   );
+
+  // Helper pour obtenir les dépendances manquantes d'une permission
+  const getMissingDependencies = (perm: PermissionItem): string[] => {
+    if (!perm.depends || perm.depends.length === 0) return [];
+    return perm.depends.filter(dep => !allGrantedCodes.has(dep));
+  };
+
+  // Helper pour obtenir les labels des dépendances manquantes
+  const getMissingDependencyLabels = (perm: PermissionItem): string[] => {
+    const missingCodes = getMissingDependencies(perm);
+    return missingCodes.map(code => {
+      const foundPerm = allPermissions.find(p => p.code === code);
+      return foundPerm?.label || code;
+    });
+  };
 
   return (
     <div className="border-b border-border/50 last:border-b-0">
@@ -243,16 +283,22 @@ function CategoryGroup({
               : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 p-3"
           )}
         >
-          {permissions.map((permission) => (
-            <PermissionCheckbox
-              key={permission.code}
-              permission={permission}
-              isSelected={selectedPermissions.includes(permission.code)}
-              isFromRole={rolePermissionCodes.includes(permission.code)}
-              onToggle={() => onToggle(permission.code)}
-              compact={compact}
-            />
-          ))}
+          {permissions.map((permission) => {
+            const missingDeps = getMissingDependencies(permission);
+            const missingLabels = getMissingDependencyLabels(permission);
+            return (
+              <PermissionCheckbox
+                key={permission.code}
+                permission={permission}
+                isSelected={selectedPermissions.includes(permission.code)}
+                isFromRole={rolePermissionCodes.includes(permission.code)}
+                isDependencyMissing={missingDeps.length > 0}
+                missingDependencies={missingLabels}
+                onToggle={() => onToggle(permission.code)}
+                compact={compact}
+              />
+            );
+          })}
         </div>
       )}
     </div>
@@ -271,6 +317,7 @@ export function PermissionSelector({
   // groupByModule is always true for now
   maxHeight = "500px",
   compact = false,
+  autoAddDependencies = true,
 }: PermissionSelectorProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({
@@ -280,6 +327,11 @@ export function PermissionSelector({
   const [expandedCategories, setExpandedCategories] = useState<
     Record<string, boolean>
   >({});
+
+  // Calculate all granted codes (role + selected)
+  const allGrantedCodes = useMemo(() => {
+    return new Set([...rolePermissionCodes, ...selectedPermissions]);
+  }, [rolePermissionCodes, selectedPermissions]);
 
   // Filter permissions based on search
   const filteredPermissions = useMemo(() => {
@@ -310,13 +362,42 @@ export function PermissionSelector({
     return byModule;
   }, [filteredPermissions]);
 
+  // Helper to collect all dependencies recursively
+  const collectAllDependencies = (code: string, collected: Set<string> = new Set()): Set<string> => {
+    const perm = permissions.find(p => p.code === code);
+    if (!perm || !perm.depends) return collected;
+    
+    for (const depCode of perm.depends) {
+      if (!collected.has(depCode) && !allGrantedCodes.has(depCode)) {
+        collected.add(depCode);
+        // Recursively collect dependencies of this dependency
+        collectAllDependencies(depCode, collected);
+      }
+    }
+    return collected;
+  };
+
   // Toggle handlers
   const togglePermission = (code: string) => {
     if (rolePermissionCodes.includes(code)) return;
-    const newSelection = selectedPermissions.includes(code)
-      ? selectedPermissions.filter((c) => c !== code)
-      : [...selectedPermissions, code];
-    onSelectionChange(newSelection);
+    
+    const perm = permissions.find(p => p.code === code);
+    
+    // If selecting and permission has dependencies
+    if (!selectedPermissions.includes(code) && autoAddDependencies && perm?.depends && perm.depends.length > 0) {
+      // Collect all missing dependencies
+      const missingDeps = collectAllDependencies(code);
+      
+      // Add both the permission and its missing dependencies
+      const newCodes = [...selectedPermissions, code, ...Array.from(missingDeps)];
+      // Remove duplicates
+      onSelectionChange([...new Set(newCodes)]);
+    } else {
+      const newSelection = selectedPermissions.includes(code)
+        ? selectedPermissions.filter((c) => c !== code)
+        : [...selectedPermissions, code];
+      onSelectionChange(newSelection);
+    }
   };
 
   const toggleCategory = (categoryPermissions: PermissionItem[]) => {
@@ -334,10 +415,18 @@ export function PermissionSelector({
         )
       );
     } else {
-      const newCodes = nonRolePerms
-        .map((p) => p.code)
-        .filter((c) => !selectedPermissions.includes(c));
-      onSelectionChange([...selectedPermissions, ...newCodes]);
+      // Collect all codes and their dependencies
+      let newCodes = [...selectedPermissions];
+      for (const p of nonRolePerms) {
+        if (!newCodes.includes(p.code)) {
+          newCodes.push(p.code);
+          if (autoAddDependencies && p.depends) {
+            const missingDeps = collectAllDependencies(p.code);
+            newCodes = [...newCodes, ...Array.from(missingDeps)];
+          }
+        }
+      }
+      onSelectionChange([...new Set(newCodes)]);
     }
   };
 
@@ -357,10 +446,18 @@ export function PermissionSelector({
         )
       );
     } else {
-      const newCodes = nonRolePerms
-        .map((p) => p.code)
-        .filter((c) => !selectedPermissions.includes(c));
-      onSelectionChange([...selectedPermissions, ...newCodes]);
+      // Collect all codes and their dependencies
+      let newCodes = [...selectedPermissions];
+      for (const p of nonRolePerms) {
+        if (!newCodes.includes(p.code)) {
+          newCodes.push(p.code);
+          if (autoAddDependencies && p.depends) {
+            const missingDeps = collectAllDependencies(p.code);
+            newCodes = [...newCodes, ...Array.from(missingDeps)];
+          }
+        }
+      }
+      onSelectionChange([...new Set(newCodes)]);
     }
   };
 
@@ -527,6 +624,8 @@ export function PermissionSelector({
                           permissions={perms}
                           selectedPermissions={selectedPermissions}
                           rolePermissionCodes={rolePermissionCodes}
+                          allGrantedCodes={allGrantedCodes}
+                          allPermissions={permissions}
                           onToggle={togglePermission}
                           onToggleAll={() => toggleCategory(perms)}
                           isExpanded={isCategoryExpanded}

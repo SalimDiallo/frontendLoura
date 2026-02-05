@@ -31,13 +31,13 @@ export const INVENTORY_PERMISSIONS = {
   // === STOCK ===
   VIEW_STOCK: 'inventory.view_stock',
   MANAGE_STOCK: 'inventory.manage_stock',
-  ADJUST_STOCK: 'inventory.adjust_stock',
+  // ADJUST_STOCK: 'inventory.adjust_stock',
 
-  // === MOVEMENTS ===
-  VIEW_MOVEMENTS: 'inventory.view_movements',
-  CREATE_MOVEMENTS: 'inventory.create_movements',
-  UPDATE_MOVEMENTS: 'inventory.update_movements',
-  DELETE_MOVEMENTS: 'inventory.delete_movements',
+  // // === MOVEMENTS ===
+  // VIEW_MOVEMENTS: 'inventory.view_movements',
+  // CREATE_MOVEMENTS: 'inventory.create_movements',
+  // UPDATE_MOVEMENTS: 'inventory.update_movements',
+  // DELETE_MOVEMENTS: 'inventory.delete_movements',
 
   // === ORDERS ===
   VIEW_ORDERS: 'inventory.view_orders',

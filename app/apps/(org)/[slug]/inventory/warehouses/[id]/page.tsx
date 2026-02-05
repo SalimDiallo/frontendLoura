@@ -26,6 +26,7 @@ import {
   Eye,
   CardSim,
   Trash,
+  RotateCcwIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -283,12 +284,12 @@ export default function WarehouseDetailPage() {
 
         {/* Actions rapides */}
         <div className="flex gap-2 flex-wrap">
-          <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_MOVEMENTS}>
+          <Can permission={COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK}>
             <Button variant="outline" size="sm" asChild>
               <Link
                 href={`/apps/${slug}/inventory/movements/new?warehouse=${warehouseId}`}
               >
-                <CardSim className="mr-2 h-4 w-4 text-green-600" />
+                <RotateCcwIcon className="mr-2 h-4 w-4 text-green-600" />
                 Ajustement du Stocks
               </Link>
             </Button>
@@ -344,7 +345,7 @@ export default function WarehouseDetailPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Cet entrepôt est vide
                 </p>
-                <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_MOVEMENTS}>
+                <Can permission={COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK}>
                   <Button asChild>
                     <Link
                       href={`/apps/${slug}/inventory/movements/new?warehouse=${warehouseId}`}

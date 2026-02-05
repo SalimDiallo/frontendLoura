@@ -10,7 +10,6 @@ import {
   canViewAttendance,
   type AttendanceFeatures,
 } from '@/lib/utils/attendance-permissions';
-import { UserPermissionContext } from '@/lib/types/shared';
 
 export function useAttendancePermissions() {
   const { 
@@ -25,7 +24,7 @@ export function useAttendancePermissions() {
   } = usePermissionContext();
 
   // Construit un contexte compatible avec les utilitaires
-  const permissionContext: UserPermissionContext = useMemo(() => ({
+  const permissionContext = useMemo(() => ({
     userId: userId || '',
     organizationId: organizationId || '',
     permissions,

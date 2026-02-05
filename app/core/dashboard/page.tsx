@@ -21,6 +21,7 @@ import { Card } from "@/components/ui/card";
 import { OrganizationCard } from "@/components/core/organization-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert } from "@/components/ui/alert";
+import ToolsHome from "@/components/tools/NavigationTools";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -236,7 +237,7 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Organizations Grid */}
+      {organizations.length}
       {organizations.length === 0 ? (
         <Card className="p-12 text-center border bg-background">
           <div className="flex size-16 items-center justify-center rounded-lg bg-muted mx-auto mb-4">
@@ -269,6 +270,8 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+
+      <ToolsHome />
     </div>
   );
 }

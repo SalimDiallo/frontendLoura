@@ -163,15 +163,49 @@ export function FormNumberField({
   min,
   max,
   step,
+  name,
   ...props
 }: FormNumberFieldProps) {
+  const { control } = useFormContext();
+
   return (
-    <FormInputField
-      type="number"
-      min={min}
-      max={max}
-      step={step}
-      {...props}
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          {props.label && (
+            <FormLabel>
+              {props.label}
+              {props.required && <span className="text-destructive ml-1">*</span>}
+            </FormLabel>
+          )}
+          <FormControl>
+            <Input
+              type="number"
+              min={min}
+              max={max}
+              step={step}
+              {...props}
+              value={field.value ?? ''}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Convert to number if the value is not empty
+                const numValue = value === '' ? undefined : Number(value);
+                field.onChange(isNaN(numValue as number) ? undefined : numValue);
+              }}
+              onBlur={field.onBlur}
+              className={cn(
+                "bg-background text-foreground border-input dark:bg-slate-900 dark:text-white",
+                props.className
+              )}
+              aria-required={props.required}
+            />
+          </FormControl>
+          {props.description && <FormDescription>{props.description}</FormDescription>}
+          <FormMessage />
+        </FormItem>
+      )}
     />
   );
 }

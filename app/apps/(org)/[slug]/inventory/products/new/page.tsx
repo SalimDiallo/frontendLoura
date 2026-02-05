@@ -9,6 +9,8 @@ import type { ProductCreate, Category, ProductUnit } from "@/lib/types/inventory
 import { ArrowLeft, Save, AlertTriangle, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { generateSKU, generateCodeFromName } from "@/lib/utils/code-generator";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function NewProductPage() {
   const params = useParams();
@@ -73,7 +75,8 @@ export default function NewProductPage() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-4xl mx-auto">
+   <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_PRODUCTS} showMessage>
+     <div className="space-y-6 p-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={`/apps/${slug}/inventory/products`}>
@@ -310,5 +313,6 @@ export default function NewProductPage() {
         </Card>
       </form>
     </div>
+   </Can>
   );
 }

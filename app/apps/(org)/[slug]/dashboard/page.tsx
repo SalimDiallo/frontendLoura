@@ -17,7 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { usePermissionContext } from "@/components/apps/common";
-import { PERMISSIONS } from "@/lib/constants/permissions";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 // Liens principaux par module uniquement
 const MODULE_LINKS = [
@@ -26,14 +26,14 @@ const MODULE_LINKS = [
     description: "RH: employés, paie & absences",
     href: "/hr",
     icon: Users,
-    permission: PERMISSIONS.HR.VIEW_EMPLOYEES,
+    permission: COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES,
   },
   {
     title: "Stocks / Inventaire",
     description: "Inventaire: produits, mouvements, ventes",
     href: "/inventory",
     icon: Package,
-    permission: PERMISSIONS.INVENTORY.VIEW_STOCK,
+    permission: COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK,
   },
 ];
 

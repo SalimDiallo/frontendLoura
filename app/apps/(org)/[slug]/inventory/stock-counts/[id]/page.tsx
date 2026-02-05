@@ -20,8 +20,18 @@ import {
   getCategories,
   exportStockCountPdf,
 } from "@/lib/services/inventory";
-import type { StockCount, StockCountItem, StockCountStatus, ProductList, Category } from "@/lib/types/inventory";
-import type { StockCountSummary, DiscrepanciesResponse, GenerateItemsOptions } from "@/lib/services/inventory/stock-count.service";
+import type {
+  StockCount,
+  StockCountItem,
+  StockCountStatus,
+  ProductList,
+  Category,
+} from "@/lib/types/inventory";
+import type {
+  StockCountSummary,
+  DiscrepanciesResponse,
+  GenerateItemsOptions,
+} from "@/lib/services/inventory/stock-count.service";
 import {
   ArrowLeft,
   Save,
@@ -52,8 +62,12 @@ import {
   Copy,
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
+import { ConfirmationDialog } from "@/components/common/confirmation-dialog";
+import React from "react";
+import { Can, usePermissionContext } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function StockCountDetailPage() {
   const params = useParams();
@@ -68,12 +82,14 @@ export default function StockCountDetailPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedItemIndex, setSelectedItemIndex] = useState(-1);
-  
+
   // Modal ajout d'article
   const [showAddModal, setShowAddModal] = useState(false);
   const [products, setProducts] = useState<ProductList[]>([]);
   const [productSearch, setProductSearch] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<ProductList | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductList | null>(
+    null
+  );
   const [expectedQty, setExpectedQty] = useState("");
   const [countedQty, setCountedQty] = useState("");
   const [itemNotes, setItemNotes] = useState("");
@@ -91,13 +107,23 @@ export default function StockCountDetailPage() {
   // Statistiques avancées
   const [showSummary, setShowSummary] = useState(false);
   const [summary, setSummary] = useState<StockCountSummary | null>(null);
-  const [discrepancies, setDiscrepancies] = useState<DiscrepanciesResponse | null>(null);
+  const [discrepancies, setDiscrepancies] = useState<DiscrepanciesResponse | null>(
+    null
+  );
   const [showDiscrepanciesOnly, setShowDiscrepanciesOnly] = useState(false);
-  
+
   // Export PDF
   const [pdfLoading, setPdfLoading] = useState(false);
 
   const countInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Confirmation state for critical actions
+  const [pendingDeleteItem, setPendingDeleteItem] = useState<string | null>(null);
+  const [showCompleteConfirmation, setShowCompleteConfirmation] = useState(false);
+  const [showValidateConfirmation, setShowValidateConfirmation] = useState(false);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
+  const [showAutoFillConfirmation, setShowAutoFillConfirmation] = useState(false);
+  const {hasPermission} = usePermissionContext()
 
   useEffect(() => {
     loadStockCount();
@@ -181,7 +207,7 @@ export default function StockCountDetailPage() {
       if ((e.key === "c" || e.key === "C") && e.ctrlKey && !e.shiftKey) {
         e.preventDefault();
         if (stockCount?.status === "in_progress") {
-          handleComplete();
+          setShowCompleteConfirmation(true);
         }
         return;
       }
@@ -212,7 +238,7 @@ export default function StockCountDetailPage() {
         e.preventDefault();
         const item = stockCount?.items?.[selectedItemIndex];
         if (item && isEditable) {
-          handleDeleteItem(item.id);
+          setPendingDeleteItem(item.id);
         }
         return;
       }
@@ -221,7 +247,7 @@ export default function StockCountDetailPage() {
       if ((e.key === "v" || e.key === "V") && e.ctrlKey) {
         e.preventDefault();
         if (stockCount?.status === "completed") {
-          handleValidate();
+          setShowValidateConfirmation(true);
         }
         return;
       }
@@ -229,7 +255,13 @@ export default function StockCountDetailPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showShortcuts, selectedItemIndex, stockCount, showAddModal, showGenerateModal]);
+  }, [
+    showShortcuts,
+    selectedItemIndex,
+    stockCount,
+    showAddModal,
+    showGenerateModal,
+  ]);
 
   const loadStockCount = async () => {
     try {
@@ -311,9 +343,10 @@ export default function StockCountDetailPage() {
     }
   };
 
+  // Replaces confirm in handleComplete/handleValidate/handleCancel/handleAutoFill/handleDeleteItem
   const handleComplete = async () => {
     if (!stockCount) return;
-    if (!confirm("Marquer cet inventaire comme complété ? Les comptages ne pourront plus être modifiés.")) return;
+
     try {
       setSaving(true);
       setError(null);
@@ -329,7 +362,6 @@ export default function StockCountDetailPage() {
 
   const handleValidate = async () => {
     if (!stockCount) return;
-    if (!confirm("Valider cet inventaire ? Les ajustements seront appliqués au stock.")) return;
 
     try {
       setSaving(true);
@@ -346,7 +378,6 @@ export default function StockCountDetailPage() {
 
   const handleCancel = async () => {
     if (!stockCount) return;
-    if (!confirm("Annuler cet inventaire ?")) return;
 
     try {
       setSaving(true);
@@ -363,7 +394,7 @@ export default function StockCountDetailPage() {
 
   const handleGenerateItems = async () => {
     if (!stockCount) return;
-    
+
     try {
       setGenerating(true);
       setError(null);
@@ -381,7 +412,6 @@ export default function StockCountDetailPage() {
 
   const handleAutoFill = async () => {
     if (!stockCount) return;
-    if (!confirm("Pré-remplir toutes les quantités comptées avec les quantités attendues ? Cette action affectera tous les articles.")) return;
 
     try {
       setSaving(true);
@@ -429,7 +459,6 @@ export default function StockCountDetailPage() {
 
   const handleDeleteItem = async (itemId: string) => {
     if (!stockCount) return;
-    if (!confirm("Supprimer cet article de l'inventaire ?")) return;
 
     try {
       setSaving(true);
@@ -470,14 +499,23 @@ export default function StockCountDetailPage() {
 
   // Filtrer les items affichés
   const displayedItems = showDiscrepanciesOnly
-    ? stockCount?.items?.filter((item) => item.difference !== undefined && item.difference !== 0) || []
+    ? stockCount?.items?.filter(
+        (item) => item.difference !== undefined && item.difference !== 0
+      ) || []
     : stockCount?.items || [];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96" role="status" aria-label="Chargement">
+      <div
+        className="flex items-center justify-center h-96"
+        role="status"
+        aria-label="Chargement"
+      >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" aria-hidden="true"></div>
+          <div
+            className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"
+            aria-hidden="true"
+          ></div>
           <p className="mt-4 text-muted-foreground">Chargement...</p>
         </div>
       </div>
@@ -498,132 +536,261 @@ export default function StockCountDetailPage() {
     );
   }
 
-  const isEditable = stockCount.status === "planned" || stockCount.status === "in_progress" || stockCount.status === "draft";
-  const canStart = stockCount.status === "planned" || stockCount.status === "draft";
+  const isEditable =
+   ( stockCount.status === "planned" ||
+    stockCount.status === "in_progress" ||
+    stockCount.status === "draft") && hasPermission(COMMON_PERMISSIONS.INVENTORY.VALIDATE_STOCK_COUNTS)
+  const canStart =
+    stockCount.status === "planned" || stockCount.status === "draft";
   const canComplete = stockCount.status === "in_progress";
   const canValidate = stockCount.status === "completed";
   const canCancel = isEditable;
 
   // Calcul des statistiques
   const totalItems = stockCount.items?.length || 0;
-  const itemsWithDiscrepancy = stockCount.items?.filter(
-    (item) => item.difference !== undefined && item.difference !== 0
-  ).length || 0;
-  const totalExpected = stockCount.items?.reduce((sum, item) => sum + Number(item.expected_quantity), 0) || 0;
-  const totalCounted = stockCount.items?.reduce((sum, item) => sum + Number(item.counted_quantity), 0) || 0;
+  const itemsWithDiscrepancy =
+    stockCount.items?.filter(
+      (item) => item.difference !== undefined && item.difference !== 0
+    ).length || 0;
+  const totalExpected =
+    stockCount.items?.reduce(
+      (sum, item) => sum + Number(item.expected_quantity),
+      0
+    ) || 0;
+  const totalCounted =
+    stockCount.items?.reduce(
+      (sum, item) => sum + Number(item.counted_quantity),
+      0
+    ) || 0;
 
   return (
-    <div className="space-y-6 p-6">
+   <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK_COUNTS} showMessage>
+     <div className="space-y-6 p-6">
+      {/* Modaux de confirmation */}
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.VALIDATE_STOCK_COUNTS}>
+
+    <ConfirmationDialog
+        open={showCompleteConfirmation}
+        title="Compléter l'inventaire ?"
+        description="Marquer cet inventaire comme complété ? Les comptages ne pourront plus être modifiés."
+        confirmLabel="Compléter"
+        onOpenChange={() => setShowCompleteConfirmation(false)}
+        onConfirm={async () => {
+          setShowCompleteConfirmation(false);
+          await handleComplete();
+        }}
+      />
+      <ConfirmationDialog
+        open={showValidateConfirmation}
+        title="Valider l'inventaire ?"
+        description="Valider cet inventaire ? Les ajustements seront appliqués au stock."
+        confirmLabel="Valider"
+        onOpenChange={() => setShowValidateConfirmation(false)}
+        onConfirm={async () => {
+          setShowValidateConfirmation(false);
+          await handleValidate();
+        }}
+      />
+      <ConfirmationDialog
+        open={showCancelConfirmation}
+        title="Annuler cet inventaire ?"
+        description="Annuler cet inventaire ?"
+        confirmLabel="Annuler l'inventaire"
+        onOpenChange={() => setShowCancelConfirmation(false)}
+        onConfirm={async () => {
+          setShowCancelConfirmation(false);
+          await handleCancel();
+        }}
+      />
+      <ConfirmationDialog
+        open={showAutoFillConfirmation}
+        title="Pré-remplir tous les comptages ?"
+        description="Pré-remplir toutes les quantités comptées avec les quantités attendues ? Cette action affectera tous les articles."
+        confirmLabel="Pré-remplir"
+        onOpenChange={() => setShowAutoFillConfirmation(false)}
+        onConfirm={async () => {
+          setShowAutoFillConfirmation(false);
+          await handleAutoFill();
+        }}
+      />
+      <ConfirmationDialog
+        open={pendingDeleteItem !== null}
+        title="Supprimer cet article de l'inventaire ?"
+        description="Voulez-vous vraiment supprimer cet article de l'inventaire ?"
+        confirmLabel="Supprimer"
+        onOpenChange={() => setPendingDeleteItem(null)}
+        onConfirm={async () => {
+          if (pendingDeleteItem) {
+            const itemId = pendingDeleteItem;
+            setPendingDeleteItem(null);
+            await handleDeleteItem(itemId);
+          }
+        }}
+      />
+
       {/* Modal génération automatique */}
       {showGenerateModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          onClick={() => setShowGenerateModal(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="generate-title"
-        >
-          <Card className="w-full max-w-lg p-6 m-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 id="generate-title" className="text-xl font-bold flex items-center gap-2">
-                <Zap className="h-5 w-5 text-yellow-500" aria-hidden="true" />
-                Génération automatique
-              </h2>
-              <Button variant="ghost" size="sm" onClick={() => setShowGenerateModal(false)} aria-label="Fermer">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Cette action va générer automatiquement tous les articles d'inventaire à partir du stock actuel de l'entrepôt <strong>{stockCount.warehouse_name}</strong>.
-              </p>
-
-              {/* Options */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="include_zero"
-                    checked={generateOptions.include_zero_stock}
-                    onChange={(e) => setGenerateOptions({ ...generateOptions, include_zero_stock: e.target.checked })}
-                    className="rounded border-input"
-                  />
-                  <label htmlFor="include_zero" className="text-sm">
-                    Inclure les produits avec stock = 0
-                  </label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="overwrite"
-                    checked={generateOptions.overwrite}
-                    onChange={(e) => setGenerateOptions({ ...generateOptions, overwrite: e.target.checked })}
-                    className="rounded border-input"
-                  />
-                  <label htmlFor="overwrite" className="text-sm text-orange-600">
-                    ⚠️ Remplacer les articles existants
-                  </label>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Filtrer par catégorie (optionnel)</label>
-                  <select
-                    value={generateOptions.category_id || ""}
-                    onChange={(e) => setGenerateOptions({ ...generateOptions, category_id: e.target.value || undefined })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">Toutes les catégories</option>
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
-                </div>
+            <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            onClick={() => setShowGenerateModal(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="generate-title"
+          >
+            <Card
+              className="w-full max-w-lg p-6 m-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2
+                  id="generate-title"
+                  className="text-xl font-bold flex items-center gap-2"
+                >
+                  <Zap className="h-5 w-5 text-yellow-500" aria-hidden="true" />
+                  Génération automatique
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowGenerateModal(false)}
+                  aria-label="Fermer"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
 
-              {/* Infos */}
-              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  💡 Les quantités attendues seront récupérées du stock actuel. Les quantités comptées seront initialisées à 0.
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Cette action va générer automatiquement tous les articles
+                  d&apos;inventaire à partir du stock actuel de l&apos;entrepôt{" "}
+                  <strong>{stockCount.warehouse_name}</strong>.
                 </p>
-              </div>
 
-              {/* Actions */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowGenerateModal(false)}>
-                  Annuler
-                </Button>
-                <Button onClick={handleGenerateItems} disabled={generating}>
-                  {generating ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Zap className="mr-2 h-4 w-4" />
-                  )}
-                  Générer les articles
-                </Button>
+                {/* Options */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="include_zero"
+                      checked={generateOptions.include_zero_stock}
+                      onChange={(e) =>
+                        setGenerateOptions({
+                          ...generateOptions,
+                          include_zero_stock: e.target.checked,
+                        })
+                      }
+                      className="rounded border-input"
+                    />
+                    <label htmlFor="include_zero" className="text-sm">
+                      Inclure les produits avec stock = 0
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="overwrite"
+                      checked={generateOptions.overwrite}
+                      onChange={(e) =>
+                        setGenerateOptions({
+                          ...generateOptions,
+                          overwrite: e.target.checked,
+                        })
+                      }
+                      className="rounded border-input"
+                    />
+                    <label htmlFor="overwrite" className="text-sm text-orange-600">
+                      ⚠️ Remplacer les articles existants
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Filtrer par catégorie (optionnel)
+                    </label>
+                    <select
+                      value={generateOptions.category_id || ""}
+                      onChange={(e) =>
+                        setGenerateOptions({
+                          ...generateOptions,
+                          category_id: e.target.value || undefined,
+                        })
+                      }
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="">Toutes les catégories</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Infos */}
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    💡 Les quantités attendues seront récupérées du stock actuel.
+                    Les quantités comptées seront initialisées à 0.
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowGenerateModal(false)}
+                  >
+                    Annuler
+                  </Button>
+                  <Button onClick={handleGenerateItems} disabled={generating}>
+                    {generating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Zap className="mr-2 h-4 w-4" />
+                    )}
+                    Générer les articles
+                  </Button>
+                </div>
               </div>
-            </div>
-          </Card>
-        </div>
+            </Card>
+          </div>
       )}
 
       {/* Modal ajout d'article */}
       {showAddModal && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          onClick={() => { setShowAddModal(false); resetAddForm(); }}
+          onClick={() => {
+            setShowAddModal(false);
+            resetAddForm();
+          }}
           role="dialog"
           aria-modal="true"
           aria-labelledby="add-item-title"
         >
-          <Card className="w-full max-w-lg p-6 m-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <Card
+            className="w-full max-w-lg p-6 m-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 id="add-item-title" className="text-xl font-bold flex items-center gap-2">
+              <h2
+                id="add-item-title"
+                className="text-xl font-bold flex items-center gap-2"
+              >
                 <Plus className="h-5 w-5" aria-hidden="true" />
                 Ajouter un article
               </h2>
-              <Button variant="ghost" size="sm" onClick={() => { setShowAddModal(false); resetAddForm(); }} aria-label="Fermer">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowAddModal(false);
+                  resetAddForm();
+                }}
+                aria-label="Fermer"
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -631,14 +798,22 @@ export default function StockCountDetailPage() {
             <div className="space-y-4">
               {/* Recherche produit */}
               <div>
-                <label className="text-sm font-medium mb-2 block">Produit *</label>
+                <label className="text-sm font-medium mb-2 block">
+                  Produit *
+                </label>
                 {selectedProduct ? (
                   <div className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
                     <div>
                       <p className="font-medium">{selectedProduct.name}</p>
-                      <p className="text-sm text-muted-foreground">{selectedProduct.sku}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedProduct.sku}
+                      </p>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedProduct(null)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedProduct(null)}
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -668,16 +843,22 @@ export default function StockCountDetailPage() {
                                 "w-full text-left p-3 hover:bg-muted/50 border-b last:border-b-0 transition-colors",
                                 alreadyAdded && "opacity-50 cursor-not-allowed"
                               )}
-                              onClick={() => !alreadyAdded && setSelectedProduct(product)}
+                              onClick={() =>
+                                !alreadyAdded && setSelectedProduct(product)
+                              }
                               disabled={alreadyAdded}
                             >
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="font-medium">{product.name}</p>
-                                  <p className="text-sm text-muted-foreground">{product.sku}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {product.sku}
+                                  </p>
                                 </div>
                                 {alreadyAdded && (
-                                  <Badge variant="outline" className="text-xs">Déjà ajouté</Badge>
+                                  <Badge variant="outline" className="text-xs">
+                                    Déjà ajouté
+                                  </Badge>
                                 )}
                               </div>
                             </button>
@@ -692,7 +873,9 @@ export default function StockCountDetailPage() {
               {/* Quantités */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Quantité attendue *</label>
+                  <label className="text-sm font-medium mb-2 block">
+                    Quantité attendue *
+                  </label>
                   <Input
                     type="number"
                     value={expectedQty}
@@ -707,7 +890,9 @@ export default function StockCountDetailPage() {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Quantité comptée</label>
+                  <label className="text-sm font-medium mb-2 block">
+                    Quantité comptée
+                  </label>
                   <Input
                     type="number"
                     value={countedQty}
@@ -732,7 +917,13 @@ export default function StockCountDetailPage() {
 
               {/* Actions */}
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => { setShowAddModal(false); resetAddForm(); }}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    resetAddForm();
+                  }}
+                >
                   Annuler
                 </Button>
                 <Button
@@ -751,7 +942,7 @@ export default function StockCountDetailPage() {
           </Card>
         </div>
       )}
-
+      </Can>
       {/* Modal des raccourcis */}
       {showShortcuts && (
         <div
@@ -761,27 +952,65 @@ export default function StockCountDetailPage() {
           aria-modal="true"
           aria-labelledby="shortcuts-title"
         >
-          <Card className="w-full max-w-md p-6 m-4" onClick={(e) => e.stopPropagation()}>
+          <Card
+            className="w-full max-w-md p-6 m-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 id="shortcuts-title" className="text-xl font-bold flex items-center gap-2">
+              <h2
+                id="shortcuts-title"
+                className="text-xl font-bold flex items-center gap-2"
+              >
                 <Keyboard className="h-5 w-5" aria-hidden="true" />
                 Raccourcis clavier
               </h2>
-              <Button variant="ghost" size="sm" onClick={() => setShowShortcuts(false)} aria-label="Fermer">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowShortcuts(false)}
+                aria-label="Fermer"
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <div className="space-y-3">
               <ShortcutItem keys={["A"]} description="Ajouter un article" />
-              <ShortcutItem keys={["G"]} description="Générer automatiquement" />
-              <ShortcutItem keys={["Ctrl", "S"]} description="Démarrer l'inventaire" />
-              <ShortcutItem keys={["Ctrl", "C"]} description="Compléter l'inventaire" />
-              <ShortcutItem keys={["↑", "↓"]} description="Naviguer dans les articles" />
-              <ShortcutItem keys={["Enter"]} description="Éditer la quantité comptée" />
-              <ShortcutItem keys={["Delete"]} description="Supprimer l'article sélectionné" />
-              <ShortcutItem keys={["Ctrl", "V"]} description="Valider l'inventaire" />
-              <ShortcutItem keys={["Esc"]} description="Annuler / Fermer" />
-              <ShortcutItem keys={["?"]} description="Afficher l'aide" />
+              <ShortcutItem
+                keys={["G"]}
+                description="Générer automatiquement"
+              />
+              <ShortcutItem
+                keys={["Ctrl", "S"]}
+                description="Démarrer l'inventaire"
+              />
+              <ShortcutItem
+                keys={["Ctrl", "C"]}
+                description="Compléter l'inventaire"
+              />
+              <ShortcutItem
+                keys={["↑", "↓"]}
+                description="Naviguer dans les articles"
+              />
+              <ShortcutItem
+                keys={["Enter"]}
+                description="Éditer la quantité comptée"
+              />
+              <ShortcutItem
+                keys={["Delete"]}
+                description="Supprimer l'article sélectionné"
+              />
+              <ShortcutItem
+                keys={["Ctrl", "V"]}
+                description="Valider l'inventaire"
+              />
+              <ShortcutItem
+                keys={["Esc"]}
+                description="Annuler / Fermer"
+              />
+              <ShortcutItem
+                keys={["?"]}
+                description="Afficher l'aide"
+              />
             </div>
           </Card>
         </div>
@@ -795,13 +1024,20 @@ export default function StockCountDetailPage() {
           role="dialog"
           aria-modal="true"
         >
-          <Card className="w-full max-w-2xl p-6 m-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <Card
+            className="w-full max-w-2xl p-6 m-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
                 Résumé de l'inventaire
               </h2>
-              <Button variant="ghost" size="sm" onClick={() => setShowSummary(false)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSummary(false)}
+              >
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -810,16 +1046,28 @@ export default function StockCountDetailPage() {
               {/* Statistiques */}
               <div className="grid grid-cols-3 gap-4">
                 <Card className="p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Taux de conformité</p>
-                  <p className="text-3xl font-bold text-green-600">{summary.statistics.match_rate}%</p>
+                  <p className="text-sm text-muted-foreground">
+                    Taux de conformité
+                  </p>
+                  <p className="text-3xl font-bold text-green-600">
+                    {summary.statistics.match_rate}%
+                  </p>
                 </Card>
                 <Card className="p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Articles corrects</p>
-                  <p className="text-3xl font-bold">{summary.statistics.items_matched}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Articles corrects
+                  </p>
+                  <p className="text-3xl font-bold">
+                    {summary.statistics.items_matched}
+                  </p>
                 </Card>
                 <Card className="p-4 text-center">
-                  <p className="text-sm text-muted-foreground">Écarts détectés</p>
-                  <p className="text-3xl font-bold text-orange-600">{summary.statistics.items_with_discrepancy}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Écarts détectés
+                  </p>
+                  <p className="text-3xl font-bold text-orange-600">
+                    {summary.statistics.items_with_discrepancy}
+                  </p>
                 </Card>
               </div>
 
@@ -829,20 +1077,29 @@ export default function StockCountDetailPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div className="p-3 border rounded-md">
                     <p className="text-sm text-muted-foreground">Attendu</p>
-                    <p className="text-xl font-bold">{summary.quantities.total_expected}</p>
+                    <p className="text-xl font-bold">
+                      {summary.quantities.total_expected}
+                    </p>
                   </div>
                   <div className="p-3 border rounded-md">
                     <p className="text-sm text-muted-foreground">Compté</p>
-                    <p className="text-xl font-bold">{summary.quantities.total_counted}</p>
+                    <p className="text-xl font-bold">
+                      {summary.quantities.total_counted}
+                    </p>
                   </div>
                   <div className="p-3 border rounded-md">
-                    <p className="text-sm text-muted-foreground">Différence nette</p>
-                    <p className={cn(
-                      "text-xl font-bold",
-                      summary.quantities.net_difference > 0 && "text-green-600",
-                      summary.quantities.net_difference < 0 && "text-red-600"
-                    )}>
-                      {summary.quantities.net_difference > 0 ? "+" : ""}{summary.quantities.net_difference}
+                    <p className="text-sm text-muted-foreground">
+                      Différence nette
+                    </p>
+                    <p
+                      className={cn(
+                        "text-xl font-bold",
+                        summary.quantities.net_difference > 0 && "text-green-600",
+                        summary.quantities.net_difference < 0 && "text-red-600"
+                      )}
+                    >
+                      {summary.quantities.net_difference > 0 ? "+" : ""}
+                      {summary.quantities.net_difference}
                     </p>
                   </div>
                 </div>
@@ -853,21 +1110,32 @@ export default function StockCountDetailPage() {
                 <h3 className="font-semibold mb-2">Valeurs</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="p-3 border rounded-md">
-                    <p className="text-sm text-muted-foreground">Valeur attendue</p>
-                    <p className="text-xl font-bold">{summary.values.total_expected_value.toLocaleString()} FCFA</p>
+                    <p className="text-sm text-muted-foreground">
+                      Valeur attendue
+                    </p>
+                    <p className="text-xl font-bold">
+                      {formatCurrency(summary.values.total_expected_value)}
+                    </p>
                   </div>
                   <div className="p-3 border rounded-md">
-                    <p className="text-sm text-muted-foreground">Valeur comptée</p>
-                    <p className="text-xl font-bold">{summary.values.total_counted_value.toLocaleString()} FCFA</p>
+                    <p className="text-sm text-muted-foreground">
+                      Valeur comptée
+                    </p>
+                    <p className="text-xl font-bold">
+                      {formatCurrency(summary.values.total_counted_value)}
+                    </p>
                   </div>
                   <div className="p-3 border rounded-md">
                     <p className="text-sm text-muted-foreground">Impact</p>
-                    <p className={cn(
-                      "text-xl font-bold",
-                      summary.values.value_difference > 0 && "text-green-600",
-                      summary.values.value_difference < 0 && "text-red-600"
-                    )}>
-                      {summary.values.value_difference > 0 ? "+" : ""}{summary.values.value_difference.toLocaleString()} FCFA
+                    <p
+                      className={cn(
+                        "text-xl font-bold",
+                        summary.values.value_difference > 0 && "text-green-600",
+                        summary.values.value_difference < 0 && "text-red-600"
+                      )}
+                    >
+                      {summary.values.value_difference > 0 ? "+" : ""}
+                      {formatCurrency(summary.values.value_difference)}
                     </p>
                   </div>
                 </div>
@@ -892,7 +1160,12 @@ export default function StockCountDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild aria-label="Retour à la liste">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            aria-label="Retour à la liste"
+          >
             <Link href={`/apps/${slug}/inventory/stock-counts`}>
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -927,37 +1200,54 @@ export default function StockCountDetailPage() {
           >
             <Keyboard className="h-4 w-4" />
           </Button>
-          
+
           {/* Actions de workflow */}
-          {canStart && (
+       <Can permission={COMMON_PERMISSIONS.INVENTORY.VALIDATE_STOCK_COUNTS}>
+       {canStart && (
             <Button variant="outline" onClick={handleStart} disabled={saving}>
               <Play className="mr-2 h-4 w-4" />
               Démarrer
             </Button>
           )}
           {canComplete && (
-            <Button variant="outline" onClick={handleComplete} disabled={saving}>
+            <Button
+              variant="outline"
+              onClick={() => setShowCompleteConfirmation(true)}
+              disabled={saving}
+            >
               <Check className="mr-2 h-4 w-4" />
               Compléter
             </Button>
           )}
           {canCancel && (
-            <Button variant="outline" onClick={handleCancel} disabled={saving}>
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelConfirmation(true)}
+              disabled={saving}
+            >
               <XCircle className="mr-2 h-4 w-4" />
               Annuler
             </Button>
           )}
           {canValidate && (
-            <Button onClick={handleValidate} disabled={saving}>
+            <Button
+              onClick={() => setShowValidateConfirmation(true)}
+              disabled={saving}
+            >
               {saving ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
                 <CheckCircle className="mr-2 h-4 w-4" aria-hidden="true" />
               )}
-              Valider l'inventaire
+              Valider l&apos;inventaire
             </Button>
           )}
-          <Button variant="outline" onClick={handleExportPdf} disabled={pdfLoading}>
+       </Can>
+          <Button
+            variant="outline"
+            onClick={handleExportPdf}
+            disabled={pdfLoading}
+          >
             {pdfLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
@@ -989,7 +1279,8 @@ export default function StockCountDetailPage() {
               <span className="font-medium">Actions automatisées</span>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Button
+             <Can permission={COMMON_PERMISSIONS.INVENTORY.VALIDATE_STOCK_COUNTS}>
+             <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowGenerateModal(true)}
@@ -997,18 +1288,21 @@ export default function StockCountDetailPage() {
               >
                 <Zap className="mr-2 h-4 w-4" />
                 Générer tous les articles
-                <kbd className="ml-2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs">G</kbd>
+                <kbd className="ml-2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs">
+                  G
+                </kbd>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleAutoFill}
+                onClick={() => setShowAutoFillConfirmation(true)}
                 disabled={saving || totalItems === 0}
                 className="bg-white dark:bg-background"
               >
                 <Copy className="mr-2 h-4 w-4" />
                 Pré-remplir les comptages
               </Button>
+             </Can>
               <Button
                 variant="outline"
                 size="sm"
@@ -1040,10 +1334,12 @@ export default function StockCountDetailPage() {
         </Card>
         <Card className="p-4">
           <p className="text-sm text-muted-foreground">Écarts</p>
-          <p className={cn(
-            "text-2xl font-bold",
-            itemsWithDiscrepancy > 0 ? "text-orange-600" : "text-green-600"
-          )}>
+          <p
+            className={cn(
+              "text-2xl font-bold",
+              itemsWithDiscrepancy > 0 ? "text-orange-600" : "text-green-600"
+            )}
+          >
             {itemsWithDiscrepancy}
           </p>
         </Card>
@@ -1074,7 +1370,9 @@ export default function StockCountDetailPage() {
               <Filter className="mr-2 h-4 w-4" />
               {showDiscrepanciesOnly ? "Tous" : "Écarts seulement"}
               {itemsWithDiscrepancy > 0 && (
-                <Badge variant="outline" className="ml-2">{itemsWithDiscrepancy}</Badge>
+                <Badge variant="outline" className="ml-2">
+                  {itemsWithDiscrepancy}
+                </Badge>
               )}
             </Button>
             {isEditable && (
@@ -1089,30 +1387,66 @@ export default function StockCountDetailPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full" role="grid" aria-label="Articles de l'inventaire">
+          <table
+            className="w-full"
+            role="grid"
+            aria-label="Articles de l'inventaire"
+          >
             <thead>
               <tr className="border-b bg-muted/50">
-                <th scope="col" className="text-left p-4 font-medium">Produit</th>
-                <th scope="col" className="text-right p-4 font-medium">Qté attendue</th>
-                <th scope="col" className="text-right p-4 font-medium">Qté comptée</th>
-                <th scope="col" className="text-right p-4 font-medium">Écart</th>
-                <th scope="col" className="text-left p-4 font-medium">Notes</th>
-                {isEditable && <th scope="col" className="text-center p-4 font-medium">Actions</th>}
+                <th scope="col" className="text-left p-4 font-medium">
+                  Produit
+                </th>
+                <th scope="col" className="text-right p-4 font-medium">
+                  Qté attendue
+                </th>
+                <th scope="col" className="text-right p-4 font-medium">
+                  Qté comptée
+                </th>
+                <th scope="col" className="text-right p-4 font-medium">
+                  Écart
+                </th>
+                <th scope="col" className="text-left p-4 font-medium">
+                  Notes
+                </th>
+                {isEditable && (
+                  <th scope="col" className="text-center p-4 font-medium">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
               {displayedItems.length === 0 ? (
                 <tr>
-                  <td colSpan={isEditable ? 6 : 5} className="text-center p-8 text-muted-foreground">
-                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" aria-hidden="true" />
-                    <p>{showDiscrepanciesOnly ? "Aucun écart détecté" : "Aucun article dans cet inventaire"}</p>
+                  <td
+                    colSpan={isEditable ? 6 : 5}
+                    className="text-center p-8 text-muted-foreground"
+                  >
+                    <Package
+                      className="h-12 w-12 mx-auto mb-4 opacity-50"
+                      aria-hidden="true"
+                    />
+                    <p>
+                      {showDiscrepanciesOnly
+                        ? "Aucun écart détecté"
+                        : "Aucun article dans cet inventaire"}
+                    </p>
                     {isEditable && !showDiscrepanciesOnly && (
                       <div className="text-sm mt-2 space-y-1">
                         <p>
-                          Appuyez sur <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">G</kbd> pour générer automatiquement
+                          Appuyez sur{" "}
+                          <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">
+                            G
+                          </kbd>{" "}
+                          pour générer automatiquement
                         </p>
                         <p>
-                          ou <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">A</kbd> pour ajouter manuellement
+                          ou{" "}
+                          <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">
+                            A
+                          </kbd>{" "}
+                          pour ajouter manuellement
                         </p>
                       </div>
                     )}
@@ -1135,7 +1469,9 @@ export default function StockCountDetailPage() {
                   >
                     <td className="p-4">
                       <div className="font-medium">{item.product_name}</div>
-                      <p className="text-sm text-muted-foreground">{item.product_sku}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.product_sku}
+                      </p>
                     </td>
                     <td className="p-4 text-right font-mono">
                       {item.expected_quantity}
@@ -1143,7 +1479,9 @@ export default function StockCountDetailPage() {
                     <td className="p-4 text-right">
                       {isEditable ? (
                         <Input
-                          ref={(el) => { countInputRefs.current[index] = el; }}
+                          ref={(el) => {
+                            countInputRefs.current[index] = el;
+                          }}
                           type="number"
                           defaultValue={item.counted_quantity}
                           className="w-24 text-right ml-auto"
@@ -1185,11 +1523,14 @@ export default function StockCountDetailPage() {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteItem(item.id);
+                            setPendingDeleteItem(item.id);
                           }}
                           aria-label={`Supprimer ${item.product_name}`}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
+                          <Trash2
+                            className="h-4 w-4 text-destructive"
+                            aria-hidden="true"
+                          />
                         </Button>
                       </td>
                     )}
@@ -1203,14 +1544,23 @@ export default function StockCountDetailPage() {
 
       {/* Help */}
       <p className="text-center text-xs text-muted-foreground">
-        Appuyez sur <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">?</kbd> pour voir tous les raccourcis clavier
+        Appuyez sur{" "}
+        <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">?</kbd>{" "}
+        pour voir tous les raccourcis clavier
       </p>
     </div>
+   </Can>
   );
 }
 
 // Composant pour afficher un raccourci
-function ShortcutItem({ keys, description }: { keys: string[]; description: string }) {
+function ShortcutItem({
+  keys,
+  description,
+}: {
+  keys: string[];
+  description: string;
+}) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-muted-foreground">{description}</span>

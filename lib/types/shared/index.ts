@@ -4,7 +4,6 @@
  */
 
 // Export permission types
-export * from '../permissions/permissions';
 
 // ============================================================================
 // API RESPONSES

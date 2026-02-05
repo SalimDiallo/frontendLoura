@@ -34,8 +34,8 @@ import { cn, formatDate, formatShortDate } from '@/lib/utils';
 import { API_CONFIG } from '@/lib/api/config';
 import { PDFPreviewModal } from '@/components/ui';
 import { useUser } from '@/lib/hooks';
-import { COMMON_PERMISSIONS } from '@/lib/types';
 import { getLeaveStatusConfig } from '@/lib/utils/BadgeStatus';
+import { COMMON_PERMISSIONS } from '@/lib/types/permissions';
 
 export default function LeaveRequestDetailPage() {
   const params = useParams();

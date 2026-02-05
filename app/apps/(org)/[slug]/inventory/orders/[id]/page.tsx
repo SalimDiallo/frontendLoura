@@ -9,7 +9,7 @@ import {
   confirmOrder,
   receiveOrder,
   cancelOrder,
-  exportOrderPdf
+  exportOrderPdf,
 } from "@/lib/services/inventory";
 import type { Order, OrderStatus } from "@/lib/types/inventory";
 import {
@@ -26,9 +26,14 @@ import {
   Clock,
   TruckIcon,
   Loader2,
-  Truck // For transport info
+  Truck,
+  Download, // For transport info
 } from "lucide-react";
 import Link from "next/link";
+// Permissions & confirmations UI
+import { ConfirmationDialog, DeleteConfirmation } from "@/components/common/confirmation-dialog";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 const statusConfig: Record<OrderStatus, { label: string; variant: "default" | "outline" | "success" | "warning" | "error" }> = {
   draft: { label: "Brouillon", variant: "outline" },
@@ -48,6 +53,9 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   useEffect(() => {
     loadOrderDetails();
@@ -69,16 +77,15 @@ export default function OrderDetailPage() {
 
   const handleDelete = async () => {
     if (!order) return;
-
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer la commande "${order.order_number}" ?`)) {
-      return;
-    }
-
     try {
+      setActionLoading(true);
       await deleteOrder(orderId);
       router.push(`/apps/${slug}/inventory/orders`);
     } catch (err: any) {
       alert(err.message || "Erreur lors de la suppression");
+    } finally {
+      setActionLoading(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -98,7 +105,6 @@ export default function OrderDetailPage() {
     try {
       setActionLoading(true);
       const updatedOrder = await receiveOrder(orderId);
-      
       setOrder(updatedOrder);
     } catch (err: any) {
       alert(err.message || "Erreur lors de la réception");
@@ -107,14 +113,7 @@ export default function OrderDetailPage() {
     }
   };
 
-  console.log(order);
-  
-
   const handleCancel = async () => {
-    if (!confirm("Êtes-vous sûr de vouloir annuler cette commande ?")) {
-      return;
-    }
-
     try {
       setActionLoading(true);
       const updatedOrder = await cancelOrder(orderId);
@@ -123,6 +122,7 @@ export default function OrderDetailPage() {
       alert(err.message || "Erreur lors de l'annulation");
     } finally {
       setActionLoading(false);
+      setCancelDialogOpen(false);
     }
   };
 
@@ -183,49 +183,97 @@ export default function OrderDetailPage() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-xl font-bold">{order.order_number}</h1>
-              <Badge variant={statusInfo.variant} size="lg">{statusInfo.label}</Badge>
+              <Badge variant={statusInfo.variant} size="lg">
+                {statusInfo.label}
+              </Badge>
             </div>
             <p className="text-muted-foreground">
-              Commande du {new Date(order.order_date).toLocaleDateString('fr-FR')}
+              Commande du {new Date(order.order_date).toLocaleDateString("fr-FR")}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {order.status === 'draft' && (
-            <Button onClick={handleConfirm} disabled={actionLoading}>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Confirmer
-            </Button>
-          )}
-          {order.status === 'confirmed' && (
-            <Button onClick={handleReceive} disabled={actionLoading}>
-              <TruckIcon className="mr-2 h-4 w-4" />
-              Marquer comme reçu
-            </Button>
-          )}
-          {(order.status === 'draft' || order.status === 'pending') && (
-            <Button variant="outline" onClick={handleCancel} disabled={actionLoading}>
-              <XCircle className="mr-2 h-4 w-4" />
-              Annuler
-            </Button>
-          )}
+
+          {/* CONFIRM button */}
+          <Can  permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS} >
+            {order.status === "draft" && (
+              <Button onClick={handleConfirm} disabled={actionLoading}>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Confirmer
+              </Button>
+            )}
+          </Can>
+
+          {/* RECEIVE button */}
+          <Can  permission={COMMON_PERMISSIONS.INVENTORY.RECEIVE_ORDERS} >
+            {order.status === "confirmed" && (
+              <Button onClick={handleReceive} disabled={actionLoading}>
+                <TruckIcon className="mr-2 h-4 w-4" />
+                Marquer comme reçu
+              </Button>
+            )}
+          </Can>
+
+          {/* CANCEL button with ConfirmationDialog */}
+          <Can  permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS} >
+            {(order.status === "draft" || order.status === "pending") && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setCancelDialogOpen(true)}
+                  disabled={actionLoading}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Annuler
+                </Button>
+                <ConfirmationDialog
+                  open={cancelDialogOpen}
+                  title="Annulation de la commande"
+                  description="Êtes-vous sûr de vouloir annuler cette commande ? Cette action est irréversible."
+                  loading={actionLoading}
+                  onConfirm={handleCancel}
+                  onOpenChange={() => setCancelDialogOpen(false)}
+                  icon="warning"
+                />
+              </>
+            )}
+          </Can>
+
+          {/* PDF */}
           <Button variant="outline" onClick={handleExportPdf} disabled={pdfLoading}>
             {pdfLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <FileDown className="mr-2 h-4 w-4" />
+              <Download className="h-4 w-4" />
             )}
-            Télécharger PDF
           </Button>
-          <Link href={`/apps/${slug}/inventory/orders/${orderId}/edit`}>
-            <Button variant="outline">
-              <Edit className="mr-2 h-4 w-4" />
-              Modifier
-            </Button>
-          </Link>
-          <Button variant="ghost" onClick={handleDelete}>
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
+
+          {/* Edit */}
+          <Can  permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS} >
+            <Link href={`/apps/${slug}/inventory/orders/${orderId}/edit`}>
+              <Button variant="outline">
+                <Edit className="mr-2 h-4 w-4" />
+                Modifier
+              </Button>
+            </Link>
+          </Can>
+
+          {/* Delete with ConfirmationDialog */}
+          <Can  permission={COMMON_PERMISSIONS.INVENTORY.DELETE_ORDERS} >
+            <>
+              <Button variant="ghost" onClick={() => setDeleteDialogOpen(true)}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+              <DeleteConfirmation
+                open={deleteDialogOpen}
+                title="Supprimer la commande"
+                description={`Êtes-vous sûr de vouloir supprimer la commande "${order.order_number}" ? Cette action est irréversible.`}
+                loading={actionLoading}
+                onConfirm={handleDelete}
+                onOpenChange={() => setDeleteDialogOpen(false)}
+              />
+            </>
+          </Can>
         </div>
       </div>
 
@@ -247,7 +295,9 @@ export default function OrderDetailPage() {
               </Link>
             </div>
             <div>
-              <p className="text-muted-foreground text-xs">Entrepôt de destination</p>
+              <p className="text-muted-foreground text-xs">
+                Entrepôt de destination
+              </p>
               <Link
                 href={`/apps/${slug}/inventory/warehouses/${order.warehouse}`}
                 className="font-medium hover:text-primary"
@@ -267,37 +317,47 @@ export default function OrderDetailPage() {
             <div>
               <p className="text-muted-foreground text-xs">Date de commande</p>
               <p className="font-medium">
-                {new Date(order.order_date).toLocaleDateString('fr-FR', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
+                {new Date(order.order_date).toLocaleDateString("fr-FR", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
                 })}
               </p>
             </div>
             {order.expected_delivery_date && (
               <div>
-                <p className="text-muted-foreground text-xs">Livraison prévue</p>
+                <p className="text-muted-foreground text-xs">
+                  Livraison prévue
+                </p>
                 <p className="font-medium">
-                  {new Date(order.expected_delivery_date).toLocaleDateString('fr-FR', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {new Date(order.expected_delivery_date).toLocaleDateString(
+                    "fr-FR",
+                    {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    }
+                  )}
                 </p>
               </div>
             )}
             {order.actual_delivery_date && (
               <div>
-                <p className="text-muted-foreground text-xs">Livraison réelle</p>
+                <p className="text-muted-foreground text-xs">
+                  Livraison réelle
+                </p>
                 <p className="font-medium">
-                  {new Date(order.actual_delivery_date).toLocaleDateString('fr-FR', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {new Date(order.actual_delivery_date).toLocaleDateString(
+                    "fr-FR",
+                    {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    }
+                  )}
                 </p>
               </div>
             )}
@@ -313,45 +373,61 @@ export default function OrderDetailPage() {
             <div className="space-y-2 text-sm">
               {order.transport_company && (
                 <div>
-                  <span className="text-muted-foreground text-xs">Transporteur</span>
+                  <span className="text-muted-foreground text-xs">
+                    Transporteur
+                  </span>
                   <p className="font-medium">{order.transport_company}</p>
                 </div>
               )}
               {order.transport_mode && (
                 <div>
-                  <span className="text-muted-foreground text-xs">Mode de transport</span>
-                  <p className="font-medium capitalize">{order.transport_mode}</p>
+                  <span className="text-muted-foreground text-xs">
+                    Mode de transport
+                  </span>
+                  <p className="font-medium capitalize">
+                    {order.transport_mode}
+                  </p>
                 </div>
               )}
               {typeof order.transport_included !== "undefined" && (
                 <div>
-                  <span className="text-muted-foreground text-xs">Transport inclus ?</span>
-                  <p className="font-medium">{order.transport_included ? "Oui" : "Non"}</p>
-                </div>
-              )}
-              {(!!order.transport_cost && order.transport_cost !== "0" && order.transport_cost !== "0.00") && (
-                <div>
-                  <span className="text-muted-foreground text-xs">Coût du transport</span>
+                  <span className="text-muted-foreground text-xs">
+                    Transport inclus ?
+                  </span>
                   <p className="font-medium">
-                    {
-                      new Intl.NumberFormat('fr-FR', {
-                        style: 'currency',
-                        currency: 'GNF',
-                        maximumFractionDigits: 0,
-                      }).format(Number(order.transport_cost))
-                    }
+                    {order.transport_included ? "Oui" : "Non"}
                   </p>
                 </div>
               )}
+              {!!order.transport_cost &&
+                order.transport_cost !== "0" &&
+                order.transport_cost !== "0.00" && (
+                  <div>
+                    <span className="text-muted-foreground text-xs">
+                      Coût du transport
+                    </span>
+                    <p className="font-medium">
+                      {new Intl.NumberFormat("fr-FR", {
+                        style: "currency",
+                        currency: "GNF",
+                        maximumFractionDigits: 0,
+                      }).format(Number(order.transport_cost))}
+                    </p>
+                  </div>
+                )}
               {order.tracking_number && (
                 <div>
-                  <span className="text-muted-foreground text-xs">Numéro de suivi</span>
+                  <span className="text-muted-foreground text-xs">
+                    Numéro de suivi
+                  </span>
                   <p className="font-medium">{order.tracking_number}</p>
                 </div>
               )}
               {order.transport_notes && (
                 <div>
-                  <span className="text-muted-foreground text-xs">Note de livraison</span>
+                  <span className="text-muted-foreground text-xs">
+                    Note de livraison
+                  </span>
                   <p className="font-medium">{order.transport_notes}</p>
                 </div>
               )}
@@ -367,13 +443,17 @@ export default function OrderDetailPage() {
             <Package className="h-5 w-5" />
             Articles commandés
           </h2>
-          <Badge variant="outline">{order.items?.length || 0} article(s)</Badge>
+          <Badge variant="outline">
+            {order.items?.length || 0} article(s)
+          </Badge>
         </div>
 
         {!order.items || order.items.length === 0 ? (
           <div className="text-center py-12">
             <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground">Aucun article dans cette commande</p>
+            <p className="text-muted-foreground">
+              Aucun article dans cette commande
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -390,7 +470,10 @@ export default function OrderDetailPage() {
               </thead>
               <tbody>
                 {order.items.map((item) => (
-                  <tr key={item.id} className="border-b hover:bg-muted/50 transition-colors">
+                  <tr
+                    key={item.id}
+                    className="border-b hover:bg-muted/50 transition-colors"
+                  >
                     <td className="p-4">
                       <Link
                         href={`/apps/${slug}/inventory/products/${item.product}`}
@@ -401,26 +484,34 @@ export default function OrderDetailPage() {
                     </td>
                     <td className="p-4">
                       <code className="text-sm bg-muted px-2 py-1 rounded">
-                        {item.product_sku || '-'}
+                        {item.product_sku || "-"}
                       </code>
                     </td>
-                    <td className="p-4 text-right font-semibold">{item.quantity}</td>
+                    <td className="p-4 text-right font-semibold">
+                      {item.quantity}
+                    </td>
                     <td className="p-4 text-right">
-                      <span className={item.received_quantity < item.quantity ? 'text-orange-600' : 'text-green-600'}>
+                      <span
+                        className={
+                          item.received_quantity < item.quantity
+                            ? "text-orange-600"
+                            : "text-green-600"
+                        }
+                      >
                         {item.received_quantity}
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      {new Intl.NumberFormat('fr-FR', {
-                        style: 'currency',
-                        currency: 'GNF',
+                      {new Intl.NumberFormat("fr-FR", {
+                        style: "currency",
+                        currency: "GNF",
                         maximumFractionDigits: 0,
                       }).format(item.unit_price)}
                     </td>
                     <td className="p-4 text-right font-semibold">
-                      {new Intl.NumberFormat('fr-FR', {
-                        style: 'currency',
-                        currency: 'GNF',
+                      {new Intl.NumberFormat("fr-FR", {
+                        style: "currency",
+                        currency: "GNF",
                         maximumFractionDigits: 0,
                       }).format(item.quantity * item.unit_price)}
                     </td>
@@ -429,11 +520,13 @@ export default function OrderDetailPage() {
               </tbody>
               <tfoot>
                 <tr className="bg-muted/50 font-bold">
-                  <td colSpan={5} className="p-4 text-right">Total de la commande</td>
+                  <td colSpan={5} className="p-4 text-right">
+                    Total de la commande
+                  </td>
                   <td className="p-4 text-right text-lg">
-                    {new Intl.NumberFormat('fr-FR', {
-                      style: 'currency',
-                      currency: 'GNF',
+                    {new Intl.NumberFormat("fr-FR", {
+                      style: "currency",
+                      currency: "GNF",
                       maximumFractionDigits: 0,
                     }).format(Number(order.total_amount) ?? 0)}
                   </td>
@@ -451,7 +544,9 @@ export default function OrderDetailPage() {
             <FileText className="h-5 w-5" />
             Notes
           </h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{order.notes}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+            {order.notes}
+          </p>
         </Card>
       )}
 
@@ -467,7 +562,7 @@ export default function OrderDetailPage() {
             <div>
               <p className="font-medium">Commande créée</p>
               <p className="text-muted-foreground text-xs">
-                {new Date(order.created_at).toLocaleString('fr-FR')}
+                {new Date(order.created_at).toLocaleString("fr-FR")}
               </p>
             </div>
           </div>
@@ -477,7 +572,7 @@ export default function OrderDetailPage() {
               <div>
                 <p className="font-medium">Dernière modification</p>
                 <p className="text-muted-foreground text-xs">
-                  {new Date(order.updated_at).toLocaleString('fr-FR')}
+                  {new Date(order.updated_at).toLocaleString("fr-FR")}
                 </p>
               </div>
             </div>

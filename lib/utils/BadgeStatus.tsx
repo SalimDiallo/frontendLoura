@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui";
 import { JSX } from "react";
 
 // Icons for main statuses
-import { CheckCircle, AlertCircle, Clock, XCircle } from "lucide-react";
+import { CheckCircle, AlertCircle, Clock, XCircle, LucideIcon, Package } from "lucide-react";
 
 /** Types de statuts et variants possibles */
 export type StatusBadgeVariant =
@@ -54,7 +54,9 @@ export function getStatusBadge(status: string): StatusBadgeMapping {
     // validated status
     validated: "success",
     // Pour matcher le code HR/Leaves: "cancelled": "default",
-    received :  'success'
+    received :  'success',
+    in_progress: "default",
+    planned: "secondary"
   };
 
   const labels: Record<string, string> = {
@@ -83,7 +85,9 @@ export function getStatusBadge(status: string): StatusBadgeMapping {
     // validated
     validated: "Validé",
     // cancelled est déjà couvert
-    received: "Recu"
+    received: "Recu",
+    in_progress: 'En cours',
+    planned: "planifié"
   };
 
   // Optionally inject an icon for some statuses (cf. page.tsx)
@@ -260,48 +264,48 @@ export function getBadgeWIthOutIconAdLabel({ status, label, className }: { statu
 export function getStatusInfo(status: string) {
   // Les icônes Clock, CheckCircle, Package, XCircle doivent être importés dans le fichier appelant.
   // Ici on retourne juste les noms de composants pour que le composant parent les utilise.
-  const info: Record<string, { label: string; color: string; bg: string; icon: string }> = {
+  const info: Record<string, { label: string; color: string; bg: string; icon: LucideIcon }> = {
     draft: {
       label: "Brouillon",
       color: "text-gray-600",
       bg: "bg-gray-100 dark:bg-gray-800",
-      icon: "Clock",
+      icon: Clock,
     },
     pending: {
       label: "En attente",
       color: "text-yellow-600",
       bg: "bg-yellow-100 dark:bg-yellow-900/30",
-      icon: "Clock",
+      icon: Clock,
     },
     confirmed: {
       label: "Confirmée",
       color: "text-foreground",
       bg: "bg-blue-100 dark:bg-blue-900/30",
-      icon: "CheckCircle",
+      icon: CheckCircle,
     },
     received: {
       label: "Reçue",
       color: "text-green-600",
       bg: "bg-green-100 dark:bg-green-900/30",
-      icon: "Package",
+      icon: Package,
     },
     cancelled: {
       label: "Annulée",
       color: "text-red-600",
       bg: "bg-red-100 dark:bg-red-900/30",
-      icon: "XCircle",
+      icon: XCircle ,
     },
     validated: {
       label: "Validé",
       color: "text-emerald-700 dark:text-emerald-400",
       bg: "bg-emerald-50 dark:bg-emerald-950/30",
-      icon: "CheckCircle",
+      icon: CheckCircle,
     },
     deducted: {
       label: "Déduit",
       color: "text-green-600",
       bg: "bg-green-50 dark:bg-green-950/30",
-      icon: "CheckCircle",
+      icon: CheckCircle,
     },
   };
 

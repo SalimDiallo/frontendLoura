@@ -253,11 +253,13 @@ export default function MovementsPage() {
                   )}>
                     {m.movement_type === 'out' ? '-' : '+'}{m.quantity}
                   </span>
-                  <Button variant="ghost" size="icon" asChild onClick={(e) => e.stopPropagation()}>
+                 <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK}>
+                 <Button variant="ghost" size="icon" asChild onClick={(e) => e.stopPropagation()}>
                     <Link href={`/apps/${slug}/inventory/movements/${m.id}`}>
                       <Eye className="h-4 w-4" />
                     </Link>
                   </Button>
+                 </Can>
                 </div>
               </div>
             ))}

@@ -202,23 +202,23 @@ export function OrganisationSideBar() {
           ? { title: "Catégories", url: `/apps/${orgSlug}/inventory/categories`, icon: HiOutlineTag }
           : null,
         hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES)
-          ? { title: "Stock", url: `/apps/${orgSlug}/inventory/warehouses`, icon: HiOutlineArchiveBox }
+          ? { title: "Entrepôts", url: `/apps/${orgSlug}/inventory/warehouses`, icon: HiOutlineArchiveBox }
           : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK)
-          ? { title: "Mouvements", url: `/apps/${orgSlug}/inventory/movements`, icon: HiOutlineArrowPath }
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK)
+          ? { title: "Mouvements Stocks", url: `/apps/${orgSlug}/inventory/movements`, icon: HiOutlineArrowPath }
           : null,
         { title: "Clients", url: `/apps/${orgSlug}/inventory/customers`, icon: HiOutlineUsers },
         hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS)
           ? { title: "Fournisseurs", url: `/apps/${orgSlug}/inventory/suppliers`, icon: HiOutlineBriefcase }
           : null,
         { title: "Documents", url: `/apps/${orgSlug}/inventory/documents`, icon: HiOutlineDocumentText },
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK)
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK_COUNTS)
           ? { title: "Inventaire", url: `/apps/${orgSlug}/inventory/stock-counts`, icon: HiOutlineDocumentText }
           : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK)
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES)
           ? { title: "Alertes", url: `/apps/${orgSlug}/inventory/alerts`, icon: HiOutlineExclamationTriangle }
           : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK)
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES)
           ? { title: "Rapports", url: `/apps/${orgSlug}/inventory/reports`, icon: HiOutlineChartBar }
           : null,
       ]),

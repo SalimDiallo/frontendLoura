@@ -8,6 +8,8 @@ import type { ProductUpdate, Category } from "@/lib/types/inventory";
 import { ProductUnit } from "@/lib/types/inventory";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function EditProductPage() {
   const params = useParams();
@@ -108,7 +110,8 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="space-y-6 p-6 max-w-4xl">
+  <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS}>
+        <div className="space-y-6 p-6 max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={`/apps/${slug}/inventory/products/${productId}`}>
@@ -328,5 +331,6 @@ export default function EditProductPage() {
         </Card>
       </form>
     </div>
+  </Can>
   );
 }

@@ -21,6 +21,8 @@ import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/h
 import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
 import { Can } from "@/components/apps/common/protected-route";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
+import { useRef as useDialogRef } from "react";
 
 export default function ProductsPage() {
   const params = useParams();
@@ -35,6 +37,9 @@ export default function ProductsPage() {
   const [filterLowStock, setFilterLowStock] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+
+  // Confirmation dialog state
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null; name: string | null }>({ open: false, id: null, name: null });
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLTableSectionElement>(null);
@@ -69,16 +74,19 @@ export default function ProductsPage() {
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer le produit "${name}" ?`)) {
-      return;
-    }
+  const handleRequestDelete = (id: string, name: string) => {
+    setDeleteDialog({ open: true, id, name });
+  };
 
+  const handleDelete = async () => {
+    if (!deleteDialog.id || !deleteDialog.name) return;
     try {
-      await deleteProduct(id);
+      await deleteProduct(deleteDialog.id);
+      setDeleteDialog({ open: false, id: null, name: null });
       await loadProducts();
     } catch (err: any) {
       alert(err.message || "Erreur lors de la suppression");
+      setDeleteDialog({ open: false, id: null, name: null });
     }
   };
 
@@ -148,6 +156,15 @@ export default function ProductsPage() {
           onClose={() => setShowShortcuts(false)}
           shortcuts={shortcuts}
           title="Raccourcis clavier - Produits"
+        />
+
+        {/* Confirmation Dialog */}
+        <DeleteConfirmation
+          open={deleteDialog.open}
+          title="Supprimer le produit"
+          description={`Êtes-vous sûr de vouloir supprimer le produit "${deleteDialog.name}" ? Cette action est irréversible.`}
+          onConfirm={handleDelete}
+          onOpenChange={() => setDeleteDialog({ open: false, id: null, name: null })}
         />
 
         {/* Header */}
@@ -338,7 +355,7 @@ export default function ProductsPage() {
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
-                          <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS}>
+                          <Can allPermissions={[COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS, COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES]}>
                             <Link href={`/apps/${slug}/inventory/products/${product.id}/edit`}>
                               <Button variant="ghost" size="sm" aria-label={`Éditer ${product.name}`}>
                                 <Edit className="h-4 w-4" />
@@ -346,17 +363,20 @@ export default function ProductsPage() {
                             </Link>
                           </Can>
                           <Can permission={COMMON_PERMISSIONS.INVENTORY.DELETE_PRODUCTS}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(product.id, product.name);
-                              }}
-                              aria-label={`Supprimer ${product.name}`}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                           {
+                            product.total_stock == 0 &&
+                             <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               handleRequestDelete(product.id, product.name);
+                             }}
+                             aria-label={`Supprimer ${product.name}`}
+                           >
+                             <Trash2 className="h-4 w-4 text-destructive" />
+                           </Button>
+                           }
                           </Can>
                         </div>
                       </td>
