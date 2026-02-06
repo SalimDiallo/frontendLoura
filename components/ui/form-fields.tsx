@@ -182,11 +182,11 @@ export function FormNumberField({
           )}
           <FormControl>
             <Input
-              type="number"
-              min={min}
-              max={max}
-              step={step}
-              {...props}
+      type="number"
+      min={min}
+      max={max}
+      step={step}
+      {...props}
               value={field.value ?? ''}
               onChange={(e) => {
                 const value = e.target.value;

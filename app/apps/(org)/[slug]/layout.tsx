@@ -5,6 +5,8 @@ import { NotificationPanel } from "@/components/core/notification-panel";
 import { useNotifications } from "@/lib/hooks/use-notifications";
 import { useSSE } from "@/lib/hooks/use-sse";
 import { useParams, usePathname, useRouter } from "next/navigation";
+import { NotificationProvider } from "@/lib/contexts/NotificationContext";
+import { NotificationPermissionPrompt } from "@/components/common/NotificationPermissionPrompt";
 import {
   SidebarProvider,
   SidebarInset,
@@ -154,7 +156,8 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
   return (
     <OrgAccessGuard organizationSlug={slug}>
       <PermissionProvider organizationSlug={slug}>
-        <SidebarProvider>
+        <NotificationProvider>
+          <SidebarProvider>
           <OrganisationSideBar />
 
           <SidebarInset className="bg-background">
@@ -312,7 +315,11 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
             {/* QR Scan Floating Action Button */}
             <QRScanFAB />
           </SidebarInset>
+
+          {/* Notification Permission Prompt */}
+          <NotificationPermissionPrompt />
         </SidebarProvider>
+      </NotificationProvider>
       </PermissionProvider>
     </OrgAccessGuard>
   );
