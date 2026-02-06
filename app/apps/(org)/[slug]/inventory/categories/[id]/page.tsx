@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { Can } from "@/components/apps/common";
+import { formatCurrency } from "@/lib";
 
 export default function CategoryDetailPage() {
   const params = useParams();
@@ -164,12 +165,9 @@ export default function CategoryDetailPage() {
             <div>
               <p className="text-sm text-muted-foreground">Valeur totale</p>
               <p className="text-2xl font-bold">
-                {new Intl.NumberFormat('fr-FR', {
-                  notation: 'compact',
-                  compactDisplay: 'short',
-                }).format(
+                {formatCurrency(
                   products.reduce((sum, p) => sum + (p.total_stock || 0) * p.purchase_price, 0)
-                )} GNF
+                )} 
               </p>
             </div>
           </div>
@@ -246,18 +244,10 @@ export default function CategoryDetailPage() {
                       </Badge>
                     </td>
                     <td className="p-4 text-right">
-                      {new Intl.NumberFormat('fr-FR', {
-                        style: 'currency',
-                        currency: 'GNF',
-                        maximumFractionDigits: 0,
-                      }).format(product.purchase_price)}
+                      {formatCurrency(product.purchase_price)}
                     </td>
                     <td className="p-4 text-right font-semibold">
-                      {new Intl.NumberFormat('fr-FR', {
-                        style: 'currency',
-                        currency: 'GNF',
-                        maximumFractionDigits: 0,
-                      }).format(product.selling_price)}
+                      {formatCurrency(product.selling_price)}
                     </td>
                     <td className="p-4 text-right">
                       <Link href={`/apps/${slug}/inventory/products/${product.id}`}>

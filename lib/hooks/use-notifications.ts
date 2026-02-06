@@ -110,9 +110,9 @@ export function useNotifications(autoFetch = false) {
 
   // --- Changer les filtres ---------------------------------------------------
   const applyFilters = useCallback((newFilters: NotificationFilters) => {
-    setFilters(newFilters);
-    // Le changement de filtres reset la page → le useEffect ci-dessous re-fetch
-  }, [setFilters]);
+    setFilters(newFilters);          // met à jour le store + reset page à 1
+    fetchNotifications(1, newFilters); // refetch immédiatement avec les nouveaux filtres
+  }, [setFilters, fetchNotifications]);
 
   // --- Pagination ------------------------------------------------------------
   const goToNextPage = useCallback(() => {

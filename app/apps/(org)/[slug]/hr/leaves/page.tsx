@@ -25,7 +25,11 @@ import {
   KeyboardShortcut,
   commonShortcuts,
 } from "@/lib/hooks/use-keyboard-shortcuts";
-import { getLeaveRequests, approveLeaveRequest, rejectLeaveRequest } from "@/lib/services/hr/leave.service";
+import {
+  getLeaveRequests,
+  approveLeaveRequest,
+  rejectLeaveRequest,
+} from "@/lib/services/hr/leave.service";
 import type { LeaveRequest } from "@/lib/types/hr";
 import { ApiError } from "@/lib/api/client";
 import { useUser } from "@/lib/hooks";
@@ -38,12 +42,15 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { format, parseISO } from "date-fns";
+import {ConfirmationDialog} from "@/components/common/confirmation-dialog";
 
 // Badge composant inline pour le type de congé
 function LeaveTypeBadge({ type, color }: { type: string; color: string }) {
   // color: nom de class, eg. bg-blue-100 text-blue-800
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${color}`}>
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${color}`}
+    >
       {type}
     </span>
   );
@@ -51,11 +58,11 @@ function LeaveTypeBadge({ type, color }: { type: string; color: string }) {
 
 // Badge type map (tiré de la page détail pour s'inspirer)
 const LEAVE_TYPE_COLORS: Record<string, string> = {
-  "RTT": "bg-indigo-100 text-indigo-800",
-  "CP": "bg-teal-100 text-teal-800",
+  RTT: "bg-indigo-100 text-indigo-800",
+  CP: "bg-teal-100 text-teal-800",
   "Sans solde": "bg-gray-100 text-gray-800",
-  "Maladie": "bg-pink-100 text-pink-800",
-  "Exceptionnel": "bg-yellow-100 text-yellow-800",
+  Maladie: "bg-pink-100 text-pink-800",
+  Exceptionnel: "bg-yellow-100 text-yellow-800",
 };
 
 export default function LeavesPage() {
@@ -65,7 +72,9 @@ export default function LeavesPage() {
   const user = useUser();
   const userType = user?.user_type;
 
-  const [hasApprovePermission, setHasApprovePermission] = useState<boolean | null>(null);
+  const [hasApprovePermission, setHasApprovePermission] = useState<
+    boolean | null
+  >(null);
 
   // Pour gestion des actions (modal, etc)
   const [actionLoading, setActionLoading] = useState<string | null>(null); // id en cours d'action ("approve"/"reject")
@@ -80,11 +89,16 @@ export default function LeavesPage() {
     let mounted = true;
     async function checkPerm() {
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("access_token")
+            : null;
         if (token) {
           if (mounted) {
             setHasApprovePermission(
-              user?.permissions?.includes(COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS) ?? false
+              user?.permissions?.includes(
+                COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS
+              ) ?? false
             );
           }
         } else {
@@ -124,7 +138,8 @@ export default function LeavesPage() {
       commonShortcuts.help(() => setShowShortcuts(true)),
       {
         key: "c",
-        action: () => router.push(`/apps/${slug}/hr/leaves/calendar`),
+        action: () =>
+          router.push(`/apps/${slug}/hr/leaves/calendar`),
         description: "Ouvrir calendrier",
       },
     ],
@@ -139,11 +154,15 @@ export default function LeavesPage() {
         try {
           setLoading(true);
           setError(null);
-          const response = await getLeaveRequests({exclude:true});
+          const response = await getLeaveRequests({ exclude: true });
           setLeaveRequests(response.results || []);
         } catch (err: any) {
           if (err instanceof ApiError) setError(err.message);
-          else setError(err?.message || "Erreur lors du chargement des demandes de congés");
+          else
+            setError(
+              err?.message ||
+                "Erreur lors du chargement des demandes de congés"
+            );
         } finally {
           setLoading(false);
         }
@@ -184,17 +203,26 @@ export default function LeavesPage() {
     },
   ];
   // Logic modale simple pour feedback action (succès ou erreur d'API)
-  const [globalActionMessage, setGlobalActionMessage] = useState<string | null>(null);
+  const [globalActionMessage, setGlobalActionMessage] = useState<string | null>(
+    null
+  );
 
   // Filtrage recherche employé
   const filteredRequests = useMemo(() => {
     if (!searchQuery) return leaveRequests;
     const q = searchQuery.toLowerCase();
     return leaveRequests.filter((req) => {
-      const name = (req.employee_name || "");
+      const name = req.employee_name || "";
       return name.toLowerCase().includes(q);
     });
   }, [searchQuery, leaveRequests]);
+
+  // Gestion des confirmations de dialogues
+  const [confirmDialog, setConfirmDialog] = useState<{
+    id: string;
+    action: "approve" | "reject";
+    open: boolean;
+  } | null>(null);
 
   if (
     loading ||
@@ -220,7 +248,6 @@ export default function LeavesPage() {
     return null;
   }
 
-
   // Actualiser la liste après action
   async function reloadRequests() {
     try {
@@ -240,7 +267,9 @@ export default function LeavesPage() {
       setGlobalActionMessage("Demande approuvée !");
       await reloadRequests();
     } catch (e: any) {
-      setGlobalActionMessage(e?.message || "Erreur lors de l'approbation.");
+      setGlobalActionMessage(
+        e?.message || "Erreur lors de l'approbation."
+      );
     } finally {
       setActionLoading(null);
     }
@@ -264,12 +293,65 @@ export default function LeavesPage() {
     router.push(`/apps/${slug}/hr/leaves/${id}`);
   }
 
+  // Fermer le dialog
+  function handleCloseDialog() {
+    setConfirmDialog(null);
+  }
+
+  function openConfirmation(id: string, action: "approve" | "reject") {
+    setConfirmDialog({ id, action, open: true });
+  }
+
+  async function handleConfirmDialog() {
+    if (!confirmDialog) return;
+    if (confirmDialog.action === "approve") {
+      await handleApprove(confirmDialog.id);
+    } else if (confirmDialog.action === "reject") {
+      await handleReject(confirmDialog.id);
+    }
+    setConfirmDialog(null);
+  }
+
   return (
     <Can
       permission={COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS}
       showMessage={true}
     >
       <div className="space-y-6">
+        {/* Modal de confirmation pour approbation/rejet */}
+        <ConfirmationDialog
+          open={!!confirmDialog?.open}
+          title={
+            confirmDialog?.action === "approve"
+              ? "Approbation de la demande"
+              : confirmDialog?.action === "reject"
+              ? "Rejet de la demande"
+              : ""
+          }
+          description={
+            confirmDialog?.action === "approve"
+              ? "Êtes-vous sûr de vouloir approuver cette demande de congé ?"
+              : confirmDialog?.action === "reject"
+              ? "Êtes-vous sûr de vouloir rejeter cette demande de congé ?"
+              : ""
+          }
+          onOpenChange={handleCloseDialog}
+          onConfirm={handleConfirmDialog}
+          confirmLabel={
+            confirmDialog?.action === "approve"
+              ? "Approuver"
+              : confirmDialog?.action === "reject"
+              ? "Rejeter"
+              : undefined
+          }
+          loading={
+            !!actionLoading &&
+            !!confirmDialog &&
+            (actionLoading === confirmDialog.id + "-approve" ||
+              actionLoading === confirmDialog.id + "-reject")
+          }
+        />
+
         {/* Modal des raccourcis */}
         <ShortcutsHelpModal
           isOpen={showShortcuts}
@@ -393,7 +475,10 @@ export default function LeavesPage() {
               <TableBody>
                 {filteredRequests.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={6}
+                      className="text-center text-muted-foreground"
+                    >
                       Aucune demande trouvée.
                     </TableCell>
                   </TableRow>
@@ -403,19 +488,28 @@ export default function LeavesPage() {
                     const leaveTypeText = req.leave_type_name ?? "-";
                     // Choix couleur ou fallback bleu
                     let colorCls = "bg-blue-100 text-blue-800";
-                    if (leaveTypeText && leaveTypeText in LEAVE_TYPE_COLORS) {
+                    if (
+                      leaveTypeText &&
+                      leaveTypeText in LEAVE_TYPE_COLORS
+                    ) {
                       colorCls = LEAVE_TYPE_COLORS[leaveTypeText];
                     }
+
+                    const isLoadingApprove =
+                      actionLoading === req.id + "-approve";
+                    const isLoadingReject =
+                      actionLoading === req.id + "-reject";
 
                     return (
                       <TableRow key={req.id}>
                         <TableCell>
-                          {req.employee
-                            ? `${req.employee_name ?? ""}`
-                            : "–"}
+                          {req.employee ? `${req.employee_name ?? ""}` : "–"}
                         </TableCell>
                         <TableCell>
-                          <LeaveTypeBadge type={leaveTypeText} color={colorCls} />
+                          <LeaveTypeBadge
+                            type={leaveTypeText}
+                            color={colorCls}
+                          />
                         </TableCell>
                         <TableCell>
                           {req.start_date
@@ -454,40 +548,51 @@ export default function LeavesPage() {
                           >
                             <HiOutlineEye className="size-5 text-blue-600" />
                           </button>
-                         <Can permission={COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS}>
-                         {req.status === "pending" && (
-                            <>
-                              <button
-                                onClick={() => handleApprove(req.id)}
-                                title="Approuver"
-                                disabled={actionLoading === req.id + "-approve" || actionLoading === req.id + "-reject"}
-                                className={`inline-flex items-center mx-1 px-1.5 py-1 rounded hover:bg-green-100 transition ${
-                                  actionLoading === req.id + "-approve" ? "opacity-60 pointer-events-none" : ""
-                                }`}
-                              >
-                                <HiOutlineCheckCircle className={`size-5 ${actionLoading === req.id + "-approve" ? "animate-spin" : "text-green-700"}`} />
-                              </button>
-                              <button
-                                onClick={() => handleReject(req.id)}
-                                title="Rejeter"
-                                disabled={actionLoading === req.id + "-approve" || actionLoading === req.id + "-reject"}
-                                className={`inline-flex items-center mx-1 px-1.5 py-1 rounded hover:bg-red-100 transition ${
-                                  actionLoading === req.id + "-reject" ? "opacity-60 pointer-events-none" : ""
-                                }`}
-                              >
-                                <HiOutlineXCircle className={`size-5 ${actionLoading === req.id + "-reject" ? "animate-spin" : "text-red-700"}`} />
-                              </button>
-                            </>
-                          )}
-                         </Can>
+                          <Can permission={COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS}>
+                            {req.status === "pending" && (
+                              <>
+                                <button
+                                  onClick={() => openConfirmation(req.id, "approve")}
+                                  title="Approuver"
+                                  disabled={isLoadingApprove || isLoadingReject}
+                                  className={`inline-flex items-center mx-1 px-1.5 py-1 rounded hover:bg-green-100 transition ${
+                                    isLoadingApprove ? "opacity-60 pointer-events-none" : ""
+                                  }`}
+                                >
+                                  <HiOutlineCheckCircle
+                                    className={`size-5 ${
+                                      isLoadingApprove
+                                        ? "animate-spin"
+                                        : "text-green-700"
+                                    }`}
+                                  />
+                                </button>
+                                <button
+                                  onClick={() => openConfirmation(req.id, "reject")}
+                                  title="Rejeter"
+                                  disabled={isLoadingApprove || isLoadingReject}
+                                  className={`inline-flex items-center mx-1 px-1.5 py-1 rounded hover:bg-red-100 transition ${
+                                    isLoadingReject ? "opacity-60 pointer-events-none" : ""
+                                  }`}
+                                >
+                                  <HiOutlineXCircle
+                                    className={`size-5 ${
+                                      isLoadingReject
+                                        ? "animate-spin"
+                                        : "text-red-700"
+                                    }`}
+                                  />
+                                </button>
+                              </>
+                            )}
+                          </Can>
                         </TableCell>
                       </TableRow>
-                    )
+                    );
                   })
                 )}
               </TableBody>
             </Table>
-          
           </div>
         </Card>
       </div>

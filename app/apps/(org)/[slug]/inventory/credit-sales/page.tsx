@@ -312,7 +312,14 @@ export default function CreditSalesPage() {
             </Button>
             <Button
               variant={filterOverdue ? "destructive" : "outline"}
-              onClick={() => { setFilterOverdue(!filterOverdue); setFilterStatus(undefined); }}
+              onClick={() => {
+                if (filterOverdue) {
+                  setFilterOverdue(false);
+                } else {
+                  setFilterOverdue(true);
+                  setFilterStatus(undefined);
+                }
+              }}
               size="sm"
               className="h-8 text-xs px-2.5"
             >
@@ -321,7 +328,10 @@ export default function CreditSalesPage() {
             </Button>
             <Button
               variant={filterStatus === "pending" ? "default" : "outline"}
-              onClick={() => { setFilterStatus(filterStatus === "pending" ? undefined : "pending"); setFilterOverdue(false); }}
+              onClick={() => {
+                setFilterStatus(filterStatus === "pending" ? undefined : "pending");
+                setFilterOverdue(false);
+              }}
               size="sm"
               className="h-8 text-xs px-2.5"
             >
@@ -329,7 +339,10 @@ export default function CreditSalesPage() {
             </Button>
             <Button
               variant={filterStatus === "partial" ? "default" : "outline"}
-              onClick={() => { setFilterStatus(filterStatus === "partial" ? undefined : "partial"); setFilterOverdue(false); }}
+              onClick={() => {
+                setFilterStatus(filterStatus === "partial" ? undefined : "partial");
+                setFilterOverdue(false);
+              }}
               size="sm"
               className="h-8 text-xs px-2.5"
             >
@@ -337,7 +350,10 @@ export default function CreditSalesPage() {
             </Button>
             <Button
               variant={filterStatus === "paid" ? "default" : "outline"}
-              onClick={() => { setFilterStatus(filterStatus === "paid" ? undefined : "paid"); setFilterOverdue(false); }}
+              onClick={() => {
+                setFilterStatus(filterStatus === "paid" ? undefined : "paid");
+                setFilterOverdue(false);
+              }}
               size="sm"
               className="h-8 text-xs px-2.5"
             >

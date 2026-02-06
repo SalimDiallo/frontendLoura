@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Alert, Badge, Card } from "@/components/ui";
-import { getSale, addPaymentToSale, getSaleReceiptUrl, getSaleInvoiceUrl } from "@/lib/services/inventory";
-import type { Sale, Payment } from "@/lib/types/inventory";
+import { getSale, addPaymentToSale, getSaleReceiptUrl, getSaleInvoiceUrl, getDeliveryNotes } from "@/lib/services/inventory";
+import type { Sale, Payment, DeliveryNote } from "@/lib/types/inventory";
 import {
   ArrowLeft,
   AlertTriangle,
@@ -19,6 +19,7 @@ import {
   Percent,
   Banknote,
   X,
+  Truck,
 } from "lucide-react";
 import Link from "next/link";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -37,6 +38,7 @@ export default function SaleDetailPage() {
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
 
   useEffect(() => {
     loadSale();
@@ -49,6 +51,10 @@ export default function SaleDetailPage() {
       const data = await getSale(saleId);
       setSale(data);
       setPaymentAmount(data.remaining_amount || 0);
+
+      // Load delivery notes for this sale
+      const notes = await getDeliveryNotes({ sale: saleId });
+      setDeliveryNotes(notes);
     } catch (err: any) {
       setError(err.message || "Erreur lors du chargement de la vente");
     } finally {
@@ -190,6 +196,12 @@ export default function SaleDetailPage() {
             </Button>
           )}
           <Button variant="outline" asChild>
+            <Link href={`/apps/${slug}/inventory/documents/delivery-notes/new?sale=${saleId}`}>
+              <Truck className="mr-2 h-4 w-4" />
+              Créer bon de livraison
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
             <a href={getSaleReceiptUrl(saleId)} target="_blank">
               <Download className="mr-2 h-4 w-4" />
               Reçu
@@ -257,6 +269,48 @@ export default function SaleDetailPage() {
           </div>
         </Card>
       </div>
+
+      {/* Delivery Notes Section */}
+      {deliveryNotes.length > 0 && (
+        <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Truck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              Bons de livraison associés ({deliveryNotes.length})
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {deliveryNotes.map((note) => (
+              <div
+                key={note.id}
+                className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-200 dark:border-blue-800 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center gap-3">
+                  <Truck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <div>
+                    <p className="font-semibold">{note.delivery_number}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(note.delivery_date).toLocaleDateString("fr-FR")}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {note.status === "pending" && <Badge variant="default">En préparation</Badge>}
+                  {note.status === "ready" && <Badge variant="warning">Prêt</Badge>}
+                  {note.status === "in_transit" && <Badge variant="default">En transit</Badge>}
+                  {note.status === "delivered" && <Badge variant="success">Livré</Badge>}
+                  {note.status === "cancelled" && <Badge variant="error">Annulé</Badge>}
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/apps/${slug}/inventory/documents/delivery-notes/${note.id}`}>
+                      Voir →
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Items */}

@@ -461,5 +461,8 @@ export const API_ENDPOINTS = {
 
     // Préférences
     PREFERENCES_LIST: '/notifications/preferences/',
+
+    // SSE — flux en temps réel
+    STREAM: '/notifications/stream/',
   },
 } as const;

@@ -11,7 +11,6 @@ import {
   EmptyState
 } from "@/components/ui";
 import { getHRStats, getDepartmentStats } from "@/lib/services/hr";
-import { getEmployees } from "@/lib/services/hr";
 import { getLeaveRequests } from "@/lib/services/hr/leave.service";
 import type { HRStats, DepartmentStats, LeaveRequest } from "@/lib/types/hr";
 import {
@@ -43,6 +42,8 @@ import {
   BarChart,
   Line,
   LineChart,
+  Area,
+  AreaChart,
   Pie,
   PieChart,
   Cell,
@@ -77,19 +78,33 @@ export default function HRDashboardPage() {
       setLoading(true);
       setError(null);
 
-      const [statsData, deptStats, employeesData, leavesData] = await Promise.allSettled([
+      const [statsData, deptStats, leavesData] = await Promise.allSettled([
         getHRStats(slug),
         getDepartmentStats(slug),
-        getEmployees(slug, { page_size: 1000 }),
-        getLeaveRequests({ status: "pending" }),
+        getLeaveRequests({ status: "pending", organization_subdomain: slug }),
       ]);
 
       // Handle stats data
       if (statsData.status === "fulfilled" && statsData.value) {
         setStats(statsData.value);
+        
+        // Use real payroll trend data from backend
+        if (statsData.value.payroll_trend && Array.isArray(statsData.value.payroll_trend)) {
+          const trendData = statsData.value.payroll_trend.map(item => ({
+            month: item.month,
+            fullMonth: item.full_month,
+            montant: item.montant,
+            employes: item.employes,
+            moyenneParEmploye: item.employes > 0 ? Math.round(item.montant / item.employes) : 0,
+          }));
+          setPayrollTrend(trendData);
+        } else {
+          setPayrollTrend([]);
+        }
       } else {
         console.error("Failed to load HR stats:", statsData.status === "rejected" ? statsData.reason : "No data");
         setStats(null);
+        setPayrollTrend([]);
       }
 
       // Handle department stats
@@ -100,11 +115,6 @@ export default function HRDashboardPage() {
         setDepartmentStats([]);
       }
 
-      // Handle employees data
-      const employees = employeesData.status === "fulfilled" && employeesData.value
-        ? employeesData.value
-        : { results: [], count: 0 };
-
       // Handle leave requests
       if (leavesData.status === "fulfilled" && leavesData.value && "results" in leavesData.value) {
         setPendingLeaves(Array.isArray(leavesData.value.results) ? leavesData.value.results : []);
@@ -112,27 +122,6 @@ export default function HRDashboardPage() {
         console.error("Failed to load leave requests:", leavesData.status === "rejected" ? leavesData.reason : "No data");
         setPendingLeaves([]);
       }
-
-      // Generate payroll trend data (last 6 months)
-      // TODO: Replace with real API data when available
-      const now = new Date();
-      const months = [];
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const basePayroll = 12000000;
-        const variation = Math.floor(Math.random() * 2000000) - 500000;
-        const montant = basePayroll + variation + (i * 300000);
-        const employeCount = Math.max(0, Math.floor(Math.random() * 5) + (employees.count - 2));
-        
-        months.push({
-          month: d.toLocaleDateString("fr-FR", { month: "short" }),
-          fullMonth: d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }),
-          montant: montant,
-          employes: employeCount,
-          moyenneParEmploye: Math.round(montant / employeCount),
-        });
-      }
-      setPayrollTrend(months);
     } catch (err) {
       setError("Erreur lors du chargement des statistiques");
       console.error("Dashboard load error:", err);
@@ -576,7 +565,13 @@ export default function HRDashboardPage() {
               </div>
               
               <ChartContainer config={payrollChartConfig} className={cn("h-[300px] w-full")}>
-                <LineChart data={payrollTrend} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                <AreaChart data={payrollTrend} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                  <defs>
+                    <linearGradient id="payrollGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} className={cn("stroke-muted")} />
                   <XAxis 
                     dataKey="month" 
@@ -587,8 +582,9 @@ export default function HRDashboardPage() {
                   <YAxis 
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                    tickFormatter={(value) => value > 0 ? `${(value / 1000000).toFixed(1)}M` : "0"}
                     className={cn("text-xs")}
+                    width={50}
                   />
                   <ChartTooltip
                     content={
@@ -599,22 +595,25 @@ export default function HRDashboardPage() {
                         }}
                         formatter={(value, name) => {
                           if (name === "montant") {
-                            return [`${(Number(value) / 1000000).toFixed(2)}M GNF`, "Masse salariale"];
+                            const numValue = Number(value);
+                            if (numValue === 0) return ["Aucune paie", "Masse salariale"];
+                            return [`${(numValue / 1000000).toFixed(2)}M GNF`, "Masse salariale"];
                           }
                           return [value, name];
                         }}
                       />
                     }
                   />
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="montant"
                     stroke="hsl(var(--primary))"
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                    activeDot={{ r: 6 }}
+                    strokeWidth={2}
+                    fill="url(#payrollGradient)"
+                    dot={{ fill: "hsl(var(--primary))", r: 4, strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
                   />
-                </LineChart>
+                </AreaChart>
               </ChartContainer>
 
               {/* Summary Stats */}

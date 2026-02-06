@@ -55,6 +55,9 @@ export interface NotificationState {
   /** Retire une notification de la liste locale. */
   removeNotificationLocally: (id: string) => void;
 
+  /** Ajoute une nouvelle notification en tête de liste (SSE). Ne duplique pas. */
+  addNotificationLocally: (notification: Notification) => void;
+
   /** Réinitialise entièrement le store. */
   reset: () => void;
 }
@@ -124,6 +127,17 @@ export const useNotificationStore = create<NotificationState>((set) => ({
         notifications: state.notifications.filter((n) => n.id !== id),
         totalCount: state.totalCount - 1,
         unreadCount: removed && !removed.is_read ? state.unreadCount - 1 : state.unreadCount,
+      };
+    }),
+
+  addNotificationLocally: (notification) =>
+    set((state) => {
+      // Ne pas dupliquer si déjà dans la liste
+      if (state.notifications.find((n) => n.id === notification.id)) return state;
+      return {
+        notifications: [notification, ...state.notifications],
+        totalCount: state.totalCount + 1,
+        unreadCount: notification.is_read ? state.unreadCount : state.unreadCount + 1,
       };
     }),
 

@@ -80,7 +80,7 @@ export default function DeliveryNotesPage() {
 
       if (e.key === "n" || e.key === "N") {
         e.preventDefault();
-        router.push(`/apps/${slug}/inventory/delivery-notes/new`);
+        router.push(`/apps/${slug}/inventory/documents/delivery-notes/new`);
         return;
       }
 
@@ -104,7 +104,7 @@ export default function DeliveryNotesPage() {
       if (e.key === "Enter" && selectedIndex >= 0) {
         const note = filteredNotes[selectedIndex];
         if (note) {
-          router.push(`/apps/${slug}/inventory/delivery-notes/${note.id}`);
+          router.push(`/apps/${slug}/inventory/documents/delivery-notes/${note.id}`);
         }
         return;
       }
@@ -267,7 +267,7 @@ export default function DeliveryNotesPage() {
             <Keyboard className="h-4 w-4" />
           </Button>
           <Button asChild>
-            <Link href={`/apps/${slug}/inventory/delivery-notes/new`}>
+            <Link href={`/apps/${slug}/inventory/documents/delivery-notes/new`}>
               <Plus className="mr-2 h-4 w-4" />
               Nouveau bon
               <kbd className="ml-2 hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-xs">
@@ -439,7 +439,7 @@ export default function DeliveryNotesPage() {
                         : "hover:bg-muted/50"
                     )}
                     onClick={() => setSelectedIndex(index)}
-                    onDoubleClick={() => router.push(`/apps/${slug}/inventory/delivery-notes/${note.id}`)}
+                    onDoubleClick={() => router.push(`/apps/${slug}/inventory/documents/delivery-notes/${note.id}`)}
                     tabIndex={0}
                   >
                     <td className="p-4">
@@ -482,7 +482,7 @@ export default function DeliveryNotesPage() {
                     <td className="p-4">
                       <div className="flex items-center justify-center gap-1">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/apps/${slug}/inventory/delivery-notes/${note.id}`}>
+                          <Link href={`/apps/${slug}/inventory/documents/delivery-notes/${note.id}`}>
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>

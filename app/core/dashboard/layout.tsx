@@ -1,8 +1,9 @@
 "use client";
 
-import { PropsWithChildren, useState, useEffect } from "react";
+import { PropsWithChildren, useState, useEffect, useRef } from "react";
 import { NotificationPanel } from "@/components/core/notification-panel";
 import { useNotifications } from "@/lib/hooks/use-notifications";
+import { useSSE } from "@/lib/hooks/use-sse";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -29,6 +30,22 @@ export default function DashboardCoreLayout({ children }: PropsWithChildren) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const { unreadCount, refreshUnreadCount } = useNotifications();
+
+  // --- SSE : flux temps réel des notifications ----------------------------
+  useSSE();
+
+  // --- Pulse sur le badge quand le compteur monte -------------------------
+  const [badgePulse, setBadgePulse] = useState(false);
+  const prevUnreadRef = useRef(0);
+
+  useEffect(() => {
+    if (unreadCount > prevUnreadRef.current && prevUnreadRef.current !== 0) {
+      setBadgePulse(true);
+      const t = setTimeout(() => setBadgePulse(false), 1500);
+      return () => clearTimeout(t);
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount]);
 
   useEffect(() => {
     refreshUnreadCount();
@@ -148,10 +165,16 @@ export default function DashboardCoreLayout({ children }: PropsWithChildren) {
               onClick={() => setNotifOpen(true)}
               aria-label="Notifications"
             >
-              <Bell className="size-4" />
+              <Bell className={cn("size-4 transition-transform duration-300", badgePulse && "animate-bounce")} />
               {unreadCount > 0 && (
                 <span className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full bg-destructive text-white text-[9px] font-bold leading-none">
-                  {unreadCount > 99 ? "99+" : unreadCount}
+                  {/* Pulse ring — même pattern que le dot "IA Active" */}
+                  {badgePulse && (
+                    <span className="absolute inset-0 rounded-full animate-ping bg-destructive opacity-60" />
+                  )}
+                  <span className="relative z-10">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
                 </span>
               )}
             </Button>

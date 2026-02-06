@@ -210,7 +210,7 @@ export default function EditProductPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Prix d'achat (GNF) <span className="text-destructive">*</span>
+                  Prix d'achat  <span className="text-destructive">*</span>
                 </label>
                 <Input
                   type="number"
@@ -224,7 +224,7 @@ export default function EditProductPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Prix de vente (GNF) <span className="text-destructive">*</span>
+                  Prix de vente  <span className="text-destructive">*</span>
                 </label>
                 <Input
                   type="number"

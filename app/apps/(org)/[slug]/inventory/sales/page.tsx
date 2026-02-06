@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Alert, Badge, Card, Input } from "@/components/ui";
-import { getSales, cancelSale } from "@/lib/services/inventory";
+import { getSales, cancelSale, getSaleReceiptUrl, getSaleInvoiceUrl } from "@/lib/services/inventory";
 import type { SaleList } from "@/lib/types/inventory";
 import {
   Plus,
@@ -22,6 +22,9 @@ import {
   CheckCircle,
   XCircle,
   Zap,
+  MoreVertical,
+  Download,
+  Truck,
 } from "lucide-react";
 import Link from "next/link";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -41,6 +44,7 @@ export default function SalesPage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLTableSectionElement>(null);
@@ -494,11 +498,59 @@ export default function SalesPage() {
                             <Eye className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
-                          <Link href={`/apps/${slug}/inventory/sales/${sale.id}/receipt`}>
+                        <div className="relative">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(openMenuId === sale.id ? null : sale.id);
+                            }}
+                          >
                             <FileText className="h-3.5 w-3.5" />
-                          </Link>
-                        </Button>
+                          </Button>
+                          {openMenuId === sale.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setOpenMenuId(null)}
+                              />
+                              <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                                <div className="py-1">
+                                  <a
+                                    href={getSaleReceiptUrl(sale.id)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                    onClick={() => setOpenMenuId(null)}
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                    Télécharger reçu
+                                  </a>
+                                  <a
+                                    href={getSaleInvoiceUrl(sale.id)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                                    onClick={() => setOpenMenuId(null)}
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                    Télécharger facture
+                                  </a>
+                                  <Link
+                                    href={`/apps/${slug}/inventory/documents/delivery-notes/new?sale=${sale.id}`}
+                                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-t border-gray-200 dark:border-gray-700"
+                                    onClick={() => setOpenMenuId(null)}
+                                  >
+                                    <Truck className="h-3.5 w-3.5 text-blue-600" />
+                                    Créer bon de livraison
+                                  </Link>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
                         {sale.payment_status !== "paid" && sale.payment_status !== "cancelled" && (
                           <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_SALES}>
                             <Button

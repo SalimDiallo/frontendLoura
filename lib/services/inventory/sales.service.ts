@@ -49,6 +49,8 @@ export async function getSale(id: string): Promise<Sale> {
  * Create a new sale
  */
 export async function createSale(data: SaleCreate): Promise<Sale> {
+  console.log(data);
+  
   const dataWithOrg = addOrganizationToData(data);
   return apiClient.post<Sale>(API_ENDPOINTS.INVENTORY.SALES.CREATE, dataWithOrg);
 }
