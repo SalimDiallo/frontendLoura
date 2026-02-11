@@ -8,9 +8,11 @@ export function CompanyShowcase() {
       id="company"
       className="flex flex-col items-center justify-center gap-8 py-16 pt-24 w-full relative px-6"
     >
-      <p className="text-muted-foreground text-sm font-medium uppercase tracking-wider">
-        Ils nous font confiance
-      </p>
+      <h2 className="text-3xl md:text-4xl lg:text-5xl tracking-tight text-center text-balance pb-2">
+        <span className="font-display font-bold">Ils</span>
+        <span className="text-muted-foreground font-normal"> nous font </span>
+        <span className="font-display font-bold italic">confiance</span>
+      </h2>
       <div className="grid w-full max-w-6xl grid-cols-2 md:grid-cols-4 overflow-hidden border-y border-border items-center justify-center z-20">
         {companyShowcase?.companyLogos?.slice(0, 8).map((logo) => (
           <Link

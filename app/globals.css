@@ -66,6 +66,22 @@
   --exitToRight: exitToRight 250ms ease;
   --animate-elliptical-orbit: elliptical-orbit 20s linear infinite;
 
+  --animate-cell-ripple: cell-ripple var(--duration, 200ms) ease-out none 1
+  
+  var(--delay, 0ms);
+ 
+  @keyframes cell-ripple {
+    0% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.8;
+    }
+    100% {
+      opacity: 0.4;
+    }
+  }
+
   @keyframes orbit {
     0% {
       transform: rotate(calc(var(--angle) * 1deg))

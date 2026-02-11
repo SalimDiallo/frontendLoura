@@ -303,7 +303,7 @@ export const siteConfig = {
         content:
           "Sélectionnez le domaine de gestion souhaité. Louratech regroupe tous vos modules dans un même espace pour une navigation fluide, adaptée à la gestion d’agence moderne.",
         image:
-          "https://images.unsplash.com/photo-1720371300677-ba4838fa0678?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          "https://images.pexels.com/photos/6801642/pexels-photo-6801642.jpeg?auto=compress&w=800&fit=crop", // gestion d'équipe/module symbolique
       },
       {
         id: 2,
@@ -311,7 +311,7 @@ export const siteConfig = {
         content:
           "Demandez une action (ex: enregistrer un nouveau collaborateur, consulter l’état des stocks, générer un rapport de mission). Louratech comprend vos besoins et lance automatiquement la procédure adaptée.",
         image:
-          "https://images.unsplash.com/photo-1686170287433-c95faf6d3608?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHwzfHx8ZW58MHx8fHx8fA%3D%3D",
+          "https://images.pexels.com/photos/3184325/pexels-photo-3184325.jpeg?auto=compress&w=800&fit=crop", // input ou requête IA/logiciel
       },
       {
         id: 3,
@@ -319,7 +319,7 @@ export const siteConfig = {
         content:
           "Visualisez instantanément les réponses, rapports, ou actions réalisées dans le module choisi. Les modules travaillent de concert pour que vos données soient toujours à jour et cohérentes.",
         image:
-          "https://images.unsplash.com/photo-1720378042271-60aff1e1c538?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxmZWF0dXJlZC1waG90b3MtZmVlZHwxMHx8fGVufDB8fHx8fA%3D%3D",
+          "https://images.pexels.com/photos/6693651/pexels-photo-6693651.jpeg?auto=compress&w=800&fit=crop", // dashboard, résultats, analytics visibles
       },
       {
         id: 4,
@@ -327,7 +327,7 @@ export const siteConfig = {
         content:
           "Louratech évolue avec vos besoins : nous enrichissons en permanence les modules RH, Stocks, Services et plus, afin de simplifier encore la gestion de votre agence.",
         image:
-          "https://images.unsplash.com/photo-1666882990322-e7f3b8df4f75?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1yZWxhdGVkfDF8fHxlbnwwfHx8fHw%3D",
+          "https://images.pexels.com/photos/1181676/pexels-photo-1181676.jpeg?auto=compress&w=800&fit=crop", // innovation, croissance, évolution
       },
     ],
   },

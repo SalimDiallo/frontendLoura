@@ -1,40 +1,50 @@
-import { siteConfig } from "@/lib/landing/config";
+import { Highlighter } from "@/components/ui/highlighter";
+import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
 
 export function QuoteSection() {
-  const { quoteSection } = siteConfig;
-
   return (
     <section
       id="quote"
-      className="flex flex-col items-center justify-center w-full py-24 px-6 bg-secondary/30"
+      className="relative flex flex-col items-center justify-center w-full py-16 px-4 bg-background overflow-hidden"
     >
-      <div className="max-w-4xl mx-auto text-center">
-        {/* Citation avec style élégant */}
-        <blockquote className="relative">
-          {/* Guillemets décoratifs */}
-          <span className="absolute -top-8 -left-4 text-8xl font-display text-foreground/5 select-none">"</span>
-          
-          <p className="text-xl md:text-2xl lg:text-3xl leading-relaxed tracking-tight text-foreground/90 mb-10">
-            <span className="font-display italic">{quoteSection?.quote}</span>
+      {/* Decorative animated background */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <BackgroundRippleEffect rows={8} cols={27} cellSize={32} />
+      </div>
+      <div className="relative z-10 max-w-2xl mx-auto text-center">
+        <h3 className="text-lg font-medium text-muted-foreground mb-3">
+          Notre vision
+        </h3>
+        <blockquote className="mb-6">
+          <p className="text-xl leading-relaxed text-foreground whitespace-pre-line italic">
+            <Highlighter action="underline" color="#7dc4fa">
+              LouraTech
+            </Highlighter>
+            {" "}rend la gestion moderne accessible à tous{" "}
+            <Highlighter action="highlight" color="#ffd1dc">
+              simplicité
+            </Highlighter>
+            {" "}et innovation pour votre{" "}
+            <Highlighter action="box" color="#f5c452">
+              réussite.
+            </Highlighter>
           </p>
-          
-          {/* Auteur */}
-          <footer className="flex items-center justify-center gap-4">
-            {quoteSection?.author?.image && (
-              <img
-                src={quoteSection.author.image}
-                alt={quoteSection.author.name}
-                width={48}
-                height={48}
-                className="rounded-full grayscale size-12 object-cover"
-              />
-            )}
-            <div className="text-left">
-              <p className="font-semibold text-sm">{quoteSection?.author?.name}</p>
-              <p className="text-muted-foreground text-sm">{quoteSection?.author?.role}</p>
-            </div>
-          </footer>
         </blockquote>
+        <footer className="flex flex-col items-center gap-2">
+          <img
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRzHKNvHY5QA-EucL4ub5i8IfODcaSigz6klQ&s"
+            alt="Sidy Mohamed Salim Diallo"
+            width={48}
+            height={48}
+            className="rounded-full object-cover bg-white mb-1 border border-border shadow-sm"
+          />
+          <div className="text-center">
+            <p className="font-semibold text-base text-foreground">
+              Sidy Mohamed Salim Diallo
+            </p>
+            <p className="text-sm text-muted-foreground">CEO & Fondateur, LouraTech</p>
+          </div>
+        </footer>
       </div>
     </section>
   );
