@@ -16,6 +16,7 @@ import {
   HiOutlineClock,
   HiOutlineDocument,
   HiOutlineArrowTopRightOnSquare,
+  HiOutlineEye,
 } from "react-icons/hi2";
 import { Button, Card, Alert, Badge } from "@/components/ui";
 import { contractService } from "@/lib/services/hr";
@@ -25,6 +26,8 @@ import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
 import { API_CONFIG } from "@/lib/api/config";
 import { formatCurrency } from "@/lib";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { usePDF } from "@/lib/hooks/usePDF";
+import { PDFPreviewWrapper } from "@/components/ui/pdf-preview";
 
 const CONTRACT_TYPE_INFO: Record<string, { label: string; description: string; color: string }> = {
   permanent: { label: "CDI", description: "Contrat à Durée Indéterminée", color: "bg-green-100 text-green-800 border-green-200" },
@@ -52,6 +55,8 @@ export default function ContractDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [toggling, setToggling] = useState(false);
+
+  const { preview, download, previewState, closePreview } = usePDF();
 
   useEffect(() => {
     loadContract();
@@ -108,31 +113,21 @@ export default function ContractDetailPage() {
     }
   };
 
-  const handleExportPDF = async () => {
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(
-        `${API_CONFIG.baseURL}/hr/contracts/${id}/export-pdf/`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Contrat_${contract?.employee_name?.replace(' ', '_')}.pdf`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      console.error('Error exporting PDF:', err);
-      alert("Erreur lors de l'export PDF");
-    }
+  const handlePreviewPDF = () => {
+    if (!contract) return;
+    preview(
+      `/hr/contracts/${id}/export-pdf/`,
+      `Contrat - ${contract.employee_name}`,
+      `Contrat_${contract.employee_name?.replace(/\s+/g, '_')}.pdf`
+    );
+  };
+
+  const handleDownloadPDF = () => {
+    if (!contract) return;
+    download(
+      `/hr/contracts/${id}/export-pdf/`,
+      `Contrat_${contract.employee_name?.replace(/\s+/g, '_')}.pdf`
+    );
   };
 
   const contractTypeInfo = contract ? CONTRACT_TYPE_INFO[contract.contract_type] : null;
@@ -384,9 +379,13 @@ export default function ContractDetailPage() {
                   </a>
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={handleExportPDF}>
+              <Button variant="outline" size="sm" onClick={handlePreviewPDF}>
+                <HiOutlineEye className="size-4 mr-2" />
+                Aperçu PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
                 <HiOutlineDocument className="size-4 mr-2" />
-                Exporter en PDF
+                Télécharger PDF
               </Button>
             </div>
           </div>
@@ -418,6 +417,12 @@ export default function ContractDetailPage() {
           </Can>
         </div>
       </div>
+
+      {/* PDF Preview Modal */}
+      <PDFPreviewWrapper
+        previewState={previewState}
+        onClose={closePreview}
+      />
     </Can>
   );
 }

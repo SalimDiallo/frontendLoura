@@ -18,7 +18,8 @@ export * from './switch';
 export * from './textarea';
 export * from './quick-select';
 export * from './stat-card';
-export * from './pdf-preview-modal';
+// Export du nouveau composant PDF unifié (remplace pdf-preview-modal)
+export * from './pdf-preview';
 export * from './page-header';
 export * from './empty-state';
 export * from './filter-bar';

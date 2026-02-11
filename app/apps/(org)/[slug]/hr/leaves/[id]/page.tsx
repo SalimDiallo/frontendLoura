@@ -31,8 +31,8 @@ import {
   Mail,
 } from 'lucide-react';
 import { cn, formatDate, formatShortDate } from '@/lib/utils';
-import { API_CONFIG } from '@/lib/api/config';
-import { PDFPreviewModal } from '@/components/ui';
+import { usePDF, PDFEndpoints } from '@/lib/hooks';
+import { PDFPreviewWrapper } from '@/components/ui';
 import { useUser } from '@/lib/hooks';
 import { getLeaveStatusConfig } from '@/lib/utils/BadgeStatus';
 import { COMMON_PERMISSIONS } from '@/lib/types/permissions';
@@ -50,13 +50,12 @@ export default function LeaveRequestDetailPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectNotes, setRejectNotes] = useState('');
-  const [pdfPreview, setPdfPreview] = useState<{
-    isOpen: boolean;
-    pdfUrl: string;
-  }>({
-    isOpen: false,
-    pdfUrl: '',
+
+  const { preview, previewState, closePreview } = usePDF({
+    onSuccess: () => setSuccess('PDF chargé avec succès'),
+    onError: (err) => setError(err),
   });
+
   const user = useUser();
   const userType = user?.user_type;
 
@@ -122,40 +121,16 @@ export default function LeaveRequestDetailPage() {
   };
 
   const handlePreviewPDF = async () => {
+    if (!leave) return;
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(
-        `${API_CONFIG.baseURL}/hr/leave-requests/${leaveId}/export-pdf/`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'X-Organization-Slug': orgSlug,
-          },
-        }
+      await preview(
+        PDFEndpoints.leaveRequest(leaveId),
+        `Demande de Congé - ${leave.employee_name}`,
+        `Conge_${leave.employee_name}_${leaveId}.pdf`
       );
-      
-      if (!response.ok) throw new Error('Erreur de chargement');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      setPdfPreview({
-        isOpen: true,
-        pdfUrl: url,
-      });
     } catch (err) {
       setError('Erreur lors du chargement du PDF');
     }
-  };
-
-  const closePdfPreview = () => {
-    if (pdfPreview.pdfUrl) {
-      window.URL.revokeObjectURL(pdfPreview.pdfUrl);
-    }
-    setPdfPreview({
-      isOpen: false,
-      pdfUrl: '',
-    });
   };
  
 
@@ -644,13 +619,7 @@ export default function LeaveRequestDetailPage() {
       )}
 
       {/* PDF Preview Modal */}
-      <PDFPreviewModal
-        isOpen={pdfPreview.isOpen}
-        onClose={closePdfPreview}
-        title={`Demande de congé - ${leave?.employee_name || ''}`}
-        pdfUrl={pdfPreview.pdfUrl}
-        filename={`Conge_${leave?.employee_name?.replace(/\s+/g, '_') || 'demande'}.pdf`}
-      />
+      <PDFPreviewWrapper previewState={previewState} onClose={closePreview} />
     </div>
   );
 }

@@ -60,7 +60,7 @@ export default function DashboardPage() {
         categoryService.getAll(),
       ]);
 
-      if(userData.user_type === "admin"){ setUser(userData);}
+      if(userData.user_type === "admin"){ setUser(userData as AdminUser);}
       setOrganizations(orgsData);
       setCategories(catsData);
     } catch (err) {
@@ -237,7 +237,6 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {organizations.length}
       {organizations.length === 0 ? (
         <Card className="p-12 text-center border bg-background">
           <div className="flex size-16 items-center justify-center rounded-lg bg-muted mx-auto mb-4">

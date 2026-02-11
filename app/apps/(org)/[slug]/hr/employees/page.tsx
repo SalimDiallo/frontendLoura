@@ -39,7 +39,7 @@ import {
   HiOutlineBanknotes,
 } from "react-icons/hi2";
 import { LuUsers, LuCalendarOff, LuPause, LuBan } from "react-icons/lu";
-import { Alert, Button, Card, Input } from "@/components/ui";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -662,8 +662,10 @@ export default function EmployeesPage() {
                       )}
                     </TableCell>
                     <TableCell className="py-1">
-                      <EmploymentStatusBadge status={employee.employment_status}  />
-                    </TableCell>
+                      <Badge variant={employee.is_active ? "success" : "error"}>
+                        {employee.is_active ? "Actif" : "Inactif"}
+                      </Badge>
+                      </TableCell>
                     <TableCell className="text-right py-1">
                       <TooltipProvider delayDuration={300}>
                         <div className="flex items-center justify-end gap-0.5">

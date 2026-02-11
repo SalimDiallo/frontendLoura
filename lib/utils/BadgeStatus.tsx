@@ -172,7 +172,7 @@ export function getLeaveStatusConfig(status: string) {
     case 'validated':
       return {
         label: 'Validé',
-        variant: 'validated' as const,
+        variant: 'success' as const,
         icon: require('lucide-react').CheckCircle,
         bgClass: 'bg-emerald-50 dark:bg-emerald-950/30',
         textClass: 'text-emerald-700 dark:text-emerald-400',

@@ -132,6 +132,7 @@ export async function deletePayroll(id: string): Promise<void> {
 export async function generateBulkPayslips(
   payrollPeriodId: string | null,
   options?: {
+    organizationSlug?: string;
     auto_deduct_advances?: boolean;
     auto_approve?: boolean;
     employee_ids?: string[];
@@ -157,8 +158,18 @@ export async function generateBulkPayslips(
   ad_hoc_mode?: boolean;
   errors: string[];
 }> {
+  // Construire l'URL avec organization_subdomain si fourni
+  const searchParams = new URLSearchParams();
+  if (options?.organizationSlug) {
+    searchParams.append('organization_subdomain', options.organizationSlug);
+  }
+
+  const url = searchParams.toString()
+    ? `${API_ENDPOINTS.HR.PAYSLIPS.GENERATE_BULK}?${searchParams.toString()}`
+    : API_ENDPOINTS.HR.PAYSLIPS.GENERATE_BULK;
+
   return apiClient.post(
-    API_ENDPOINTS.HR.PAYSLIPS.GENERATE_BULK,
+    url,
     {
       payroll_period: payrollPeriodId || undefined,
       auto_deduct_advances: options?.auto_deduct_advances ?? true,

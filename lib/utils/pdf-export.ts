@@ -79,13 +79,13 @@ function generateLeaveRequestHTML(leave: LeaveRequest): string {
     }
 
     .header {
-      border-bottom: 3px solid #2563eb;
+      border-bottom: 3px solid #E98C00;
       padding-bottom: 20px;
       margin-bottom: 30px;
     }
 
     .header h1 {
-      color: #1e40af;
+      color: #E98C00;
       margin: 0 0 10px 0;
       font-size: 28px;
     }
@@ -290,7 +290,7 @@ function generateLeaveRequestHTML(leave: LeaveRequest): string {
 
   ${leave.approval_notes ? `
   <div class="reason-section" style="background: #dbeafe; border-left-color: #2563eb;">
-    <h3 style="color: #1e40af;">📝 Notes d'approbation</h3>
+    <h3 style="color: #E98C00;">📝 Notes d'approbation</h3>
     <p style="color: #1e3a8a;">${leave.approval_notes}</p>
   </div>
   ` : ''}

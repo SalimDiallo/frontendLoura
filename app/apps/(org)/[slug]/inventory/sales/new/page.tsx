@@ -298,6 +298,7 @@ export default function NewSalePage() {
         customer: selectedCustomer || undefined,
         notes,
         is_credit_sale: isCredit,
+        due_date: isCredit && creditDueDate ? creditDueDate : undefined,
         discount_type: cartDiscountType,
         discount_value: cartDiscountValue,
         paid_amount: paidAmount,

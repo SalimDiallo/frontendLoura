@@ -17,3 +17,6 @@ export * from './hr';
 // Types Inventory
 export * from './inventory';
 
+// Types Notifications
+export * from './notifications';
+

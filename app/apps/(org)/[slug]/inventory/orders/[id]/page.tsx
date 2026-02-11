@@ -27,13 +27,17 @@ import {
   TruckIcon,
   Loader2,
   Truck,
-  Download, // For transport info
+  Download,
+  Eye,
 } from "lucide-react";
 import Link from "next/link";
+import { formatCurrency } from "@/lib/utils";
 // Permissions & confirmations UI
 import { ConfirmationDialog, DeleteConfirmation } from "@/components/common/confirmation-dialog";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { usePDF } from "@/lib/hooks/usePDF";
+import { PDFPreviewWrapper } from "@/components/ui/pdf-preview";
 
 const statusConfig: Record<OrderStatus, { label: string; variant: "default" | "outline" | "success" | "warning" | "error" }> = {
   draft: { label: "Brouillon", variant: "outline" },
@@ -56,6 +60,8 @@ export default function OrderDetailPage() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+
+  const { preview, download, previewState, closePreview } = usePDF();
 
   useEffect(() => {
     loadOrderDetails();
@@ -126,17 +132,21 @@ export default function OrderDetailPage() {
     }
   };
 
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const handlePreviewPdf = () => {
+    if (!order) return;
+    preview(
+      `/inventory/orders/${orderId}/export-pdf/`,
+      `Commande - ${order.order_number}`,
+      `Commande_${order.order_number}.pdf`
+    );
+  };
 
-  const handleExportPdf = async () => {
-    try {
-      setPdfLoading(true);
-      await exportOrderPdf(orderId);
-    } catch (err: any) {
-      alert(err.message || "Erreur lors de l'export PDF");
-    } finally {
-      setPdfLoading(false);
-    }
+  const handleDownloadPdf = () => {
+    if (!order) return;
+    download(
+      `/inventory/orders/${orderId}/export-pdf/`,
+      `Commande_${order.order_number}.pdf`
+    );
   };
 
   if (loading) {
@@ -240,12 +250,11 @@ export default function OrderDetailPage() {
           </Can>
 
           {/* PDF */}
-          <Button variant="outline" onClick={handleExportPdf} disabled={pdfLoading}>
-            {pdfLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
+          <Button variant="outline" onClick={handlePreviewPdf}>
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" onClick={handleDownloadPdf}>
+            <Download className="h-4 w-4" />
           </Button>
 
           {/* Edit */}
@@ -407,11 +416,7 @@ export default function OrderDetailPage() {
                       Coût du transport
                     </span>
                     <p className="font-medium">
-                      {new Intl.NumberFormat("fr-FR", {
-                        style: "currency",
-                        currency: "GNF",
-                        maximumFractionDigits: 0,
-                      }).format(Number(order.transport_cost))}
+                      {formatCurrency(Number(order.transport_cost))}
                     </p>
                   </div>
                 )}
@@ -502,18 +507,10 @@ export default function OrderDetailPage() {
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      {new Intl.NumberFormat("fr-FR", {
-                        style: "currency",
-                        currency: "GNF",
-                        maximumFractionDigits: 0,
-                      }).format(item.unit_price)}
+                      {formatCurrency(item.unit_price)}
                     </td>
                     <td className="p-4 text-right font-semibold">
-                      {new Intl.NumberFormat("fr-FR", {
-                        style: "currency",
-                        currency: "GNF",
-                        maximumFractionDigits: 0,
-                      }).format(item.quantity * item.unit_price)}
+                      {formatCurrency(item.quantity * item.unit_price)}
                     </td>
                   </tr>
                 ))}
@@ -524,11 +521,7 @@ export default function OrderDetailPage() {
                     Total de la commande
                   </td>
                   <td className="p-4 text-right text-lg">
-                    {new Intl.NumberFormat("fr-FR", {
-                      style: "currency",
-                      currency: "GNF",
-                      maximumFractionDigits: 0,
-                    }).format(Number(order.total_amount) ?? 0)}
+                    {formatCurrency(Number(order.total_amount) ?? 0)}
                   </td>
                 </tr>
               </tfoot>
@@ -579,6 +572,12 @@ export default function OrderDetailPage() {
           )}
         </div>
       </Card>
+
+      {/* PDF Preview Modal */}
+      <PDFPreviewWrapper
+        previewState={previewState}
+        onClose={closePreview}
+      />
     </div>
   );
 }

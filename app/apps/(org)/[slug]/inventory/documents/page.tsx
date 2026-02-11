@@ -554,7 +554,7 @@ export default function DocumentsHubPage() {
             )}
             {activeTab === "delivery" && (
               <Button asChild>
-                <Link href={`/apps/${slug}/inventory/delivery-notes/new`}><Plus className="mr-2 h-4 w-4" />Nouveau Bon</Link>
+                <Link href={`/apps/${slug}/inventory/documents/delivery-notes/new`}><Plus className="mr-2 h-4 w-4" />Nouveau Bon</Link>
               </Button>
             )}
           </div>
@@ -686,14 +686,14 @@ export default function DocumentsHubPage() {
                   <div className="text-center p-12">
                     <Truck className="h-16 w-16 mx-auto mb-4 text-muted-foreground/20" />
                     <h3 className="font-semibold text-lg mb-1">Aucun bon de livraison</h3>
-                    <Button asChild className="mt-4"><Link href={`/apps/${slug}/inventory/delivery-notes/new`}><Plus className="mr-2 h-4 w-4" />Nouveau Bon</Link></Button>
+                    <Button asChild className="mt-4"><Link href={`/apps/${slug}/inventory/documents/delivery-notes/new`}><Plus className="mr-2 h-4 w-4" />Nouveau Bon</Link></Button>
                   </div>
                 ) : (
                   <table className="w-full">
                     <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">N° Bon</th><th className="text-left p-4 font-medium">Destinataire</th><th className="text-left p-4 font-medium">Adresse</th><th className="text-left p-4 font-medium">Date</th><th className="text-center p-4 font-medium">Statut</th><th className="text-center p-4 font-medium">Actions</th></tr></thead>
                     <tbody>
                       {filteredDeliveries.map((note) => (
-                        <tr key={note.id} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => router.push(`/apps/${slug}/inventory/delivery-notes/${note.id}`)}>
+                        <tr key={note.id} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => router.push(`/apps/${slug}/inventory/documents/delivery-notes/${note.id}`)}>
                           <td className="p-4"><code className="text-sm bg-muted px-2 py-1 rounded font-mono">{note.delivery_number}</code></td>
                           <td className="p-4"><div className="font-medium">{note.recipient_name}</div>{note.recipient_phone && <p className="text-sm text-muted-foreground">{note.recipient_phone}</p>}</td>
                           <td className="p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground max-w-xs truncate"><MapPin className="h-3 w-3 flex-shrink-0" /><span className="truncate">{note.delivery_address}</span></div></td>
@@ -701,7 +701,7 @@ export default function DocumentsHubPage() {
                           <td className="p-4 text-center"><Badge variant={getDeliveryStatusVariant(note.status)}>{note.status_display}</Badge></td>
                           <td className="p-4">
                             <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                              <Button variant="ghost" size="sm" asChild><Link href={`/apps/${slug}/inventory/delivery-notes/${note.id}`}><Eye className="h-4 w-4" /></Link></Button>
+                              <Button variant="ghost" size="sm" asChild><Link href={`/apps/${slug}/inventory/documents/delivery-notes/${note.id}`}><Eye className="h-4 w-4" /></Link></Button>
                               {note.status !== "delivered" && note.status !== "cancelled" && (
                                 <Button variant="ghost" size="sm" onClick={() => handleMarkDelivered(note.id)} disabled={markingDelivered === note.id}>
                                   {markingDelivered === note.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4 text-green-600" />}

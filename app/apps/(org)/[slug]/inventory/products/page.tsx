@@ -16,7 +16,7 @@ import {
   AlertTriangle,
   Keyboard,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
 import { Can } from "@/components/apps/common/protected-route";
@@ -322,18 +322,10 @@ export default function ProductsPage() {
                         )}
                       </td>
                       <td className="p-4 text-right">
-                        {new Intl.NumberFormat('fr-FR', {
-                          style: 'currency',
-                          currency: 'GNF',
-                          maximumFractionDigits: 0,
-                        }).format(product.purchase_price)}
+                        {formatCurrency(product.purchase_price)}
                       </td>
                       <td className="p-4 text-right">
-                        {new Intl.NumberFormat('fr-FR', {
-                          style: 'currency',
-                          currency: 'GNF',
-                          maximumFractionDigits: 0,
-                        }).format(product.selling_price)}
+                        {formatCurrency(product.selling_price)}
                       </td>
                       <td className="p-4 text-right">
                         <span className={cn(

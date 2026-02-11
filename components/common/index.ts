@@ -13,4 +13,7 @@ export * from './page-states';
 // Dialogs
 export * from './confirmation-dialog';
 
+// Notifications
+export * from './NotificationPermissionPrompt';
+
 // Note: Can component is already exported from apps/common

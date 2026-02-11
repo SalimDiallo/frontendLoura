@@ -11,6 +11,7 @@ import Link from "next/link";
 import { generateSKU, generateCodeFromName } from "@/lib/utils/code-generator";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { formatCurrency } from "@/lib";
 
 export default function NewProductPage() {
   const params = useParams();
@@ -195,7 +196,7 @@ export default function NewProductPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="purchase_price">
-                  Prix d'achat (GNF) <span className="text-destructive">*</span>
+                  Prix d'achat <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="purchase_price"
@@ -206,11 +207,15 @@ export default function NewProductPage() {
                   onChange={(e) => handleChange("purchase_price", parseFloat(e.target.value) || 0)}
                   required
                 />
+                {formatCurrency(formData.purchase_price)}
+                <p className="text-xs text-muted-foreground mt-1">
+                💡 Vous pourrez modifier le prix de vente lors de chaque transaction si besoin.
+              </p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="selling_price">
-                  Prix de vente (GNF) <span className="text-destructive">*</span>
+                  Prix de vente <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="selling_price"
@@ -221,6 +226,13 @@ export default function NewProductPage() {
                   onChange={(e) => handleChange("selling_price", parseFloat(e.target.value) || 0)}
                   required
                 />
+                {formatCurrency(formData.selling_price)}
+              {/* 
+                Astuce : Ce prix de vente est modifiable lors de chaque vente.
+              */}
+              <p className="text-xs text-muted-foreground mt-1">
+                💡 Vous pourrez modifier le prix de vente lors de chaque transaction si besoin.
+              </p>
               </div>
             </div>
             {formData.selling_price > 0 && formData.purchase_price > 0 && (

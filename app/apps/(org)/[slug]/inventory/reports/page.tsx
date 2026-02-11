@@ -46,6 +46,8 @@ import {
   ArrowDownRight,
   FileText,
   FileSpreadsheet,
+  ChevronDown,
+  Activity,
 } from "lucide-react";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import {
@@ -59,23 +61,18 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
-  Legend,
   AreaChart,
   Area,
 } from "recharts";
 
 type ReportTab = "overview" | "warehouses" | "categories" | "movements" | "rotation" | "counts";
 
-// Fonction sécurisée pour les nombres
 const safeNumber = (value: any): number => {
   const num = Number(value);
   return isNaN(num) ? 0 : num;
 };
 
-// Couleurs pour les graphiques
-const COLORS = ["#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#06b6d4", "#ec4899", "#84cc16"];
+const COLORS = ["#64748b", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16"];
 
 export default function ReportsPage() {
   const params = useParams();
@@ -93,6 +90,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [movementDays, setMovementDays] = useState(30);
   const [rotationDays, setRotationDays] = useState(90);
@@ -136,6 +134,7 @@ export default function ReportsPage() {
       setExporting(type);
       await exportFn();
       setSuccessMessage(`Export ${type} téléchargé`);
+      setShowExportMenu(false);
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       console.error(err);
@@ -143,8 +142,6 @@ export default function ReportsPage() {
       setExporting(null);
     }
   };
-
-
 
   const formatShortCurrency = (value: any) => {
     const num = safeNumber(value);
@@ -158,7 +155,7 @@ export default function ReportsPage() {
     { id: "overview" as ReportTab, label: "Vue d'ensemble", icon: BarChart3 },
     { id: "warehouses" as ReportTab, label: "Entrepôts", icon: Warehouse },
     { id: "categories" as ReportTab, label: "Catégories", icon: Tags },
-    { id: "movements" as ReportTab, label: "Mouvements", icon: TrendingUp },
+    { id: "movements" as ReportTab, label: "Mouvements", icon: Activity },
     { id: "rotation" as ReportTab, label: "Rotation", icon: RotateCw },
     { id: "counts" as ReportTab, label: "Inventaires", icon: ClipboardList },
   ];
@@ -167,7 +164,7 @@ export default function ReportsPage() {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent mx-auto" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto" />
           <p className="mt-3 text-muted-foreground text-sm">Chargement...</p>
         </div>
       </div>
@@ -175,65 +172,98 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 lg:p-6 space-y-5 max-w-7xl mx-auto">
       {/* Success Toast */}
       {successMessage && (
-        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top">
-          <div className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+        <div className="fixed top-4 right-4 z-50">
+          <div className="bg-foreground text-background px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
             <CheckCircle className="h-4 w-4" />
-            <span className="text-sm font-medium">{successMessage}</span>
+            <span className="text-sm">{successMessage}</span>
           </div>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Rapports & Analyses</h1>
-          <p className="text-muted-foreground text-sm">Statistiques de votre inventaire</p>
+          <h1 className="text-xl font-semibold">Rapports</h1>
+          <p className="text-sm text-muted-foreground">Analyse de votre inventaire</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-2">
           <Link href={`/apps/${slug}/inventory/reports/calendar`}>
-            <Button variant="outline" size="sm">
-              <Calendar className="h-4 w-4 mr-2" />
-              Calendrier
+            <Button variant="outline" size="sm" className="h-9">
+              <Calendar className="h-4 w-4 mr-1.5" />
+              <span className="hidden sm:inline">Calendrier</span>
             </Button>
           </Link>
-          <Button variant="outline" size="sm" onClick={() => loadAllData(true)} disabled={refreshing}>
-            <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
-            Actualiser
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => loadAllData(true)} 
+            disabled={refreshing}
+            className="h-9"
+          >
+            <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
           </Button>
-          <div className="relative group">
-            <Button variant="default" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Exporter ▼
+          <div className="relative">
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="h-9"
+              onClick={() => setShowExportMenu(!showExportMenu)}
+            >
+              <Download className="h-4 w-4 mr-1.5" />
+              Exporter
+              <ChevronDown className="h-3 w-3 ml-1" />
             </Button>
-            <div className="absolute right-0 top-full mt-1 bg-popover border rounded-lg shadow-lg p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 min-w-[200px]">
-              <p className="text-xs text-muted-foreground px-2 pb-2 border-b mb-2">Format PDF</p>
-              <button onClick={() => handleExport(downloadProductsCatalogPdf, "catalogue PDF")} disabled={exporting === "catalogue PDF"} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted flex items-center gap-2 disabled:opacity-50">
-                <FileText className="h-4 w-4 text-red-500" />
-                Catalogue produits
-              </button>
-              <button onClick={() => handleExport(downloadStockReportPdf, "stock PDF")} disabled={exporting === "stock PDF"} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted flex items-center gap-2 disabled:opacity-50">
-                <FileText className="h-4 w-4 text-red-500" />
-                Rapport de stock
-              </button>
-              <p className="text-xs text-muted-foreground px-2 pt-2 pb-2 border-t border-b my-2">Format Excel</p>
-              <button onClick={() => handleExport(downloadStockListExport, "stocks Excel")} disabled={exporting === "stocks Excel"} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted flex items-center gap-2 disabled:opacity-50">
-                <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                Liste des stocks
-              </button>
-              <button onClick={() => handleExport(() => downloadMovementsExport(movementDays), "mouvements Excel")} disabled={exporting === "mouvements Excel"} className="w-full text-left px-3 py-2 text-sm rounded hover:bg-muted flex items-center gap-2 disabled:opacity-50">
-                <FileSpreadsheet className="h-4 w-4 text-green-600" />
-                Mouvements ({movementDays}j)
-              </button>
-            </div>
+            {showExportMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
+                <div className="absolute right-0 top-full mt-1 bg-popover border rounded-lg shadow-lg py-1 z-50 min-w-[180px]">
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide px-3 py-1.5">PDF</p>
+                  <button 
+                    onClick={() => handleExport(downloadProductsCatalogPdf, "catalogue")} 
+                    disabled={!!exporting}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <FileText className="h-4 w-4 text-red-500" />
+                    Catalogue produits
+                  </button>
+                  <button 
+                    onClick={() => handleExport(downloadStockReportPdf, "stock")} 
+                    disabled={!!exporting}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <FileText className="h-4 w-4 text-red-500" />
+                    Rapport de stock
+                  </button>
+                  <div className="border-t my-1" />
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide px-3 py-1.5">Excel</p>
+                  <button 
+                    onClick={() => handleExport(downloadStockListExport, "liste")} 
+                    disabled={!!exporting}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                    Liste des stocks
+                  </button>
+                  <button 
+                    onClick={() => handleExport(() => downloadMovementsExport(movementDays), "mouvements")} 
+                    disabled={!!exporting}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                    Mouvements ({movementDays}j)
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-muted rounded-lg overflow-x-auto">
+      <div className="flex gap-1 overflow-x-auto pb-1 -mx-4 px-4 lg:mx-0 lg:px-0">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -241,138 +271,175 @@ export default function ReportsPage() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap",
-                activeTab === tab.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                "flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap",
+                activeTab === tab.id 
+                  ? "bg-foreground text-background" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               )}
             >
               <Icon className="h-4 w-4" />
-              {tab.label}
+              <span className="hidden sm:inline">{tab.label}</span>
             </button>
           );
         })}
       </div>
 
       {/* Tab Content */}
-      {activeTab === "overview" && stats && (
-        <OverviewTab stats={stats} topProducts={topProducts} categoryStock={categoryStock} formatCurrency={formatCurrency} formatNumber={formatNumber} formatShortCurrency={formatShortCurrency} slug={slug} />
-      )}
-      {activeTab === "warehouses" && (
-        <WarehousesTab data={warehouseStock} formatCurrency={formatCurrency} formatNumber={formatNumber} formatShortCurrency={formatShortCurrency} />
-      )}
-      {activeTab === "categories" && (
-        <CategoriesTab data={categoryStock} formatCurrency={formatCurrency} formatNumber={formatNumber} />
-      )}
-      {activeTab === "movements" && (
-        <MovementsTab data={movementHistory} days={movementDays} setDays={setMovementDays} formatNumber={formatNumber} />
-      )}
-      {activeTab === "rotation" && (
-        <RotationTab data={lowRotation} days={rotationDays} setDays={setRotationDays} formatCurrency={formatCurrency} formatNumber={formatNumber} slug={slug} />
-      )}
-      {activeTab === "counts" && (
-        <CountsTab data={stockCountsSummary} formatNumber={formatNumber} slug={slug} />
-      )}
+      <div className="min-h-[400px]">
+        {activeTab === "overview" && stats && (
+          <OverviewTab 
+            stats={stats} 
+            topProducts={topProducts} 
+            categoryStock={categoryStock} 
+            formatCurrency={formatCurrency} 
+            formatNumber={formatNumber} 
+            formatShortCurrency={formatShortCurrency} 
+            slug={slug} 
+          />
+        )}
+        {activeTab === "warehouses" && (
+          <WarehousesTab 
+            data={warehouseStock} 
+            formatCurrency={formatCurrency} 
+            formatNumber={formatNumber} 
+            formatShortCurrency={formatShortCurrency} 
+          />
+        )}
+        {activeTab === "categories" && (
+          <CategoriesTab 
+            data={categoryStock} 
+            formatCurrency={formatCurrency} 
+            formatNumber={formatNumber} 
+          />
+        )}
+        {activeTab === "movements" && (
+          <MovementsTab 
+            data={movementHistory} 
+            days={movementDays} 
+            setDays={setMovementDays} 
+            formatNumber={formatNumber} 
+          />
+        )}
+        {activeTab === "rotation" && (
+          <RotationTab 
+            data={lowRotation} 
+            days={rotationDays} 
+            setDays={setRotationDays} 
+            formatCurrency={formatCurrency} 
+            formatNumber={formatNumber} 
+            slug={slug} 
+          />
+        )}
+        {activeTab === "counts" && (
+          <CountsTab 
+            data={stockCountsSummary} 
+            formatNumber={formatNumber} 
+            slug={slug} 
+          />
+        )}
+      </div>
     </div>
   );
 }
 
 // ==========================================
-// Overview Tab avec graphiques
+// Overview Tab
 // ==========================================
 function OverviewTab({ stats, topProducts, categoryStock, formatCurrency, formatNumber, formatShortCurrency, slug }: any) {
   const totalProducts = safeNumber(stats.total_products);
   const lowStockCount = safeNumber(stats.low_stock_count);
   const stockHealthPercent = totalProducts > 0 ? Math.round(((totalProducts - lowStockCount) / totalProducts) * 100) : 100;
 
-  // Données pour le graphique top produits
   const topProductsData = topProducts.slice(0, 5).map((p: any) => ({
-    name: p.name?.substring(0, 15) + (p.name?.length > 15 ? "..." : ""),
+    name: p.name?.length > 12 ? p.name.substring(0, 12) + "..." : p.name,
     value: safeNumber(p.stock_value),
-    stock: safeNumber(p.total_stock),
   }));
 
-  // Données pour le pie chart catégories
-  const categoryData = categoryStock.slice(0, 6).map((c: any, i: number) => ({
+  const categoryData = categoryStock.slice(0, 6).map((c: any) => ({
     name: c.name || "Sans catégorie",
     value: safeNumber(c.total_value),
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard label="Produits" value={formatNumber(stats.total_products)} icon={Package} color="blue" />
-        <StatCard label="Valeur stock" value={formatCurrency(stats.total_stock_value)} icon={DollarSign} color="green" />
-        <StatCard label="Stock faible" value={formatNumber(stats.low_stock_count)} icon={TrendingDown} color="orange" />
-        <StatCard label="Alertes" value={formatNumber(stats.active_alerts)} icon={AlertTriangle} color="red" />
-        <StatCard label="Santé" value={`${stockHealthPercent}%`} icon={CheckCircle} color={stockHealthPercent >= 80 ? "green" : "orange"} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <StatCard label="Produits" value={formatNumber(stats.total_products)} icon={Package} />
+        <StatCard label="Valeur stock" value={formatShortCurrency(stats.total_stock_value)} accent />
+        <StatCard label="Stock faible" value={formatNumber(stats.low_stock_count)} warning={stats.low_stock_count > 0} />
+        <StatCard label="Alertes" value={formatNumber(stats.active_alerts)} warning={stats.active_alerts > 0} />
+        <StatCard label="Santé" value={`${stockHealthPercent}%`} positive={stockHealthPercent >= 80} />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Graphique Top Produits */}
-        <Card className="p-5">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-foreground" />
-            Top 5 produits par valeur
-          </h3>
+      <div className="grid lg:grid-cols-2 gap-4">
+        {/* Top Products Chart */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium">Top 5 produits par valeur</h3>
+            <Link href={`/apps/${slug}/inventory/products`} className="text-xs text-primary hover:underline">
+              Voir tout
+            </Link>
+          </div>
           {topProductsData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={topProductsData} layout="vertical" margin={{ left: 0, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis type="number" tickFormatter={formatShortCurrency} fontSize={12} />
-                <YAxis type="category" dataKey="name" width={100} fontSize={11} />
-                <Tooltip
-                  formatter={(value: any) => formatCurrency(value)}
-                  labelStyle={{ fontWeight: "bold" }}
-                  contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={topProductsData} layout="vertical" margin={{ left: 0, right: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                <XAxis type="number" tickFormatter={formatShortCurrency} fontSize={11} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={80} fontSize={11} axisLine={false} tickLine={false} />
+                <Tooltip 
+                  formatter={(value: any) => formatCurrency(value)} 
+                  contentStyle={{ 
+                    borderRadius: "8px", 
+                    border: "1px solid hsl(var(--border))",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
+                  }} 
                 />
-                <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-center text-muted-foreground py-8">Aucune donnée</p>
+            <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+              Aucune donnée
+            </div>
           )}
-          <Link href={`/apps/${slug}/inventory/products`} className="block text-center text-sm text-primary hover:underline mt-2">
-            Voir tous les produits →
-          </Link>
         </Card>
 
-        {/* Pie Chart Catégories */}
-        <Card className="p-5">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Tags className="h-5 w-5 text-purple-600" />
-            Répartition par catégorie
-          </h3>
+        {/* Categories Pie */}
+        <Card className="p-4">
+          <h3 className="text-sm font-medium mb-4">Répartition par catégorie</h3>
           {categoryData.length > 0 ? (
-            <div className="flex items-center">
-              <ResponsiveContainer width="50%" height={200}>
+            <div className="flex items-center gap-4">
+              <ResponsiveContainer width="50%" height={180}>
                 <PieChart>
                   <Pie
                     data={categoryData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={40}
-                    outerRadius={80}
+                    innerRadius={35}
+                    outerRadius={70}
                     dataKey="value"
-                    label={false}
+                    strokeWidth={0}
                   >
-                    {categoryData.map((entry: any, index: number) => (
+                    {categoryData.map((_: any, index: number) => (
                       <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value: any) => formatCurrency(value)} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="flex-1 space-y-2">
-                {categoryData.map((cat: any, i: number) => (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                    <span className="truncate flex-1">{cat.name}</span>
+              <div className="flex-1 space-y-1.5">
+                {categoryData.slice(0, 5).map((cat: any, i: number) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                    <span className="truncate text-muted-foreground">{cat.name}</span>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">Aucune donnée</p>
+            <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">
+              Aucune donnée
+            </div>
           )}
         </Card>
       </div>
@@ -381,74 +448,78 @@ function OverviewTab({ stats, topProducts, categoryStock, formatCurrency, format
 }
 
 // ==========================================
-// Warehouses Tab avec graphique
+// Warehouses Tab
 // ==========================================
 function WarehousesTab({ data, formatCurrency, formatNumber, formatShortCurrency }: any) {
   const chartData = data.map((wh: any) => ({
-    name: wh.name?.substring(0, 12) + (wh.name?.length > 12 ? "..." : ""),
+    name: wh.name?.length > 10 ? wh.name.substring(0, 10) + "..." : wh.name,
     value: safeNumber(wh.total_value),
-    quantity: safeNumber(wh.total_quantity),
   }));
 
+  if (data.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <Warehouse className="h-10 w-10 mx-auto mb-3 opacity-30" />
+        <p>Aucun entrepôt</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <p className="text-muted-foreground text-sm">Répartition du stock par entrepôt</p>
+    <div className="space-y-5">
+      {/* Chart */}
+      <Card className="p-4">
+        <h3 className="text-sm font-medium mb-4">Valeur par entrepôt</h3>
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+            <XAxis dataKey="name" fontSize={11} axisLine={false} tickLine={false} />
+            <YAxis tickFormatter={formatShortCurrency} fontSize={11} axisLine={false} tickLine={false} />
+            <Tooltip formatter={(value: any) => formatCurrency(value)} />
+            <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </Card>
 
-      {data.length === 0 ? (
-        <Card className="p-8 text-center text-muted-foreground">Aucun entrepôt</Card>
-      ) : (
-        <>
-          {/* Graphique */}
-          <Card className="p-5">
-            <h3 className="font-semibold mb-4">Valeur par entrepôt</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" fontSize={12} />
-                <YAxis tickFormatter={formatShortCurrency} fontSize={12} />
-                <Tooltip formatter={(value: any, name: string) => [formatCurrency(value), name === "value" ? "Valeur" : "Quantité"]} />
-                <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Valeur" />
-              </BarChart>
-            </ResponsiveContainer>
+      {/* Cards */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {data.map((wh: any) => (
+          <Card key={wh.id} className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                <Warehouse className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <h4 className="font-medium text-sm truncate">{wh.name}</h4>
+            </div>
+            <div className="space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Valeur</span>
+                <span className="font-medium">{formatCurrency(wh.total_value)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Produits</span>
+                <span>{safeNumber(wh.product_count)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Quantité</span>
+                <span>{formatNumber(wh.total_quantity)}</span>
+              </div>
+              {safeNumber(wh.low_stock_count) > 0 && (
+                <div className="flex justify-between text-amber-600">
+                  <span>Stock bas</span>
+                  <span className="font-medium">{safeNumber(wh.low_stock_count)}</span>
+                </div>
+              )}
+            </div>
           </Card>
-
-          {/* Cartes détails */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data.map((wh: any) => (
-              <Card key={wh.id} className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Warehouse className="h-5 w-5 text-purple-600" />
-                  <h4 className="font-semibold truncate">{wh.name}</h4>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Valeur</span>
-                    <span className="font-semibold">{formatCurrency(wh.total_value)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Produits</span>
-                    <span>{safeNumber(wh.product_count)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Quantité</span>
-                    <span>{formatNumber(wh.total_quantity)}</span>
-                  </div>
-                  <div className="flex justify-between text-orange-600">
-                    <span>Stock bas</span>
-                    <span className="font-semibold">{safeNumber(wh.low_stock_count)}</span>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
 
 // ==========================================
-// Categories Tab avec pie chart
+// Categories Tab
 // ==========================================
 function CategoriesTab({ data, formatCurrency, formatNumber }: any) {
   const totalValue = data.reduce((acc: number, c: any) => acc + safeNumber(c.total_value), 0);
@@ -460,83 +531,86 @@ function CategoriesTab({ data, formatCurrency, formatNumber }: any) {
     quantity: safeNumber(c.total_quantity),
   }));
 
+  if (data.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        <Tags className="h-10 w-10 mx-auto mb-3 opacity-30" />
+        <p>Aucune catégorie</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-muted-foreground text-sm">Répartition par catégorie</p>
-        <p className="font-semibold">Total: {formatCurrency(totalValue)}</p>
+        <p className="text-sm text-muted-foreground">{data.length} catégories</p>
+        <p className="text-sm font-medium">Total: {formatCurrency(totalValue)}</p>
       </div>
 
-      {data.length === 0 ? (
-        <Card className="p-8 text-center text-muted-foreground">Aucune catégorie</Card>
-      ) : (
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Pie Chart */}
-          <Card className="p-5">
-            <h3 className="font-semibold mb-4">Répartition de la valeur</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name.substring(0, 10)}${name.length > 10 ? "..." : ""} (${(percent * 100).toFixed(0)}%)`}
-                  labelLine={false}
-                >
-                  {chartData.map((entry: any, index: number) => (
-                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: any) => formatCurrency(value)} />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card>
+      <div className="grid lg:grid-cols-2 gap-4">
+        {/* Pie Chart */}
+        <Card className="p-4">
+          <h3 className="text-sm font-medium mb-4">Répartition de la valeur</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                outerRadius={90}
+                dataKey="value"
+                label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+                strokeWidth={0}
+              >
+                {chartData.map((_: any, index: number) => (
+                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value: any) => formatCurrency(value)} />
+            </PieChart>
+          </ResponsiveContainer>
+        </Card>
 
-          {/* Liste détaillée */}
-          <Card className="p-5">
-            <h3 className="font-semibold mb-4">Détails</h3>
-            <div className="space-y-3 max-h-[300px] overflow-y-auto">
-              {chartData.map((cat: any, i: number) => {
-                const percent = totalValue > 0 ? (cat.value / totalValue) * 100 : 0;
-                return (
-                  <div key={i} className="p-3 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                      <span className="font-medium flex-1">{cat.name}</span>
-                      <span className="text-sm font-semibold">{percent.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>{cat.products} produits • {formatNumber(cat.quantity)} unités</span>
-                      <span>{formatCurrency(cat.value)}</span>
-                    </div>
+        {/* List */}
+        <Card className="p-4">
+          <h3 className="text-sm font-medium mb-3">Détails</h3>
+          <div className="space-y-2 max-h-[250px] overflow-y-auto">
+            {chartData.map((cat: any, i: number) => {
+              const percent = totalValue > 0 ? (cat.value / totalValue) * 100 : 0;
+              return (
+                <div key={i} className="p-2.5 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                    <span className="font-medium text-sm flex-1 truncate">{cat.name}</span>
+                    <span className="text-xs text-muted-foreground">{percent.toFixed(1)}%</span>
                   </div>
-                );
-              })}
-            </div>
-          </Card>
-        </div>
-      )}
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{cat.products} produits • {formatNumber(cat.quantity)} unités</span>
+                    <span className="font-medium text-foreground">{formatCurrency(cat.value)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
 
 // ==========================================
-// Movements Tab avec line chart
+// Movements Tab
 // ==========================================
 function MovementsTab({ data, days, setDays, formatNumber }: any) {
-  // Le backend retourne summary.total_in, summary.total_out, etc.
   const summary = data?.summary || {};
   const totalIn = safeNumber(summary.total_in);
   const totalOut = safeNumber(summary.total_out);
   const totalAdj = safeNumber(summary.total_adjustments);
   const totalTrans = safeNumber(summary.total_transfers);
 
-  // Préparer les données pour le graphique à partir de history
   const historyData = data?.history || [];
   const dailyData = historyData.slice(-30).map((d: any) => {
-    // Calculer le total de mouvements pour ce jour
     const inCount = safeNumber(d.in?.count);
     const outCount = safeNumber(d.out?.count);
     const adjCount = safeNumber(d.adjustment?.count);
@@ -544,21 +618,22 @@ function MovementsTab({ data, days, setDays, formatNumber }: any) {
     return {
       date: new Date(d.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
       count: inCount + outCount + adjCount + transCount,
-      in: inCount,
-      out: outCount,
     };
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-muted-foreground text-sm">Historique sur {days} jours</p>
-        <div className="flex gap-1 bg-muted p-1 rounded-lg">
+        <p className="text-sm text-muted-foreground">Historique sur {days} jours</p>
+        <div className="flex gap-0.5 bg-muted p-0.5 rounded-lg">
           {[7, 14, 30, 60, 90].map((d) => (
             <button
               key={d}
               onClick={() => setDays(d)}
-              className={cn("px-3 py-1 text-sm rounded-md transition-colors", days === d ? "bg-background shadow-sm" : "hover:bg-background/50")}
+              className={cn(
+                "px-2.5 py-1 text-xs font-medium rounded transition-colors",
+                days === d ? "bg-background shadow-sm" : "hover:bg-background/50"
+              )}
             >
               {d}j
             </button>
@@ -566,47 +641,70 @@ function MovementsTab({ data, days, setDays, formatNumber }: any) {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 border-l-4 border-green-500">
-          <ArrowDownRight className="h-6 w-6 text-green-500 mb-2" />
-          <p className="text-2xl font-bold text-green-600">{formatNumber(totalIn)}</p>
-          <p className="text-xs text-muted-foreground">Entrées</p>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="p-3 border-l-2 border-l-emerald-500">
+          <div className="flex items-center gap-2">
+            <ArrowDownRight className="h-4 w-4 text-emerald-500" />
+            <div>
+              <p className="text-lg font-semibold text-emerald-600">{formatNumber(totalIn)}</p>
+              <p className="text-xs text-muted-foreground">Entrées</p>
+            </div>
+          </div>
         </Card>
-        <Card className="p-4 border-l-4 border-red-500">
-          <ArrowUpRight className="h-6 w-6 text-red-500 mb-2" />
-          <p className="text-2xl font-bold text-red-600">{formatNumber(totalOut)}</p>
-          <p className="text-xs text-muted-foreground">Sorties</p>
+        <Card className="p-3 border-l-2 border-l-red-500">
+          <div className="flex items-center gap-2">
+            <ArrowUpRight className="h-4 w-4 text-red-500" />
+            <div>
+              <p className="text-lg font-semibold text-red-600">{formatNumber(totalOut)}</p>
+              <p className="text-xs text-muted-foreground">Sorties</p>
+            </div>
+          </div>
         </Card>
-        <Card className="p-4 border-l-4 border-foreground">
-          <RotateCw className="h-6 w-6 text-foreground mb-2" />
-          <p className="text-2xl font-bold text-foreground">{formatNumber(totalAdj)}</p>
-          <p className="text-xs text-muted-foreground">Ajustements</p>
+        <Card className="p-3 border-l-2 border-l-slate-500">
+          <div className="flex items-center gap-2">
+            <RotateCw className="h-4 w-4 text-slate-500" />
+            <div>
+              <p className="text-lg font-semibold">{formatNumber(totalAdj)}</p>
+              <p className="text-xs text-muted-foreground">Ajustements</p>
+            </div>
+          </div>
         </Card>
-        <Card className="p-4 border-l-4 border-purple-500">
-          <TrendingUp className="h-6 w-6 text-purple-500 mb-2" />
-          <p className="text-2xl font-bold text-purple-600">{formatNumber(totalTrans)}</p>
-          <p className="text-xs text-muted-foreground">Transferts</p>
+        <Card className="p-3 border-l-2 border-l-violet-500">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-violet-500" />
+            <div>
+              <p className="text-lg font-semibold text-violet-600">{formatNumber(totalTrans)}</p>
+              <p className="text-xs text-muted-foreground">Transferts</p>
+            </div>
+          </div>
         </Card>
       </div>
 
-      {/* Line Chart */}
+      {/* Chart */}
       {dailyData.length > 0 && (
-        <Card className="p-5">
-          <h3 className="font-semibold mb-4">Évolution des mouvements</h3>
-          <ResponsiveContainer width="100%" height={300}>
+        <Card className="p-4">
+          <h3 className="text-sm font-medium mb-4">Évolution des mouvements</h3>
+          <ResponsiveContainer width="100%" height={250}>
             <AreaChart data={dailyData}>
               <defs>
                 <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.2}/>
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" fontSize={11} tickMargin={10} />
-              <YAxis fontSize={12} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="date" fontSize={10} axisLine={false} tickLine={false} />
+              <YAxis fontSize={11} axisLine={false} tickLine={false} />
               <Tooltip />
-              <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} fill="url(#colorCount)" name="Mouvements" />
+              <Area 
+                type="monotone" 
+                dataKey="count" 
+                stroke="hsl(var(--primary))" 
+                strokeWidth={2} 
+                fill="url(#colorCount)" 
+                name="Mouvements" 
+              />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
@@ -620,17 +718,22 @@ function MovementsTab({ data, days, setDays, formatNumber }: any) {
 // ==========================================
 function RotationTab({ data, days, setDays, formatCurrency, formatNumber, slug }: any) {
   const products = data?.products || [];
-  // Calculer le nombre et la valeur totale depuis la liste
-  const count = products.length;
   const totalValue = products.reduce((acc: number, p: any) => acc + safeNumber(p.stock_value), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-muted-foreground text-sm">Produits sans mouvement depuis</p>
-        <div className="flex gap-1 bg-muted p-1 rounded-lg">
+        <p className="text-sm text-muted-foreground">Sans mouvement depuis</p>
+        <div className="flex gap-0.5 bg-muted p-0.5 rounded-lg">
           {[30, 60, 90, 180].map((d) => (
-            <button key={d} onClick={() => setDays(d)} className={cn("px-3 py-1 text-sm rounded-md transition-colors", days === d ? "bg-background shadow-sm" : "hover:bg-background/50")}>
+            <button 
+              key={d} 
+              onClick={() => setDays(d)} 
+              className={cn(
+                "px-2.5 py-1 text-xs font-medium rounded transition-colors", 
+                days === d ? "bg-background shadow-sm" : "hover:bg-background/50"
+              )}
+            >
               {d}j
             </button>
           ))}
@@ -639,32 +742,34 @@ function RotationTab({ data, days, setDays, formatCurrency, formatNumber, slug }
 
       {products.length === 0 ? (
         <Card className="p-8 text-center">
-          <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
-          <p className="font-semibold">Excellent !</p>
-          <p className="text-muted-foreground text-sm">Tous vos produits ont eu des mouvements récents</p>
+          <CheckCircle className="h-10 w-10 text-emerald-500 mx-auto mb-3" />
+          <p className="font-medium">Excellent !</p>
+          <p className="text-sm text-muted-foreground">Tous vos produits ont eu des mouvements récents</p>
         </Card>
       ) : (
         <>
-          <Card className="p-4 bg-orange-50 dark:bg-orange-950/30 border-orange-200">
+          <Card className="p-4 bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
             <div className="flex items-center gap-3">
-              <Clock className="h-8 w-8 text-orange-600" />
+              <Clock className="h-6 w-6 text-amber-600" />
               <div>
-                <p className="font-semibold">{count} produit(s) dormant(s)</p>
+                <p className="font-medium">{products.length} produit(s) dormant(s)</p>
                 <p className="text-sm text-muted-foreground">Valeur immobilisée: {formatCurrency(totalValue)}</p>
               </div>
             </div>
           </Card>
 
-          <div className="grid md:grid-cols-2 gap-3">
+          <div className="grid sm:grid-cols-2 gap-2">
             {products.slice(0, 10).map((product: any) => (
               <Link key={product.id} href={`/apps/${slug}/inventory/products/${product.id}`}>
-                <Card className="p-4 hover:bg-muted/50 transition-colors h-full">
-                  <p className="font-medium truncate mb-1">{product.name}</p>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Dernier mvt: {product.last_movement_date ? new Date(product.last_movement_date).toLocaleDateString("fr-FR") : "Jamais"}
+                <Card className="p-3 hover:bg-muted/30 transition-colors">
+                  <p className="font-medium text-sm truncate">{product.name}</p>
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>
+                      Dernier: {product.last_movement_date 
+                        ? new Date(product.last_movement_date).toLocaleDateString("fr-FR") 
+                        : "Jamais"}
                     </span>
-                    <span className="font-semibold">{formatNumber(safeNumber(product.total_stock))} unités</span>
+                    <span className="font-medium text-foreground">{formatNumber(safeNumber(product.total_stock))} unités</span>
                   </div>
                 </Card>
               </Link>
@@ -680,56 +785,58 @@ function RotationTab({ data, days, setDays, formatCurrency, formatNumber, slug }
 // Counts Tab
 // ==========================================
 function CountsTab({ data, formatNumber, slug }: any) {
-  // Le backend retourne stock_counts et summary
   const recentCounts = data?.stock_counts || [];
   const summary = data?.summary || {};
-  
-  // Calculer le total des articles comptés
   const totalItemsCounted = recentCounts.reduce((acc: number, c: any) => acc + safeNumber(c.item_count), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-muted-foreground text-sm">Historique des inventaires</p>
+        <p className="text-sm text-muted-foreground">Historique des inventaires</p>
         <Link href={`/apps/${slug}/inventory/stock-counts/new`}>
-          <Button size="sm"><ClipboardList className="h-4 w-4 mr-2" />Nouvel inventaire</Button>
+          <Button size="sm" className="h-8">
+            <ClipboardList className="h-4 w-4 mr-1.5" />
+            Nouvel inventaire
+          </Button>
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total" value={formatNumber(summary.total_counts)} icon={ClipboardList} color="blue" />
-        <StatCard label="Validés" value={formatNumber(summary.validated_counts)} icon={CheckCircle} color="green" />
-        <StatCard label="En cours" value={formatNumber(summary.pending_counts)} icon={Clock} color="orange" />
-        <StatCard label="Articles" value={formatNumber(totalItemsCounted)} icon={Package} color="purple" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="Total" value={formatNumber(summary.total_counts)} icon={ClipboardList} />
+        <StatCard label="Validés" value={formatNumber(summary.validated_counts)} icon={CheckCircle} positive />
+        <StatCard label="En cours" value={formatNumber(summary.pending_counts)} icon={Clock} warning={summary.pending_counts > 0} />
+        <StatCard label="Articles" value={formatNumber(totalItemsCounted)} icon={Package} />
       </div>
 
       {recentCounts.length > 0 && (
-        <Card className="p-5">
-          <h3 className="font-semibold mb-4">Derniers inventaires</h3>
-          <div className="space-y-2">
-            {recentCounts.map((count: any) => (
-              <Link key={count.id} href={`/apps/${slug}/inventory/stock-counts/${count.id}`}>
-                <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div>
-                    <p className="font-medium">{count.count_number}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {count.count_date ? new Date(count.count_date).toLocaleDateString("fr-FR") : "Non planifié"}
-                      {count.warehouse_name && ` • ${count.warehouse_name}`}
-                    </p>
-                  </div>
-                  <span className={cn(
-                    "px-2 py-1 text-xs rounded-full font-medium",
-                    count.status === "validated" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                    count.status === "completed" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
-                    count.status === "in_progress" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" :
-                    "bg-muted"
-                  )}>
-                    {count.status_display || count.status}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
+        <Card className="divide-y">
+          {recentCounts.map((count: any) => (
+            <Link 
+              key={count.id} 
+              href={`/apps/${slug}/inventory/stock-counts/${count.id}`}
+              className="flex items-center justify-between p-3 hover:bg-muted/30 transition-colors"
+            >
+              <div>
+                <p className="font-medium text-sm">{count.count_number}</p>
+                <p className="text-xs text-muted-foreground">
+                  {count.count_date ? new Date(count.count_date).toLocaleDateString("fr-FR") : "Non planifié"}
+                  {count.warehouse_name && ` • ${count.warehouse_name}`}
+                </p>
+              </div>
+              <span className={cn(
+                "px-2 py-0.5 text-[10px] rounded font-medium",
+                count.status === "validated" 
+                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" 
+                  : count.status === "completed" 
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" 
+                    : count.status === "in_progress" 
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" 
+                      : "bg-muted"
+              )}>
+                {count.status_display || count.status}
+              </span>
+            </Link>
+          ))}
         </Card>
       )}
     </div>
@@ -739,31 +846,51 @@ function CountsTab({ data, formatNumber, slug }: any) {
 // ==========================================
 // Stat Card Component
 // ==========================================
-function StatCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color: string }) {
-  const bgColors: Record<string, string> = {
-    blue: "bg-blue-100 dark:bg-blue-900/30",
-    green: "bg-green-100 dark:bg-green-900/30",
-    orange: "bg-orange-100 dark:bg-orange-900/30",
-    red: "bg-red-100 dark:bg-red-900/30",
-    purple: "bg-purple-100 dark:bg-purple-900/30",
-  };
-  const textColors: Record<string, string> = {
-    blue: "text-foreground",
-    green: "text-green-600",
-    orange: "text-orange-600",
-    red: "text-red-600",
-    purple: "text-purple-600",
-  };
-
+function StatCard({ 
+  label, 
+  value, 
+  icon: Icon, 
+  accent = false,
+  positive = false,
+  warning = false,
+}: { 
+  label: string; 
+  value: string; 
+  icon?: any;
+  accent?: boolean;
+  positive?: boolean;
+  warning?: boolean;
+}) {
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-3">
-        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", bgColors[color])}>
-          <Icon className={cn("h-5 w-5", textColors[color])} />
-        </div>
+    <Card className={cn(
+      "p-3",
+      accent && "bg-primary/5 border-primary/20"
+    )}>
+      <div className="flex items-center gap-2.5">
+        {Icon && (
+          <div className={cn(
+            "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+            positive ? "bg-emerald-100 dark:bg-emerald-900/30" :
+            warning ? "bg-amber-100 dark:bg-amber-900/30" :
+            "bg-muted"
+          )}>
+            <Icon className={cn(
+              "h-4 w-4",
+              positive ? "text-emerald-600" :
+              warning ? "text-amber-600" :
+              "text-muted-foreground"
+            )} />
+          </div>
+        )}
         <div className="min-w-0">
-          <p className="text-lg font-bold truncate">{value}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className={cn(
+            "text-base font-semibold truncate",
+            positive && "text-emerald-600",
+            warning && "text-amber-600"
+          )}>
+            {value}
+          </p>
+          <p className="text-[11px] text-muted-foreground">{label}</p>
         </div>
       </div>
     </Card>

@@ -89,7 +89,9 @@ export default function PayrollDetailPage() {
 
     try {
       setProcessing(true);
-      await downloadPayrollPDF(id, payroll.employee_details?.full_name || 'Employe');
+     const data =  await downloadPayrollPDF(id, payroll.employee_details?.full_name || 'Employe');
+     console.log(data);
+     
     } catch (err) {
       alert("Erreur lors du téléchargement du PDF");
       console.error(err);

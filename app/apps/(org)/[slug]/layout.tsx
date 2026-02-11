@@ -1,7 +1,12 @@
 "use client";
 
-import { PropsWithChildren, useState, useEffect, useCallback } from "react";
+import { PropsWithChildren, useState, useEffect, useCallback, useRef } from "react";
+import { NotificationPanel } from "@/components/core/notification-panel";
+import { useNotifications } from "@/lib/hooks/use-notifications";
+import { useSSE } from "@/lib/hooks/use-sse";
 import { useParams, usePathname, useRouter } from "next/navigation";
+import { NotificationProvider } from "@/lib/contexts/NotificationContext";
+import { NotificationPermissionPrompt } from "@/components/common/NotificationPermissionPrompt";
 import {
   SidebarProvider,
   SidebarInset,
@@ -30,7 +35,30 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
   const router = useRouter();
   const slug = params.slug as string;
   const [chatOpen, setChatOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const { unreadCount, refreshUnreadCount } = useNotifications();
+
+  // --- SSE : flux temps réel des notifications ----------------------------
+  useSSE();
+
+  // --- Pulse sur le badge quand le compteur monte -------------------------
+  const [badgePulse, setBadgePulse] = useState(false);
+  const prevUnreadRef = useRef(0);
+
+  useEffect(() => {
+    if (unreadCount > prevUnreadRef.current && prevUnreadRef.current !== 0) {
+      setBadgePulse(true);
+      const t = setTimeout(() => setBadgePulse(false), 1500);
+      return () => clearTimeout(t);
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount]);
+
+  // Charge le compteur de non lues à la première vue
+  useEffect(() => {
+    refreshUnreadCount();
+  }, [refreshUnreadCount]);
 
   // --- Nouveau useEffect pour synchroniser la currency dans localStorage ---
   useEffect(() => {
@@ -128,7 +156,8 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
   return (
     <OrgAccessGuard organizationSlug={slug}>
       <PermissionProvider organizationSlug={slug}>
-        <SidebarProvider>
+        <NotificationProvider>
+          <SidebarProvider>
           <OrganisationSideBar />
 
           <SidebarInset className="bg-background">
@@ -207,11 +236,25 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                   variant="ghost"
                   size="icon"
                   className="relative size-9 rounded-xl"
+                  onClick={() => setNotifOpen(true)}
+                  aria-label="Notifications"
                 >
-                  <Bell className="size-4" />
-                  {/* Notification badge */}
-                  <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-destructive" />
+                  <Bell className={cn("size-4 transition-transform duration-300", badgePulse && "animate-bounce")} />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full bg-destructive text-white text-[9px] font-bold leading-none">
+                      {/* Pulse ring — même pattern que le dot "IA Active" */}
+                      {badgePulse && (
+                        <span className="absolute inset-0 rounded-full animate-ping bg-destructive opacity-60" />
+                      )}
+                      <span className="relative z-10">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    </span>
+                  )}
                 </Button>
+
+                {/* Panneau notifications */}
+                <NotificationPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
 
                 {/* Theme toggle */}
                 <ThemeToggle />
@@ -272,7 +315,11 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
             {/* QR Scan Floating Action Button */}
             <QRScanFAB />
           </SidebarInset>
+
+          {/* Notification Permission Prompt */}
+          <NotificationPermissionPrompt />
         </SidebarProvider>
+      </NotificationProvider>
       </PermissionProvider>
     </OrgAccessGuard>
   );

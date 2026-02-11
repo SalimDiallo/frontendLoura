@@ -625,6 +625,15 @@ export interface CalendarEvent {
 // Statistics & Analytics
 // ============================================
 
+export interface PayrollTrendItem {
+  month: string;         // Abbreviated month (e.g., "janv.")
+  full_month: string;    // Full month year (e.g., "janvier 2026")
+  year: number;
+  month_number: number;
+  montant: number;       // Total payroll amount
+  employes: number;      // Number of employees paid
+}
+
 export interface HRStats {
   total_employees: number;
   active_employees: number;
@@ -644,6 +653,9 @@ export interface HRStats {
   total_contracts: number;
   active_contracts: number;
   expiring_contracts: number;
+
+  // Payroll trend (last 6 months)
+  payroll_trend?: PayrollTrendItem[];
 
   recent_hires: Employee[];
   upcoming_leaves: LeaveRequest[];

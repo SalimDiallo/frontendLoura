@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Alert, Badge, Card, Input } from "@/components/ui";
-import { PDFPreviewModal } from "@/components/ui/pdf-preview-modal";
+import { usePDF, PDFEndpoints } from "@/lib/hooks";
+import { PDFPreviewWrapper } from "@/components/ui";
 import { 
   getExpenses, 
   getExpenseSummary, 
@@ -34,7 +35,7 @@ import {
   Loader2,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 export default function ExpensesPage() {
   const params = useParams();
@@ -57,12 +58,10 @@ export default function ExpensesPage() {
   const [exportStartDate, setExportStartDate] = useState("");
   const [exportEndDate, setExportEndDate] = useState("");
   const [exportCategory, setExportCategory] = useState<string>("");
-  const [loadingPdf, setLoadingPdf] = useState(false);
-  
-  // PDF Preview state
-  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState("");
-  const [pdfFilename, setPdfFilename] = useState("");
+
+  const { preview, download, previewState, closePreview } = usePDF({
+    onError: (err) => setError(err),
+  });
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLTableSectionElement>(null);
@@ -183,13 +182,6 @@ export default function ExpensesPage() {
         expense.expense_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         expense.beneficiary?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-GN", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-    }).format(amount) + " GNF";
-  };
 
   if (loading) {
     return (
@@ -604,57 +596,53 @@ export default function ExpensesPage() {
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                disabled={loadingPdf}
-                onClick={async () => {
-                  try {
-                    setLoadingPdf(true);
-                    const params = {
-                      category: exportCategory || undefined,
-                      start_date: exportStartDate || undefined,
-                      end_date: exportEndDate || undefined,
-                    };
-                    
-                    const blobUrl = await getExpensesPdfBlob(params);
-                    
-                    const dateRange = exportStartDate && exportEndDate 
-                      ? `${exportStartDate}_${exportEndDate}` 
-                      : new Date().toISOString().split('T')[0];
-                    
-                    setPdfPreviewUrl(blobUrl);
-                    setPdfFilename(`depenses_${dateRange}.pdf`);
-                    setPdfPreviewOpen(true);
-                    setShowExportModal(false);
-                  } catch (err) {
-                    setError("Erreur lors du chargement du PDF");
-                  } finally {
-                    setLoadingPdf(false);
-                  }
+                onClick={() => {
+                  const dateRange = exportStartDate && exportEndDate
+                    ? `${exportStartDate}_${exportEndDate}`
+                    : new Date().toISOString().split('T')[0];
+
+                  const params = new URLSearchParams({
+                    format: 'pdf',
+                    ...(exportCategory && { category: exportCategory }),
+                    ...(exportStartDate && { start_date: exportStartDate }),
+                    ...(exportEndDate && { end_date: exportEndDate }),
+                  });
+
+                  preview(
+                    `/inventory/expenses/export/?${params.toString()}`,
+                    `Dépenses ${dateRange}`,
+                    `depenses_${dateRange}.pdf`
+                  );
+                  setShowExportModal(false);
                 }}
               >
-                {loadingPdf ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Eye className="h-3 w-3 mr-1" />}
+                <Eye className="h-3 w-3 mr-1" />
                 Prévisualiser
               </Button>
               <Button
                 size="sm"
                 className="flex-1"
-                disabled={loadingPdf}
-                onClick={async () => {
-                  try {
-                    setLoadingPdf(true);
-                    await downloadExpensesPdf({
-                      category: exportCategory || undefined,
-                      start_date: exportStartDate || undefined,
-                      end_date: exportEndDate || undefined,
-                    });
-                    setShowExportModal(false);
-                  } catch (err) {
-                    setError("Erreur lors du téléchargement du PDF");
-                  } finally {
-                    setLoadingPdf(false);
-                  }
+                onClick={() => {
+                  const dateRange = exportStartDate && exportEndDate
+                    ? `${exportStartDate}_${exportEndDate}`
+                    : new Date().toISOString().split('T')[0];
+
+                  const params = new URLSearchParams({
+                    format: 'pdf',
+                    ...(exportCategory && { category: exportCategory }),
+                    ...(exportStartDate && { start_date: exportStartDate }),
+                    ...(exportEndDate && { end_date: exportEndDate }),
+                  });
+
+                  download(
+                    `/inventory/expenses/export/?${params.toString()}`,
+                    `depenses_${dateRange}.pdf`
+                  );
+                  setShowExportModal(false);
                 }}
               >
-                <Download className="h-3 w-3" />
+                <Download className="h-3 w-3 mr-1" />
+                Télécharger
               </Button>
             </div>
           </Card>
@@ -662,17 +650,7 @@ export default function ExpensesPage() {
       )}
 
       {/* PDF Preview Modal */}
-      <PDFPreviewModal 
-        isOpen={pdfPreviewOpen}
-        onClose={() => {
-          if (pdfPreviewUrl) window.URL.revokeObjectURL(pdfPreviewUrl);
-          setPdfPreviewOpen(false);
-          setPdfPreviewUrl("");
-        }}
-        title="Rapport des dépenses"
-        pdfUrl={pdfPreviewUrl}
-        filename={pdfFilename}
-      />
+      <PDFPreviewWrapper previewState={previewState} onClose={closePreview} />
     </div>
   );
 }

@@ -686,6 +686,7 @@ export default function GeneratePayslipsPage() {
       }
 
       const result = await generateBulkPayslips(selectedPeriod || null, {
+        organizationSlug: slug,
         auto_approve: autoApprove,
         employee_ids: selectedEmployeeIds,
         employee_custom_data: employeeCustomData,

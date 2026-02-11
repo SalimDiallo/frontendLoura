@@ -312,7 +312,14 @@ export default function CreditSalesPage() {
             </Button>
             <Button
               variant={filterOverdue ? "destructive" : "outline"}
-              onClick={() => { setFilterOverdue(!filterOverdue); setFilterStatus(undefined); }}
+              onClick={() => {
+                if (filterOverdue) {
+                  setFilterOverdue(false);
+                } else {
+                  setFilterOverdue(true);
+                  setFilterStatus(undefined);
+                }
+              }}
               size="sm"
               className="h-8 text-xs px-2.5"
             >
@@ -321,7 +328,10 @@ export default function CreditSalesPage() {
             </Button>
             <Button
               variant={filterStatus === "pending" ? "default" : "outline"}
-              onClick={() => { setFilterStatus(filterStatus === "pending" ? undefined : "pending"); setFilterOverdue(false); }}
+              onClick={() => {
+                setFilterStatus(filterStatus === "pending" ? undefined : "pending");
+                setFilterOverdue(false);
+              }}
               size="sm"
               className="h-8 text-xs px-2.5"
             >
@@ -329,7 +339,10 @@ export default function CreditSalesPage() {
             </Button>
             <Button
               variant={filterStatus === "partial" ? "default" : "outline"}
-              onClick={() => { setFilterStatus(filterStatus === "partial" ? undefined : "partial"); setFilterOverdue(false); }}
+              onClick={() => {
+                setFilterStatus(filterStatus === "partial" ? undefined : "partial");
+                setFilterOverdue(false);
+              }}
               size="sm"
               className="h-8 text-xs px-2.5"
             >
@@ -337,7 +350,10 @@ export default function CreditSalesPage() {
             </Button>
             <Button
               variant={filterStatus === "paid" ? "default" : "outline"}
-              onClick={() => { setFilterStatus(filterStatus === "paid" ? undefined : "paid"); setFilterOverdue(false); }}
+              onClick={() => {
+                setFilterStatus(filterStatus === "paid" ? undefined : "paid");
+                setFilterOverdue(false);
+              }}
               size="sm"
               className="h-8 text-xs px-2.5"
             >
@@ -372,14 +388,13 @@ export default function CreditSalesPage() {
                 <th className="text-right px-3 py-2 font-medium text-xs">Reste</th>
                 <th className="text-left px-3 py-2 font-medium text-xs">Échéance</th>
                 <th className="text-center px-2 py-2 font-medium text-xs">Statut</th>
-                <th className="text-center px-2 py-2 font-medium text-xs">Rappels</th>
                 <th className="text-center px-2 py-2 font-medium text-xs">Actions</th>
               </tr>
             </thead>
             <tbody ref={tableRef}>
               {filteredCreditSales.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center p-8 text-muted-foreground">
+                  <td colSpan={8} className="text-center p-8 text-muted-foreground">
                     <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>Aucune vente à crédit trouvée</p>
                   </td>
@@ -474,11 +489,6 @@ export default function CreditSalesPage() {
                         {getBadgeWIthOutIconAdLabel({status: credit.status, label:credit.status_display || credit.status, className: "text-[10px] px-1.5 py-0"})}
                       </div>
                     </td>
-                    <td className="px-2 py-2 text-center">
-                      <Badge variant="default" className="text-[10px] px-1.5 py-0">
-                        {credit.reminder_count || 0}
-                      </Badge>
-                    </td>
                     <td className="px-2 py-2">
                       <div className="flex items-center justify-center gap-0.5">
                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
@@ -486,31 +496,6 @@ export default function CreditSalesPage() {
                             <Eye className="h-3.5 w-3.5" />
                           </Link>
                         </Button>
-                        {credit.status !== "paid" && credit.status !== "cancelled" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSendReminder(credit.id);
-                            }}
-                            disabled={reminderLoading === credit.id}
-                          >
-                            {reminderLoading === credit.id ? (
-                              <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
-                            ) : (
-                              <Bell className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
-                        )}
-                        {credit.status !== "paid" && (
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
-                            <Link href={`/apps/${slug}/inventory/credit-sales/${credit.id}/payment`}>
-                              <Banknote className="h-3.5 w-3.5 text-green-600" />
-                            </Link>
-                          </Button>
-                        )}
                       </div>
                     </td>
                   </tr>

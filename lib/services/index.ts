@@ -18,3 +18,9 @@ export * from './hr';
 // Services Inventory (produits, stocks, mouvements, etc.)
 export * from './inventory';
 
+// Services Notifications
+export * from './notifications';
+
+// Service PDF unifié
+export * from './pdf.service';
+

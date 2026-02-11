@@ -20,3 +20,6 @@ export * from './error-handler';
 export * from './attendance-permissions';
 export * from './leave';
 export * from './pdf-export';
+
+// Générateur PDF unifié
+export * from './pdf-generator';

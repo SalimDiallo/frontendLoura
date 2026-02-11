@@ -40,7 +40,8 @@ import { Alert, Button, Card, Input, Badge } from "@/components/ui";
 import { ProtectedRoute, Can } from "@/components/apps/common";
 import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { PDFPreviewModal } from '@/components/ui';
+import { usePDF, PDFEndpoints } from '@/lib/hooks';
+import { PDFPreviewWrapper } from '@/components/ui';
 import { cn, formatCurrency } from "@/lib/utils";
 import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
@@ -80,17 +81,12 @@ export default function ContractsPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string | null>(null);
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
-  const [pdfPreview, setPdfPreview] = useState<{
-    isOpen: boolean;
-    pdfUrl: string;
-    title: string;
-    filename: string;
-  }>({
-    isOpen: false,
-    pdfUrl: '',
-    title: '',
-    filename: '',
+
+  const { preview, previewState, closePreview, } = usePDF({
+    onSuccess: () => {},
+    onError: (err) => setError(err),
   });
+
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
@@ -158,45 +154,11 @@ export default function ContractsPage() {
   };
 
   const handlePreviewPDF = async (contractId: string, employeeName: string) => {
-    try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(
-        `${API_CONFIG.baseURL}/hr/contracts/${contractId}/export-pdf/`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'X-Organization-Slug': slug,
-          },
-        }
-      );
-      
-      if (!response.ok) throw new Error('Erreur de chargement');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      setPdfPreview({
-        isOpen: true,
-        pdfUrl: url,
-        title: `Contrat - ${employeeName}`,
-        filename: `Contrat_${employeeName.replace(/\s+/g, '_')}.pdf`,
-      });
-    } catch (err) {
-      alert('Erreur lors du chargement du PDF');
-      console.error(err);
-    }
-  };
-
-  const closePdfPreview = () => {
-    if (pdfPreview.pdfUrl) {
-      window.URL.revokeObjectURL(pdfPreview.pdfUrl);
-    }
-    setPdfPreview({
-      isOpen: false,
-      pdfUrl: '',
-      title: '',
-      filename: '',
-    });
+    preview(
+      `/hr/contracts/${contractId}/export-pdf/`,
+      `Contrat - ${employeeName}`,
+      `Contrat_${employeeName.replace(/\s+/g, '_')}.pdf`,
+    );
   };
 
   const filteredContracts = contracts.filter((contract) => {
@@ -595,13 +557,7 @@ export default function ContractsPage() {
       <KeyboardHint />
 
       {/* PDF Preview Modal */}
-      <PDFPreviewModal
-        isOpen={pdfPreview.isOpen}
-        onClose={closePdfPreview}
-        title={pdfPreview.title}
-        pdfUrl={pdfPreview.pdfUrl}
-        filename={pdfPreview.filename}
-      />
+      <PDFPreviewWrapper previewState={previewState} onClose={closePreview} />
     </Can>
   );
 }

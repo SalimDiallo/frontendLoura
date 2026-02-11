@@ -264,7 +264,7 @@ export default function NewCustomerPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="credit_limit">Limite de crédit (GNF)</Label>
+                <Label htmlFor="credit_limit">Limite de crédit </Label>
                 <Input
                   id="credit_limit"
                   name="credit_limit"
@@ -276,7 +276,8 @@ export default function NewCustomerPage() {
                   placeholder="0"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Montant maximum de crédit autorisé pour ce client
+                  Montant maximum de crédit autorisé pour ce client <br />
+                  <span className="italic">Laisser vide si pas de limite</span>
                 </p>
               </div>
             </div>

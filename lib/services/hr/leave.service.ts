@@ -25,7 +25,8 @@ export async function getLeaveRequests(params?: {
   end_date?: string;
   page?: number;
   page_size?: number;
-  exclude?: boolean
+  exclude?: boolean;
+  organization_subdomain?: string;
 }): Promise<LeaveRequestListResponse> {
   const searchParams = new URLSearchParams();
 
@@ -37,6 +38,7 @@ export async function getLeaveRequests(params?: {
   if (params?.page) searchParams.append('page', String(params.page));
   if (params?.page_size) searchParams.append('page_size', String(params.page_size));
   if (params?.exclude) searchParams.append('exclude', String(params.page_size));
+  if (params?.organization_subdomain) searchParams.append('organization_subdomain', params.organization_subdomain);
 
   const queryString = searchParams.toString();
   const url = queryString ? `${API_ENDPOINTS.HR.LEAVE_REQUESTS.LIST}?${queryString}` : API_ENDPOINTS.HR.LEAVE_REQUESTS.LIST;

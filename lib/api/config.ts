@@ -442,4 +442,27 @@ export const API_ENDPOINTS = {
       FEEDBACK: (id: string) => `/ai/conversations/${id}/feedback/`,
     },
   },
+
+  /**
+   * Module Notifications — Système de notifications interne
+   */
+  NOTIFICATIONS: {
+    // CRUD notifications
+    LIST: '/notifications/notifications/',
+    CREATE: '/notifications/notifications/',
+    DETAIL: (id: string) => `/notifications/notifications/${id}/`,
+    DELETE: (id: string) => `/notifications/notifications/${id}/`,
+
+    // Actions
+    MARK_AS_READ: (id: string) => `/notifications/notifications/${id}/mark-as-read/`,
+    MARK_ALL_AS_READ: '/notifications/notifications/mark-all-as-read/',
+    UNREAD_COUNT: '/notifications/notifications/unread-count/',
+    STATS: '/notifications/notifications/stats/',
+
+    // Préférences
+    PREFERENCES_LIST: '/notifications/preferences/',
+
+    // SSE — flux en temps réel
+    STREAM: '/notifications/stream/',
+  },
 } as const;

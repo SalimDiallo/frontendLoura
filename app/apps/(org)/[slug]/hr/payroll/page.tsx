@@ -40,9 +40,10 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { getPayrolls, markPayrollAsPaid, deletePayroll } from "@/lib/services/hr";
 import { getPayrollPeriods } from "@/lib/services/hr/payroll-period.service";
 import type { Payroll, PayrollPeriod } from "@/lib/types/hr";
-import { API_CONFIG } from "@/lib/api/config";
-import { PDFPreviewModal } from "@/components/ui";
+import { usePDF } from "@/lib/hooks";
+import { PDFPreviewWrapper } from "@/components/ui";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { API_CONFIG } from "@/lib/api/config";
 import Link from "next/link";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 import { useHasPermission, useIsAdmin, useUser } from "@/lib/hooks";
@@ -258,13 +259,12 @@ function EmptyState({
                 : "Essayez de modifier vos filtres ou créez une nouvelle fiche"}
           </p>
          <Can permission={COMMON_PERMISSIONS.HR.CREATE_PAYROLL}>
-         <Link
-            className={buttonVariants({ variant: "outline" })}
-            href={`/apps/${slug}/hr/payroll/create`}
-          >
-            <HiOutlineUserPlus className="size-4 mr-2" />
-            Créer une fiche
-          </Link>
+            <Link
+                className={buttonVariants({ variant: "outline" })}
+                href={`/apps/${slug}/hr/payroll/create`}>
+                <HiOutlineUserPlus className="size-4 mr-2" />
+                Créer une fiche
+             </Link>
          </Can>
         </>
       )}
@@ -295,14 +295,10 @@ export default function PayrollPage() {
   const [tab, setTab] = useState<"mine" | "others">(isAdmin ? "others" : "mine");
   const user = useUser();
 
-  // PDF preview — keep a ref to the current blob URL so we can revoke before opening a new one
-  const activeBlobUrl = useRef<string | null>(null);
-  const [pdfPreview, setPdfPreview] = useState<{
-    isOpen: boolean;
-    pdfUrl: string;
-    title: string;
-    filename: string;
-  }>({ isOpen: false, pdfUrl: "", title: "", filename: "" });
+  const { preview, previewState, closePreview } = usePDF({
+    onSuccess: () => setSuccess('PDF chargé avec succès'),
+    onError: (err) => setError(err),
+  });
 
   // ======================== DATA LOADING ===========================
   const loadData = useCallback(async () => {
@@ -314,6 +310,7 @@ export default function PayrollPage() {
         getPayrolls(slug, { page_size: 200 }),
         getPayrollPeriods(slug, { page_size: 50 }),
       ]);
+      
       setPayslips(Array.isArray(payrollsData?.results) ? payrollsData.results : []);
       setPeriods(Array.isArray(periodsData?.results) ? periodsData.results : []);
     } catch (err) {
@@ -341,6 +338,7 @@ export default function PayrollPage() {
       return undefined;
     return periods.find((p) => String(p.id) === String(selectedPeriodId));
   }, [periods, selectedPeriodId]);
+
 
   const filteredPayslips = useMemo(() => {
     let filtered = Array.isArray(payslips) ? payslips : [];
@@ -375,6 +373,9 @@ export default function PayrollPage() {
 
     return filtered;
   }, [payslips, selectedPeriodId, searchQuery, user?.id, canViewPaies]);
+
+  console.log("Filtered paylist , " , filteredPayslips);
+  
 
   // Split into "mine" / "others" only after all filters are applied
   const myPayslips = useMemo(() => {
@@ -437,51 +438,14 @@ export default function PayrollPage() {
     }
   };
 
-  // Revoke the previously opened blob URL before creating a new one
-  const revokeActiveBlobUrl = () => {
-    if (activeBlobUrl.current && typeof window !== "undefined") {
-      window.URL.revokeObjectURL(activeBlobUrl.current);
-      activeBlobUrl.current = null;
-    }
-  };
-
   const handlePreviewPDF = async (payslipId: string, employeeName: string) => {
     try {
-      revokeActiveBlobUrl(); // free previous blob before fetching
-
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-      if (!token) throw new Error("Token missing");
-
-      const response = await fetch(
-        `${API_CONFIG.baseURL}/hr/payslips/${payslipId}/export_pdf/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "X-Organization-Slug": slug,
-          },
-        }
-      );
-      if (!response.ok) throw new Error("Erreur");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      activeBlobUrl.current = url;
-
-      setPdfPreview({
-        isOpen: true,
-        pdfUrl: url,
-        title: `Fiche de paie – ${employeeName}`,
-        filename: `Fiche_Paie_${(employeeName || "Employe").replace(/\s+/g, "_")}.pdf`,
-      });
-    } catch {
+      const filename = `Fiche_Paie_${(employeeName || "Employe").replace(/\s+/g, "_")}.pdf`;
+      const title = `Fiche de paie – ${employeeName}`;
+      await preview(`/hr/payslips/${payslipId}/export-pdf/`, title, filename);
+    } catch (err) {
       setError("Erreur lors du chargement du PDF");
     }
-  };
-
-  const handleClosePdf = () => {
-    revokeActiveBlobUrl();
-    setPdfPreview({ isOpen: false, pdfUrl: "", title: "", filename: "" });
   };
 
   // ======================== LOADING ================================
@@ -495,17 +459,13 @@ export default function PayrollPage() {
     );
   }
 
+  console.log(othersPayslips)
+
   // ======================== RENDER ===============================
   return (
     <div className="space-y-6">
       {/* PDF Modal */}
-      <PDFPreviewModal
-        isOpen={pdfPreview.isOpen}
-        onClose={handleClosePdf}
-        pdfUrl={pdfPreview.pdfUrl}
-        title={pdfPreview.title}
-        filename={pdfPreview.filename}
-      />
+      <PDFPreviewWrapper previewState={previewState} onClose={closePreview} />
 
       {/* Messages */}
       {error && (

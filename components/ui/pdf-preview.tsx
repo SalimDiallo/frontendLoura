@@ -1,20 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
 import {
   X,
   Download,
-  Loader2,
   Maximize2,
   Minimize2,
   FileText,
   ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { API_CONFIG, STORAGE_KEYS } from '@/lib/api/config';
+import { PDFService } from '@/lib/services/pdf.service';
+import type { PDFPreviewState } from '@/lib/hooks/usePDF';
 
-interface PDFPreviewModalProps {
+export interface PDFPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
@@ -22,6 +23,10 @@ interface PDFPreviewModalProps {
   filename: string;
 }
 
+/**
+ * Modal de prévisualisation PDF amélioré
+ * Supporte le mode plein écran, téléchargement et ouverture dans un nouvel onglet
+ */
 export function PDFPreviewModal({
   isOpen,
   onClose,
@@ -32,6 +37,14 @@ export function PDFPreviewModal({
   const [loading, setLoading] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
   const [error, setError] = useState(false);
+
+  // Reset loading state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setLoading(true);
+      setError(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -49,6 +62,7 @@ export function PDFPreviewModal({
   const handleClose = () => {
     setLoading(true);
     setError(false);
+    setFullscreen(false);
     onClose();
   };
 
@@ -61,12 +75,14 @@ export function PDFPreviewModal({
       />
 
       {/* Modal */}
-      <div className={cn(
-        "relative bg-background rounded-xl shadow-2xl flex flex-col transition-all duration-300 animate-in zoom-in-95 fade-in",
-        fullscreen
-          ? "w-full h-full m-0 rounded-none"
-          : "w-[95vw] h-[90vh] max-w-5xl"
-      )}>
+      <div
+        className={cn(
+          'relative bg-background rounded-xl shadow-2xl flex flex-col transition-all duration-300 animate-in zoom-in-95 fade-in',
+          fullscreen
+            ? 'w-full h-full m-0 rounded-none'
+            : 'w-[95vw] h-[90vh] max-w-5xl'
+        )}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/50">
           <div className="flex items-center gap-3">
@@ -89,11 +105,7 @@ export function PDFPreviewModal({
               <ExternalLink className="size-4" />
               Nouvel onglet
             </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleDownload}
-            >
+            <Button variant="default" size="sm" onClick={handleDownload}>
               <Download className="size-4 mr-2" />
               Télécharger
             </Button>
@@ -109,11 +121,7 @@ export function PDFPreviewModal({
                 <Maximize2 className="size-4" />
               )}
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleClose}
-            >
+            <Button variant="ghost" size="icon" onClick={handleClose}>
               <X className="size-4" />
             </Button>
           </div>
@@ -128,7 +136,9 @@ export function PDFPreviewModal({
                   <div className="absolute inset-0 rounded-full border-4 border-muted/30"></div>
                   <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
                 </div>
-                <p className="text-sm text-muted-foreground">Chargement du document...</p>
+                <p className="text-sm text-muted-foreground">
+                  Chargement du document...
+                </p>
               </div>
             </div>
           )}
@@ -138,7 +148,9 @@ export function PDFPreviewModal({
               <div className="text-center">
                 <FileText className="size-16 text-muted-foreground/30 mx-auto mb-4" />
                 <h3 className="font-medium mb-1">Impossible de prévisualiser</h3>
-                <p className="text-sm text-muted-foreground mb-4">Le PDF ne peut pas être affiché dans le navigateur</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Le PDF ne peut pas être affiché dans le navigateur
+                </p>
                 <Button onClick={handleDownload}>
                   <Download className="size-4 mr-2" />
                   Télécharger directement
@@ -163,113 +175,25 @@ export function PDFPreviewModal({
   );
 }
 
-export interface PDFPreviewState {
-  isOpen: boolean;
-  pdfUrl: string;
-  title: string;
-  filename: string;
-  loading: boolean;
-}
-
-export interface UsePDFPreviewOptions {
-  baseUrl?: string;
-  autoOrgSlug?: boolean;
-}
-
 /**
- * Hook générique pour gérer la prévisualisation de PDF
- * Supporte à la fois les endpoints HR et Inventory
+ * Wrapper pratique pour utiliser le modal avec le hook usePDF
  */
-export function usePDFPreview(options: UsePDFPreviewOptions = {}) {
-  const { baseUrl = API_CONFIG.baseURL, autoOrgSlug = true } = options;
+export interface PDFPreviewWrapperProps {
+  previewState: PDFPreviewState;
+  onClose: () => void;
+}
 
-  const [previewState, setPreviewState] = useState<PDFPreviewState>({
-    isOpen: false,
-    pdfUrl: '',
-    title: '',
-    filename: '',
-    loading: false,
-  });
-
-  const openPreview = async (
-    endpoint: string,
-    title: string,
-    filename: string,
-    params?: Record<string, string | number>
-  ) => {
-    try {
-      setPreviewState(prev => ({ ...prev, loading: true }));
-
-      const token = typeof window !== 'undefined'
-        ? localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
-        : null;
-      const orgSlug = typeof window !== 'undefined' && autoOrgSlug
-        ? localStorage.getItem('current_organization_slug')
-        : null;
-
-      let url = `${baseUrl}${endpoint}`;
-
-      // Build query params
-      const queryParams = new URLSearchParams();
-      if (orgSlug) queryParams.append('organization_subdomain', orgSlug);
-      if (params) {
-        Object.entries(params).forEach(([key, value]) => {
-          queryParams.append(key, String(value));
-        });
-      }
-      const queryString = queryParams.toString();
-      if (queryString) url += `?${queryString}`;
-
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      if (orgSlug) headers['X-Organization-Slug'] = orgSlug;
-
-      const response = await fetch(url, { headers });
-
-      if (!response.ok) throw new Error('Erreur de chargement du PDF');
-
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-
-      setPreviewState({
-        isOpen: true,
-        pdfUrl: blobUrl,
-        title,
-        filename,
-        loading: false,
-      });
-    } catch (error) {
-      console.error('Error loading PDF:', error);
-      setPreviewState(prev => ({ ...prev, loading: false }));
-      throw error;
-    }
-  };
-
-  const closePreview = () => {
-    if (previewState.pdfUrl) {
-      window.URL.revokeObjectURL(previewState.pdfUrl);
-    }
-    setPreviewState({
-      isOpen: false,
-      pdfUrl: '',
-      title: '',
-      filename: '',
-      loading: false,
-    });
-  };
-
-  return {
-    previewState,
-    openPreview,
-    closePreview,
-    PDFPreviewModal: () => (
-      <PDFPreviewModal
-        isOpen={previewState.isOpen}
-        onClose={closePreview}
-        title={previewState.title}
-        pdfUrl={previewState.pdfUrl}
-        filename={previewState.filename}
-      />
-    ),
-  };
+export function PDFPreviewWrapper({
+  previewState,
+  onClose,
+}: PDFPreviewWrapperProps) {
+  return (
+    <PDFPreviewModal
+      isOpen={previewState.isOpen}
+      onClose={onClose}
+      title={previewState.title}
+      pdfUrl={previewState.pdfUrl}
+      filename={previewState.filename}
+    />
+  );
 }

@@ -6,3 +6,4 @@ export * from './organization-card';
 export * from './organization-form';
 export * from './auth-layout';
 export * from './dashboard-layout';
+export * from './notification-panel';

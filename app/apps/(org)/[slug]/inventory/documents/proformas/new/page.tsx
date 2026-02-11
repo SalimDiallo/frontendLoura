@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Alert, Card, Input, Label } from "@/components/ui";
 import { createProforma, getProducts, getCustomers } from "@/lib/services/inventory";
@@ -15,8 +15,12 @@ import {
   Search,
   Calculator,
   Calendar,
+  User,
+  X,
+  Package,
 } from "lucide-react";
 import Link from "next/link";
+import { formatCurrency } from "@/lib";
 
 interface ProformaItem {
   product_id: string;
@@ -46,10 +50,23 @@ export default function NewProformaPage() {
   const [clientPhone, setClientPhone] = useState("");
   const [validityDays, setValidityDays] = useState(30);
   const [notes, setNotes] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (showProductSearch && searchInputRef.current) {
+      const rect = searchInputRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [showProductSearch]);
 
   const loadData = async () => {
     try {
@@ -120,13 +137,6 @@ export default function NewProformaPage() {
   const validityDate = new Date();
   validityDate.setDate(validityDate.getDate() + validityDays);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-GN", {
-      style: "decimal",
-      minimumFractionDigits: 0,
-    }).format(amount) + " GNF";
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -168,256 +178,350 @@ export default function NewProformaPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-gradient-to-br from-muted/20 to-background">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href={`/apps/${slug}/inventory/documents/proformas`}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Nouvelle facture pro forma</h1>
-          <p className="text-muted-foreground">
-            Créez un devis pour votre client
-          </p>
+      <div className="bg-background/80 backdrop-blur-sm border-b sticky top-0 z-30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" asChild>
+              <Link href={`/apps/${slug}/inventory/documents/proformas`}>
+                <ArrowLeft className="h-5 w-5" />
+              </Link>
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <FileText className="h-6 w-6 text-primary" />
+                Nouvelle facture pro forma
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Créez un devis pour votre client
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       {error && (
-        <Alert variant="error" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <div>
-            <h3 className="font-semibold">Erreur</h3>
-            <p className="text-sm">{error}</p>
-          </div>
-        </Alert>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+          <Alert variant="error">
+            <AlertTriangle className="h-4 w-4" />
+            <div className="flex-1">
+              <h3 className="font-semibold">Erreur</h3>
+              <p className="text-sm">{error}</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setError(null)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </Alert>
+        </div>
       )}
 
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Products */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Product Search */}
-            <Card className="p-4">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Produits
-              </h2>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher un produit..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setShowProductSearch(true);
-                  }}
-                  onFocus={() => setShowProductSearch(true)}
-                  className="pl-10"
-                />
-                {showProductSearch && searchTerm && (
-                  <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - Products */}
+            <div className="lg:col-span-2 space-y-6 overflow-visible">
+              {/* Product Search */}
+              <Card className="p-5 shadow-md overflow-visible">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-primary">
+                  <Search className="h-5 w-5" />
+                  Rechercher des produits
+                </h2>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    ref={searchInputRef}
+                    placeholder="Nom du produit, SKU..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setShowProductSearch(e.target.value.length > 0);
+                    }}
+                    onFocus={() => searchTerm.length > 0 && setShowProductSearch(true)}
+                    className="pl-10 h-11"
+                  />
+                </div>
+              </Card>
+
+              {/* Dropdown as Portal */}
+              {showProductSearch && searchTerm && (
+                <>
+                  <div
+                    className="fixed inset-0"
+                    style={{ zIndex: 9998 }}
+                    onClick={() => setShowProductSearch(false)}
+                  />
+                  <div
+                    className="fixed bg-white dark:bg-gray-800 border rounded-lg shadow-xl max-h-80 overflow-y-auto"
+                    style={{
+                      zIndex: 9999,
+                      top: `${dropdownPosition.top}px`,
+                      left: `${dropdownPosition.left}px`,
+                      width: `${dropdownPosition.width}px`,
+                    }}
+                  >
                     {filteredProducts.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground">
-                        Aucun produit trouvé
+                      <div className="p-6 text-center text-muted-foreground">
+                        <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p>Aucun produit trouvé</p>
                       </div>
                     ) : (
-                      filteredProducts.slice(0, 10).map((product) => (
-                        <div
-                          key={product.id}
-                          className="p-3 hover:bg-muted cursor-pointer flex items-center justify-between"
-                          onClick={() => addItem(product)}
-                        >
-                          <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-sm text-muted-foreground">{product.sku}</p>
+                      <div className="py-1">
+                        {filteredProducts.slice(0, 10).map((product) => (
+                          <div
+                            key={product.id}
+                            className="p-3 hover:bg-muted cursor-pointer flex items-center justify-between border-b last:border-0"
+                            onClick={() => addItem(product)}
+                          >
+                            <div className="flex-1">
+                              <p className="font-medium">{product.name}</p>
+                              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                                {product.sku}
+                              </code>
+                            </div>
+                            <div className="text-right ml-4">
+                              <p className="font-bold text-primary">
+                                {formatCurrency(product.selling_price || 0)}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Stock: {product.total_stock || 0}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold">{formatCurrency(product.selling_price || 0)}</p>
-                          </div>
-                        </div>
-                      ))
+                        ))}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            </Card>
-
-            {/* Items */}
-            <Card className="p-4">
-              <h2 className="text-lg font-semibold mb-4">
-                Articles ({items.length})
-              </h2>
-              {items.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Aucun article ajouté</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {items.map((item, index) => (
-                    <div
-                      key={item.product_id}
-                      className="border rounded-lg p-4 flex items-center justify-between gap-4"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium">{item.product_name}</p>
-                        <code className="text-xs bg-muted px-1 rounded">{item.product_sku}</code>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-20">
-                          <Input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value) || 1)}
-                          />
-                        </div>
-                        <span className="text-muted-foreground">×</span>
-                        <div className="w-28">
-                          <Input
-                            type="number"
-                            min="0"
-                            value={item.unit_price}
-                            onChange={(e) => updateItem(index, "unit_price", parseFloat(e.target.value) || 0)}
-                          />
-                        </div>
-                        <span className="text-muted-foreground">=</span>
-                        <span className="font-bold w-32 text-right">
-                          {formatCurrency(item.subtotal)}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeItem(index)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                </>
               )}
-            </Card>
-          </div>
 
-          {/* Right Column - Client & Summary */}
-          <div className="space-y-6">
-            {/* Client */}
-            <Card className="p-4">
-              <h2 className="text-lg font-semibold mb-4">Client</h2>
-              <div className="space-y-4">
-                <div>
-                  <Label>Client existant</Label>
-                  <select
-                    value={selectedCustomer}
-                    onChange={(e) => handleCustomerChange(e.target.value)}
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    <option value="">Nouveau client</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+              {/* Items */}
+              <Card className="p-5 shadow-md overflow-visible">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2 text-primary">
+                    <Package className="h-5 w-5" />
+                    Articles ajoutés
+                  </h2>
+                  <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full font-semibold">
+                    {items.length} article{items.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
-                <div>
-                  <Label>Nom *</Label>
-                  <Input
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    placeholder="Nom du client"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>Adresse</Label>
-                  <Input
-                    value={clientAddress}
-                    onChange={(e) => setClientAddress(e.target.value)}
-                    placeholder="Adresse"
-                  />
-                </div>
-                <div>
-                  <Label>Téléphone</Label>
-                  <Input
-                    value={clientPhone}
-                    onChange={(e) => setClientPhone(e.target.value)}
-                    placeholder="Téléphone"
-                  />
-                </div>
-              </div>
-            </Card>
-
-            {/* Validity */}
-            <Card className="p-4">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Validité
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <Label>Durée de validité (jours)</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={validityDays}
-                    onChange={(e) => setValidityDays(parseInt(e.target.value) || 30)}
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Valide jusqu'au: {validityDate.toLocaleDateString("fr-FR")}
-                </p>
-              </div>
-            </Card>
-
-            {/* Summary */}
-            <Card className="p-4">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                Total
-              </h2>
-              <div className="text-3xl font-bold">{formatCurrency(total)}</div>
-            </Card>
-
-            {/* Notes */}
-            <Card className="p-4">
-              <Label>Notes</Label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Conditions, remarques..."
-                rows={3}
-                className="w-full mt-2 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </Card>
-
-            {/* Actions */}
-            <div className="space-y-2">
-              <Button
-                type="submit"
-                disabled={loading || items.length === 0}
-                className="w-full"
-                size="lg"
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                    Création...
+                {items.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground bg-muted/30 rounded-lg border-2 border-dashed">
+                    <Package className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                    <p className="text-lg font-medium">Aucun article ajouté</p>
+                    <p className="text-sm mt-1">Recherchez et ajoutez des produits ci-dessus</p>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Créer la pro forma
+                  <div className="space-y-3">
+                    {items.map((item, index) => (
+                      <div
+                        key={item.product_id}
+                        className="border rounded-lg p-4 bg-gradient-to-r from-background to-muted/20 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="flex-1">
+                            <p className="font-semibold text-base">{item.product_name}</p>
+                            <code className="text-xs bg-muted px-2 py-1 rounded mt-1 inline-block">
+                              {item.product_sku}
+                            </code>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeItem(index)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-3 mt-3">
+                          <div className="flex-1">
+                            <Label className="text-xs text-muted-foreground">Quantité</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                updateItem(index, "quantity", parseInt(e.target.value) || 1)
+                              }
+                              className="mt-1"
+                            />
+                          </div>
+                          <span className="text-muted-foreground mt-6">×</span>
+                          <div className="flex-1">
+                            <Label className="text-xs text-muted-foreground">Prix unitaire</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={item.unit_price}
+                              onChange={(e) =>
+                                updateItem(index, "unit_price", parseFloat(e.target.value) || 0)
+                              }
+                              className="mt-1"
+                            />
+                          </div>
+                          <span className="text-muted-foreground mt-6">=</span>
+                          <div className="flex-1">
+                            <Label className="text-xs text-muted-foreground">Sous-total</Label>
+                            <div className="mt-1 h-10 flex items-center">
+                              <span className="font-bold text-lg text-primary">
+                                {formatCurrency(item.subtotal)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
-              </Button>
-              <Button type="button" variant="outline" className="w-full" asChild>
-                <Link href={`/apps/${slug}/inventory/documents/proformas`}>Annuler</Link>
-              </Button>
+              </Card>
+            </div>
+
+            {/* Right Column - Client & Summary */}
+            <div className="space-y-6">
+              {/* Client */}
+              <Card className="p-5 shadow-md">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-primary">
+                  <User className="h-5 w-5" />
+                  Informations client
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium">Client existant</Label>
+                    <select
+                      value={selectedCustomer}
+                      onChange={(e) => handleCustomerChange(e.target.value)}
+                      className="w-full h-10 mt-1.5 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">Nouveau client</option>
+                      {customers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">
+                      Nom <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      placeholder="Nom du client"
+                      required
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Adresse</Label>
+                    <Input
+                      value={clientAddress}
+                      onChange={(e) => setClientAddress(e.target.value)}
+                      placeholder="Adresse complète"
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Téléphone</Label>
+                    <Input
+                      value={clientPhone}
+                      onChange={(e) => setClientPhone(e.target.value)}
+                      placeholder="+224 XXX XX XX XX"
+                      className="mt-1.5"
+                    />
+                  </div>
+                </div>
+              </Card>
+
+              {/* Validity */}
+              <Card className="p-5 shadow-md">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-primary">
+                  <Calendar className="h-5 w-5" />
+                  Validité du devis
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium">Durée de validité (jours)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={validityDays}
+                      onChange={(e) => setValidityDays(parseInt(e.target.value) || 30)}
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      Valide jusqu'au
+                    </p>
+                    <p className="text-lg font-bold text-blue-700 dark:text-blue-300 mt-1">
+                      {validityDate.toLocaleDateString("fr-FR", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Summary */}
+              <Card className="p-5 shadow-md bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-primary">
+                  <Calculator className="h-5 w-5" />
+                  Montant total
+                </h2>
+                <div className="text-4xl font-bold text-primary">{formatCurrency(total)}</div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {items.length} article{items.length !== 1 ? "s" : ""}
+                </p>
+              </Card>
+
+              {/* Notes */}
+              <Card className="p-5 shadow-md">
+                <Label className="text-sm font-medium">Notes & conditions</Label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Conditions de paiement, remarques particulières..."
+                  rows={4}
+                  className="w-full mt-2 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                />
+              </Card>
+
+              {/* Actions */}
+              <div className="space-y-3">
+                <Button
+                  type="submit"
+                  disabled={loading || items.length === 0}
+                  className="w-full h-12 text-base font-semibold shadow-lg"
+                  size="lg"
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
+                      Création en cours...
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Save className="h-5 w-5" />
+                      Créer la pro forma
+                    </div>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11"
+                  asChild
+                >
+                  <Link href={`/apps/${slug}/inventory/documents/proformas`}>Annuler</Link>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
