@@ -22,9 +22,7 @@ export default function Home() {
       <BentoSection />
       <QuoteSection />
       <FeatureSection />
-      {/* <ThreeDMarqueeDemoSecond /> */}
       <GrowthSection />
-      {/* <FeaturesSectionDemo /> */}
       <PricingSection />
       <TestimonialSection />
       <FAQSection />

@@ -152,7 +152,7 @@ export default function EmployeeRolesPermissionsPage() {
       await updateEmployee(id, updateData);
       setSuccess("Permissions mises à jour avec succès");
       setTimeout(() => {
-        // router.push(`/apps/${slug}/hr/employees/${id}`);
+        router.push(`/apps/${slug}/hr/employees/${id}`);
       }, 1500);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {

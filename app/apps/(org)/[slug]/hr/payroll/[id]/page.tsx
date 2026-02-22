@@ -24,6 +24,8 @@ import { formatCurrency } from "@/lib/utils";
 import { Can } from "@/components/apps/common";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { usePDF } from "@/lib/hooks";
+import { PDFPreviewWrapper } from "@/components/ui";
 
 export default function PayrollDetailPage() {
   const params = useParams();
@@ -31,10 +33,19 @@ export default function PayrollDetailPage() {
   const slug = params.slug as string;
   const id = params.id as string;
 
+  const [success, setSuccess] = useState<string | null>(null);
+
   const [payroll, setPayroll] = useState<Payroll | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+
+
+  const { preview, previewState, closePreview } = usePDF({
+    onSuccess: () => setSuccess('PDF chargé avec succès'),
+    onError: (err) => setError(err),
+  });
+
 
   useEffect(() => {
     loadPayroll();
@@ -84,23 +95,15 @@ export default function PayrollDetailPage() {
     }
   };
 
-  const handleDownloadPDF = async () => {
-    if (!payroll) return;
-
+  const handlePreviewPDF = async (payslipId: string, employeeName: string) => {
     try {
-      setProcessing(true);
-     const data =  await downloadPayrollPDF(id, payroll.employee_details?.full_name || 'Employe');
-     console.log(data);
-     
+      const filename = `Fiche_Paie_${(employeeName || "Employe").replace(/\s+/g, "_")}.pdf`;
+      const title = `Fiche de paie – ${employeeName}`;
+      await preview(`/hr/payslips/${payslipId}/export-pdf/`, title, filename);
     } catch (err) {
-      alert("Erreur lors du téléchargement du PDF");
-      console.error(err);
-    } finally {
-      setProcessing(false);
+      setError("Erreur lors du chargement du PDF");
     }
   };
-
-
 
   if (loading) {
     return (
@@ -129,6 +132,9 @@ export default function PayrollDetailPage() {
 
   return (
     <div className="space-y-6">
+        {/* PDF Modal */}
+      <PDFPreviewWrapper previewState={previewState} onClose={closePreview} />
+
       {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -151,7 +157,7 @@ export default function PayrollDetailPage() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={handleDownloadPDF}
+              onClick={() => handlePreviewPDF(String(payroll.id), payroll.employee_name || "")}
               disabled={processing}
             >
               <HiOutlineArrowDownTray className="size-4 mr-2" />
