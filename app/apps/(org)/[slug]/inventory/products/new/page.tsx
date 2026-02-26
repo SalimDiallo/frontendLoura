@@ -1,38 +1,60 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Card, Input, Label } from "@/components/ui";
-import { createProduct } from "@/lib/services/inventory";
-import { getCategories } from "@/lib/services/inventory";
+import { useParams } from "next/navigation";
+import { Alert, Button } from "@/components/ui";
+import { createProduct, getCategories } from "@/lib/services/inventory";
 import type { ProductCreate, Category, ProductUnit } from "@/lib/types/inventory";
-import { ArrowLeft, Save, AlertTriangle, RefreshCw } from "lucide-react";
-import Link from "next/link";
-import { generateSKU, generateCodeFromName } from "@/lib/utils/code-generator";
+import { AlertTriangle, Package, DollarSign, Warehouse, Barcode, Repeat } from "lucide-react";
+import { useEntityForm } from "@/lib/hooks";
+import { FormHeader, FormActions, FormSection, FormField, FormCheckbox, FormSelect } from "@/components/common";
+import { generateSKU } from "@/lib/utils/code-generator";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { formatCurrency } from "@/lib";
 
+const UNIT_OPTIONS = [
+  { value: "unit", label: "Unité" },
+  { value: "kg", label: "Kilogramme" },
+  { value: "g", label: "Gramme" },
+  { value: "l", label: "Litre" },
+  { value: "ml", label: "Millilitre" },
+  { value: "m", label: "Mètre" },
+  { value: "m2", label: "Mètre carré" },
+  { value: "m3", label: "Mètre cube" },
+  { value: "box", label: "Boîte" },
+  { value: "pack", label: "Pack" },
+];
+
 export default function NewProductPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params.slug as string;
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<ProductCreate>({
-    name: "",
-    sku: "",
-    description: "",
-    purchase_price: 0,
-    selling_price: 0,
-    unit: "unit" as ProductUnit,
-    min_stock_level: 0,
-    max_stock_level: 0,
-    barcode: "",
-    category: null,
-    is_active: true,
+
+  const form = useEntityForm<ProductCreate>({
+    initialData: {
+      name: "",
+      sku: "",
+      description: "",
+      purchase_price: 0,
+      selling_price: 0,
+      unit: "unit" as ProductUnit,
+      min_stock_level: 0,
+      max_stock_level: 0,
+      barcode: "",
+      category: null,
+      is_active: true,
+    },
+    onSubmit: createProduct,
+    redirectUrl: `/apps/${slug}/inventory/products`,
+    validate: (data) => {
+      if (!data.name.trim()) return "Le nom du produit est requis";
+      if (!data.sku.trim()) return "Le SKU est requis";
+      if (data.purchase_price <= 0) return "Le prix d'achat doit être supérieur à 0";
+      if (data.selling_price <= 0) return "Le prix de vente doit être supérieur à 0";
+      return null;
+    },
   });
 
   useEffect(() => {
@@ -48,283 +70,209 @@ export default function NewProductPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      await createProduct(formData);
-      router.push(`/apps/${slug}/inventory/products`);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de la création du produit");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChange = (field: keyof ProductCreate, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
   const handleGenerateSKU = () => {
-    const categoryName = categories.find(c => c.id === formData.category)?.name;
-    const sku = generateSKU(formData.name, categoryName);
+    const categoryName = categories.find(c => c.id === form.formData.category)?.name;
+    const sku = generateSKU(form.formData.name, categoryName);
     if (sku) {
-      handleChange('sku', sku);
+      form.setField('sku', sku);
     }
   };
+
+  // Calculer la marge
+  const margin = form.formData.selling_price > 0 && form.formData.purchase_price > 0
+    ? ((form.formData.selling_price - form.formData.purchase_price) / form.formData.purchase_price * 100).toFixed(2)
+    : null;
+
+  const categoryOptions = categories.map(cat => ({
+    value: cat.id,
+    label: cat.name
+  }));
 
   return (
-   <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_PRODUCTS} showMessage>
-     <div className="space-y-6 p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={`/apps/${slug}/inventory/products`}>
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Retour
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold">Nouveau produit</h1>
-          <p className="text-muted-foreground mt-1">
-            Ajoutez un nouveau produit à votre catalogue
-          </p>
-        </div>
-      </div>
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_PRODUCTS} showMessage>
+      <div className="space-y-6 p-6 max-w-4xl mx-auto">
+        <FormHeader
+          title="Nouveau produit"
+          subtitle="Ajoutez un nouveau produit à votre catalogue"
+          backUrl={`/apps/${slug}/inventory/products`}
+        />
 
-      {/* Error */}
-      {error && (
-        <Alert variant="error" title="Erreur">
-          {error}
-        </Alert>
-      )}
+        {form.error && (
+          <Alert variant="error" title="Erreur">
+            {form.error}
+          </Alert>
+        )}
 
-      {/* Form */}
-      <form onSubmit={handleSubmit}>
-        <Card className="p-6 space-y-6">
+        <form onSubmit={form.handleSubmit} className="space-y-6">
           {/* Informations de base */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Informations de base</h2>
+          <FormSection title="Informations de base" icon={Package}>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">
-                  Nom du produit <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  required
-                  placeholder="Ex: Ordinateur portable HP"
-                />
-              </div>
+              <FormField
+                label="Nom du produit"
+                name="name"
+                value={form.formData.name}
+                onChange={form.handleChange}
+                placeholder="Ex: Ordinateur portable HP"
+                required
+              />
 
               <div className="space-y-2">
-                <Label htmlFor="sku">
-                  SKU <span className="text-destructive">*</span>
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="sku"
-                    value={formData.sku}
-                    onChange={(e) => handleChange("sku", e.target.value)}
-                    required
-                    placeholder="Ex: HP-LAP-001"
-                    className="flex-1"
-                  />
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">
+                    SKU <span className="text-red-500">*</span>
+                  </label>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
+                    size="sm"
                     onClick={handleGenerateSKU}
-                    disabled={!formData.name}
+                    className="h-auto py-0 px-2 text-xs"
+                    disabled={!form.formData.name.trim()}
                     title="Générer automatiquement le SKU"
                   >
-                    <RefreshCw className="h-4 w-4" />
+                    <Repeat className="h-3 w-3 mr-1" />
+                    Générer
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Généré automatiquement à partir du nom et de la catégorie
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Catégorie</Label>
-                <select
-                  id="category"
-                  value={formData.category || ""}
-                  onChange={(e) => handleChange("category", e.target.value || null)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="">Aucune catégorie</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="barcode">Code-barres</Label>
-                <Input
-                  id="barcode"
-                  value={formData.barcode}
-                  onChange={(e) => handleChange("barcode", e.target.value)}
-                  placeholder="Ex: 1234567890123"
+                <FormField
+                  label=""
+                  name="sku"
+                  value={form.formData.sku}
+                  onChange={form.handleChange}
+                  placeholder="Ex: HP-LAP-001"
+                  required
+                  help="Généré automatiquement à partir du nom et de la catégorie"
                 />
               </div>
 
-              <div className="md:col-span-2 space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => handleChange("description", e.target.value)}
-                  rows={3}
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Description détaillée du produit..."
-                />
-              </div>
+              <FormSelect
+                label="Catégorie"
+                name="category"
+                value={form.formData.category}
+                onChange={form.handleChange}
+                options={categoryOptions}
+                placeholder="Aucune catégorie"
+              />
+
+              <FormField
+                label="Code-barres"
+                name="barcode"
+                value={form.formData.barcode}
+                onChange={form.handleChange}
+                placeholder="Ex: 1234567890123"
+                icon={Barcode}
+              />
             </div>
-          </div>
+
+            <FormField
+              label="Description"
+              name="description"
+              value={form.formData.description}
+              onChange={form.handleChange}
+              placeholder="Description détaillée du produit..."
+              multiline
+              rows={3}
+              className="md:col-span-2"
+            />
+          </FormSection>
 
           {/* Prix */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Prix</h2>
+          <FormSection title="Prix" icon={DollarSign}>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="purchase_price">
-                  Prix d'achat <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="purchase_price"
+                <FormField
+                  label="Prix d'achat"
+                  name="purchase_price"
                   type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.purchase_price}
-                  onChange={(e) => handleChange("purchase_price", parseFloat(e.target.value) || 0)}
+                  value={form.formData.purchase_price}
+                  onChange={form.handleChange}
+                  placeholder="0"
+                  min={0}
+                  step={0.01}
                   required
                 />
-                {formatCurrency(formData.purchase_price)}
-                <p className="text-xs text-muted-foreground mt-1">
-                💡 Vous pourrez modifier le prix de vente lors de chaque transaction si besoin.
-              </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="selling_price">
-                  Prix de vente <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="selling_price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.selling_price}
-                  onChange={(e) => handleChange("selling_price", parseFloat(e.target.value) || 0)}
-                  required
-                />
-                {formatCurrency(formData.selling_price)}
-              {/* 
-                Astuce : Ce prix de vente est modifiable lors de chaque vente.
-              */}
-              <p className="text-xs text-muted-foreground mt-1">
-                💡 Vous pourrez modifier le prix de vente lors de chaque transaction si besoin.
-              </p>
-              </div>
-            </div>
-            {formData.selling_price > 0 && formData.purchase_price > 0 && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Marge: {((formData.selling_price - formData.purchase_price) / formData.purchase_price * 100).toFixed(2)}%
-              </p>
-            )}
-          </div>
-
-          {/* Stock */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Gestion du stock</h2>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="unit">Unité</Label>
-                <select
-                  id="unit"
-                  value={formData.unit}
-                  onChange={(e) => handleChange("unit", e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="unit">Unité</option>
-                  <option value="kg">Kilogramme</option>
-                  <option value="g">Gramme</option>
-                  <option value="l">Litre</option>
-                  <option value="ml">Millilitre</option>
-                  <option value="m">Mètre</option>
-                  <option value="m2">Mètre carré</option>
-                  <option value="m3">Mètre cube</option>
-                  <option value="box">Boîte</option>
-                  <option value="pack">Pack</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="min_stock_level">Seuil d'alerte stock</Label>
-                <Input
-                  id="min_stock_level"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.min_stock_level}
-                  onChange={(e) => handleChange("min_stock_level", parseFloat(e.target.value) || 0)}
-                />
+                <p className="text-sm font-medium">{formatCurrency(form.formData.purchase_price)}</p>
                 <p className="text-xs text-muted-foreground">
-                  ⚠️ Une alerte sera générée quand le stock descend en dessous de cette quantité
+                  💡 Vous pourrez modifier le prix lors de chaque transaction si besoin.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="max_stock_level">Stock maximum</Label>
-                <Input
-                  id="max_stock_level"
+                <FormField
+                  label="Prix de vente"
+                  name="selling_price"
                   type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.max_stock_level}
-                  onChange={(e) => handleChange("max_stock_level", parseFloat(e.target.value) || 0)}
+                  value={form.formData.selling_price}
+                  onChange={form.handleChange}
+                  placeholder="0"
+                  min={0}
+                  step={0.01}
+                  required
                 />
+                <p className="text-sm font-medium">{formatCurrency(form.formData.selling_price)}</p>
+                <p className="text-xs text-muted-foreground">
+                  💡 Vous pourrez modifier le prix de vente lors de chaque transaction si besoin.
+                </p>
               </div>
             </div>
-          </div>
 
-          {/* Statut */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="is_active"
-              checked={formData.is_active}
-              onChange={(e) => handleChange("is_active", e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300"
+            {margin && (
+              <p className="text-sm text-muted-foreground">
+                Marge: <span className="font-semibold text-green-600">{margin}%</span>
+              </p>
+            )}
+          </FormSection>
+
+          {/* Stock */}
+          <FormSection title="Gestion du stock" icon={Warehouse}>
+            <div className="grid gap-4 md:grid-cols-3">
+              <FormSelect
+                label="Unité"
+                name="unit"
+                value={form.formData.unit}
+                onChange={form.handleChange}
+                options={UNIT_OPTIONS}
+              />
+
+              <FormField
+                label="Seuil d'alerte stock"
+                name="min_stock_level"
+                type="number"
+                value={form.formData.min_stock_level}
+                onChange={form.handleChange}
+                placeholder="0"
+                min={0}
+                step={0.01}
+                help="⚠️ Une alerte sera générée quand le stock descend en dessous de cette quantité"
+              />
+
+              <FormField
+                label="Stock maximum"
+                name="max_stock_level"
+                type="number"
+                value={form.formData.max_stock_level}
+                onChange={form.handleChange}
+                placeholder="0"
+                min={0}
+                step={0.01}
+              />
+            </div>
+
+            <FormCheckbox
+              label="Produit actif"
+              name="is_active"
+              checked={form.formData.is_active}
+              onChange={form.handleCheckboxChange}
             />
-            <Label htmlFor="is_active" className="cursor-pointer">
-              Produit actif
-            </Label>
-          </div>
+          </FormSection>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3 pt-4 border-t">
-            <Button type="submit" disabled={loading}>
-              <Save className="mr-2 h-4 w-4" />
-              {loading ? "Création..." : "Créer le produit"}
-            </Button>
-            <Link href={`/apps/${slug}/inventory/products`}>
-              <Button type="button" variant="outline">
-                Annuler
-              </Button>
-            </Link>
-          </div>
-        </Card>
-      </form>
-    </div>
-   </Can>
+          <FormActions
+            cancelUrl={`/apps/${slug}/inventory/products`}
+            submitLabel="Créer le produit"
+            loading={form.loading}
+          />
+        </form>
+      </div>
+    </Can>
   );
 }

@@ -211,24 +211,20 @@ export function Can({
     // Afficher un message d'accès refusé
     if (showMessage) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[70vh] w-full">
-          <div className="flex flex-col items-center bg-red-50 border border-red-200 shadow-lg rounded-xl px-10 py-14 w-full max-w-full">
-            <div className="bg-red-100 rounded-full p-5 mb-6 flex items-center justify-center">
-              <HiOutlineShieldExclamation className="h-16 w-16 text-red-500" />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] w-full bg-background">
+          <div className="flex flex-col items-center border border-neutral-200 shadow-md rounded-lg px-8 py-12">
+            <div className="mb-5 flex items-center justify-center">
+              <HiOutlineShieldExclamation className="h-12 w-12 text-muted-foreground" />
             </div>
-            <h3 className="text-2xl font-bold text-red-800 mb-2">Accès refusé</h3>
-            <div className="text-base text-red-700 mb-6 text-center">
-              <span>Permission requise</span>
-              <p>
-              Il faut avoir les permissions pour acceder à cette section
+            <h3 className="text-xl font-semibold text-foreground mb-2">Accès refusé</h3>
+            <p className="text-sm text-muted-foreground mb-6 text-center">
+              Vous n’avez pas les autorisations nécessaires pour accéder à cette section.
             </p>
-            </div>
-            
             <Button
               variant="outline"
               size="lg"
               onClick={() => router.back()}
-              className="border-red-300 text-red-700 hover:bg-red-100 transition"
+              className="border-neutral-200 text-foreground hover:bg-muted transition-shadow"
             >
               Retour
             </Button>

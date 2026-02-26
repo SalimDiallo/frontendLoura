@@ -22,7 +22,7 @@ import { getPayroll, markPayrollAsPaid, deletePayroll, downloadPayrollPDF } from
 import type { Payroll, PayrollStatus } from "@/lib/types/hr";
 import { formatCurrency } from "@/lib/utils";
 import { Can } from "@/components/apps/common";
-import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
+import { PayrollStatusBadge } from "@/components/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { usePDF } from "@/lib/hooks";
 import { PDFPreviewWrapper } from "@/components/ui";
@@ -199,7 +199,7 @@ export default function PayrollDetailPage() {
 
         {/* Status Badge */}
         <div>
-          {getStatusBadgeNode(payroll.status)}
+          <PayrollStatusBadge status={payroll.status} showIcon />
         </div>
 
         {/* Employee Info */}

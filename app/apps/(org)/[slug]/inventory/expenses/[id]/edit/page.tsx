@@ -1,60 +1,50 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Card, Input, Label } from "@/components/ui";
+import { useState } from "react";
+import { useParams } from "next/navigation";
+import { Alert, Label } from "@/components/ui";
 import { QuickSelect } from "@/components/ui/quick-select";
 import { getExpense, updateExpense, getExpenseCategories, createExpenseCategory } from "@/lib/services/inventory";
 import type { ExpenseUpdate, ExpenseCategory } from "@/lib/types/inventory";
 import {
-  ArrowLeft,
   AlertTriangle,
-  Save,
   Receipt,
   Calendar,
   Wallet,
   User,
   FileText,
   Tag,
-  Loader2,
 } from "lucide-react";
-import Link from "next/link";
 import { formatCurrency } from "@/lib";
+import { useEntityForm } from "@/lib/hooks";
+import { FormHeader, FormActions, FormSection, FormField, FormSelect } from "@/components/common";
 
 export default function EditExpensePage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params.slug as string;
   const id = params.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
 
-  const [formData, setFormData] = useState<ExpenseUpdate>({
-    description: "",
-    amount: 0,
-    category_id: "",
-    expense_date: "",
-    payment_method: "cash",
-    beneficiary: "",
-    reference: "",
-    notes: "",
-  });
-
-  useEffect(() => {
-    loadData();
-  }, [id]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
+  const form = useEntityForm<ExpenseUpdate>({
+    initialData: {
+      description: "",
+      amount: 0,
+      category_id: "",
+      expense_date: "",
+      payment_method: "cash",
+      beneficiary: "",
+      reference: "",
+      notes: "",
+    },
+    fetchData: async () => {
       const [expense, categoriesData] = await Promise.all([
         getExpense(id),
         getExpenseCategories({ is_active: true }),
       ]);
-      setFormData({
+      setCategories(categoriesData);
+
+      return {
         description: expense.description || "",
         amount: expense.amount || 0,
         category_id: expense.category || "",
@@ -63,125 +53,96 @@ export default function EditExpensePage() {
         beneficiary: expense.beneficiary || "",
         reference: expense.reference || "",
         notes: expense.notes || "",
-      });
-      setCategories(categoriesData);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === "number" ? parseFloat(value) || 0 : value,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.description?.trim()) {
-      setError("La description est requise");
-      return;
-    }
-    if ((formData.amount || 0) <= 0) {
-      setError("Le montant doit être supérieur à 0");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError(null);
-      
+      };
+    },
+    onSubmit: (data) => {
       // Convertir category_id vide en null pour le backend
       const dataToSend = {
-        ...formData,
-        category_id: formData.category_id || null,
+        ...data,
+        category_id: data.category_id || null,
       };
-      
-      await updateExpense(id, dataToSend);
-      router.push(`/apps/${slug}/inventory/expenses/${id}`);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de la mise à jour");
-    } finally {
-      setSaving(false);
-    }
-  };
+      return updateExpense(id, dataToSend);
+    },
+    redirectUrl: `/apps/${slug}/inventory/expenses/${id}`,
+    validate: (data) => {
+      if (!data.description?.trim()) return "La description est requise";
+      if ((data.amount || 0) <= 0) return "Le montant doit être supérieur à 0";
+      return null;
+    },
+  });
 
-  if (loading) {
+  if (form.loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+      <div className="p-6 max-w-3xl mx-auto">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 rounded bg-neutral-100 dark:bg-neutral-900 w-2/5 mb-2" />
+          <div className="h-10 rounded bg-neutral-100 dark:bg-neutral-900 mb-2" />
+          <div className="h-96 bg-neutral-100 dark:bg-neutral-900 rounded-xl mt-6" />
         </div>
       </div>
     );
   }
 
+  const paymentMethodOptions = [
+    { value: "cash", label: "Espèces" },
+    { value: "card", label: "Carte" },
+    { value: "bank_transfer", label: "Virement" },
+    { value: "mobile_money", label: "Mobile Money" },
+    { value: "check", label: "Chèque" },
+  ];
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Link href={`/apps/${slug}/inventory/expenses/${id}`}>
-          <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold">Modifier la dépense</h1>
-          <p className="text-muted-foreground">Mettez à jour les informations</p>
-        </div>
-      </div>
+      <FormHeader
+        title="Modifier la dépense"
+        subtitle="Mettez à jour les informations"
+        backUrl={`/apps/${slug}/inventory/expenses/${id}`}
+      />
 
-      {error && (
+      {form.error && (
         <Alert variant="error" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
-          <span>{error}</span>
+          <div>
+            <h3 className="font-semibold">Erreur</h3>
+            <p className="text-sm">{form.error}</p>
+          </div>
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={form.handleSubmit} className="space-y-6">
         {/* Informations principales */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Receipt className="h-5 w-5" />
-            Informations
-          </h2>
+        <FormSection title="Informations" icon={Receipt}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="description">Description *</Label>
-              <Input
-                id="description"
+            <div className="md:col-span-2">
+              <FormField
+                label="Description"
                 name="description"
-                value={formData.description}
-                onChange={handleChange}
+                value={form.formData.description}
+                onChange={form.handleChange}
                 placeholder="Description de la dépense"
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="amount">Montant (GNF) *</Label>
-              <Input
-                id="amount"
-                name="amount"
-                type="number"
-                min="0"
-                step="1000"
-                value={formData.amount}
-                onChange={handleChange}
-                placeholder="0"
-                required
-              />
-            </div>
+
+            <FormField
+              label="Montant (GNF)"
+              name="amount"
+              type="number"
+              value={form.formData.amount}
+              onChange={form.handleChange}
+              min={0}
+              step={1000}
+              placeholder="0"
+              required
+            />
+
             <div className="space-y-2">
               <Label>Catégorie</Label>
               <QuickSelect
                 label="Catégorie"
                 items={categories.map(c => ({ id: c.id, name: c.name }))}
-                selectedId={formData.category_id || ""}
-                onSelect={(id) => setFormData(prev => ({ ...prev, category_id: id }))}
+                selectedId={form.formData.category_id || ""}
+                onSelect={(id) => form.setField('category_id', id)}
                 onCreate={async (name) => {
                   const newCat = await createExpenseCategory({ name, is_active: true });
                   setCategories(prev => [...prev, newCat]);
@@ -194,119 +155,82 @@ export default function EditExpensePage() {
               />
             </div>
           </div>
-        </Card>
+        </FormSection>
 
         {/* Date et paiement */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Date et paiement
-          </h2>
+        <FormSection title="Date et paiement" icon={Calendar}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="expense_date">Date *</Label>
-              <Input
-                id="expense_date"
-                name="expense_date"
-                type="date"
-                value={formData.expense_date}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="payment_method">Mode de paiement</Label>
-              <select
-                id="payment_method"
-                name="payment_method"
-                value={formData.payment_method}
-                onChange={handleChange}
-                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="cash">Espèces</option>
-                <option value="card">Carte</option>
-                <option value="bank_transfer">Virement</option>
-                <option value="mobile_money">Mobile Money</option>
-                <option value="check">Chèque</option>
-              </select>
-            </div>
+            <FormField
+              label="Date"
+              name="expense_date"
+              type="date"
+              value={form.formData.expense_date}
+              onChange={form.handleChange}
+              required
+            />
+
+            <FormSelect
+              label="Mode de paiement"
+              name="payment_method"
+              value={form.formData.payment_method}
+              onChange={form.handleChange}
+              options={paymentMethodOptions}
+            />
           </div>
-        </Card>
+        </FormSection>
 
         {/* Bénéficiaire et référence */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Informations complémentaires
-          </h2>
+        <FormSection title="Informations complémentaires" icon={User}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="beneficiary">Bénéficiaire</Label>
-              <Input
-                id="beneficiary"
-                name="beneficiary"
-                value={formData.beneficiary}
-                onChange={handleChange}
-                placeholder="Nom du bénéficiaire"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="reference">Référence</Label>
-              <Input
-                id="reference"
-                name="reference"
-                value={formData.reference}
-                onChange={handleChange}
-                placeholder="N° facture, reçu..."
-              />
-            </div>
+            <FormField
+              label="Bénéficiaire"
+              name="beneficiary"
+              value={form.formData.beneficiary}
+              onChange={form.handleChange}
+              placeholder="Nom du bénéficiaire"
+            />
+
+            <FormField
+              label="Référence"
+              name="reference"
+              value={form.formData.reference}
+              onChange={form.handleChange}
+              placeholder="N° facture, reçu..."
+            />
           </div>
-        </Card>
+        </FormSection>
 
         {/* Notes */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Notes
-          </h2>
-          <textarea
-            id="notes"
+        <FormSection title="Notes" icon={FileText}>
+          <FormField
+            label="Notes supplémentaires"
             name="notes"
-            value={formData.notes}
-            onChange={handleChange}
+            value={form.formData.notes}
+            onChange={form.handleChange}
             placeholder="Notes supplémentaires..."
+            multiline
             rows={3}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
-        </Card>
+        </FormSection>
 
         {/* Résumé */}
-        <Card className="p-6 bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
+        <div className="p-6 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Wallet className="h-5 w-5" />
               <span className="font-semibold">Montant</span>
             </div>
             <span className="text-2xl font-bold text-red-600">
-              -{formatCurrency(formData.amount || 0)}
+              -{formatCurrency(form.formData.amount || 0)}
             </span>
           </div>
-        </Card>
-
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-4">
-          <Button type="button" variant="outline" asChild>
-            <Link href={`/apps/${slug}/inventory/expenses/${id}`}>Annuler</Link>
-          </Button>
-          <Button type="submit" disabled={saving}>
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Enregistrer
-          </Button>
         </div>
+
+        <FormActions
+          cancelUrl={`/apps/${slug}/inventory/expenses/${id}`}
+          submitLabel="Enregistrer"
+          loading={form.loading}
+        />
       </form>
     </div>
   );

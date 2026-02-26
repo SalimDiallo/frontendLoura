@@ -1,288 +1,207 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Input, Card, Alert } from "@/components/ui";
+import { useParams } from "next/navigation";
+import { Alert, Button } from "@/components/ui";
 import { createSupplier } from "@/lib/services/inventory";
 import type { SupplierCreate } from "@/lib/types/inventory";
-import { ArrowLeft, Save } from "lucide-react";
-import Link from "next/link";
-import { generateSupplierCode } from "@/lib/utils/code-generator"; // On suppose que le générateur existe déjà
+import { AlertTriangle, User, Mail, Phone, MapPin, Building, FileText, Repeat } from "lucide-react";
+import { useEntityForm } from "@/lib/hooks";
+import { FormHeader, FormActions, FormSection, FormField, FormCheckbox } from "@/components/common";
+import { generateSupplierCode } from "@/lib/utils/code-generator";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function NewSupplierPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params.slug as string;
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState<SupplierCreate>({
-    name: "",
-    code: "",
-    contact_person: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    postal_code: "",
-    country: "",
-    notes: "",
-    is_active: true,
+  const form = useEntityForm<SupplierCreate>({
+    initialData: {
+      name: "",
+      code: "",
+      contact_person: "",
+      email: "",
+      phone: "",
+      address: "",
+      city: "",
+      postal_code: "",
+      country: "",
+      notes: "",
+      is_active: true,
+    },
+    onSubmit: createSupplier,
+    redirectUrl: `/apps/${slug}/inventory/suppliers`,
+    validate: (data) => {
+      if (!data.name.trim()) return "Le nom du fournisseur est requis";
+      if (!data.code.trim()) return "Le code fournisseur est requis";
+      return null;
+    },
   });
 
-  // Génération automatique du code fournisseur lors du changement du nom ou à la demande
+  // Handler pour générer le code manuellement
   const handleGenerateCode = () => {
-    if (formData.name.trim() !== "") {
-      const code = generateSupplierCode(formData.name ?? "");
-      setFormData((prev) => ({ ...prev, code }));
-    }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    // Si le champ modifié est 'name', générer automatiquement le code si vide ou ayant l'ancien code
-    if (name === "name") {
-      setFormData((prev) => {
-        const newForm = {
-          ...prev,
-          [name]: value,
-        };
-        // Si le code est vide ou correspond à l'ancien code généré, regénérer
-        if (
-          !prev.code ||
-          prev.code === generateSupplierCode(prev.name ?? "")
-        ) {
-          newForm.code = generateSupplierCode(value);
-        }
-        return newForm;
-      });
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-      }));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    try {
-      setLoading(true);
-      await createSupplier(formData);
-      router.push(`/apps/${slug}/inventory/suppliers`);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de la création du fournisseur");
-    } finally {
-      setLoading(false);
+    if (form.formData.name.trim()) {
+      const code = generateSupplierCode(form.formData.name);
+      form.setField('code', code);
     }
   };
 
   return (
     <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SUPPLIERS} showMessage>
-            <div className="space-y-6 p-6 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={`/apps/${slug}/inventory/suppliers`}>
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold">Nouveau fournisseur</h1>
-          <p className="text-muted-foreground mt-1">
-            Ajoutez un nouveau fournisseur à votre inventaire
-          </p>
-        </div>
-      </div>
+      <div className="space-y-6 p-6 max-w-4xl">
+        <FormHeader
+          title="Nouveau fournisseur"
+          subtitle="Ajoutez un nouveau fournisseur à votre inventaire"
+          backUrl={`/apps/${slug}/inventory/suppliers`}
+        />
 
-      {/* Error */}
-      {error && (
-        <Alert variant="error" title="Erreur">
-          {error}
-        </Alert>
-      )}
+        {form.error && (
+          <Alert variant="error" title="Erreur">
+            {form.error}
+          </Alert>
+        )}
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Informations générales</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Nom du fournisseur <span className="text-destructive">*</span>
-              </label>
-              <Input
+        <form onSubmit={form.handleSubmit} className="space-y-6">
+          {/* Informations générales */}
+          <FormSection title="Informations générales" icon={User}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                label="Nom du fournisseur"
                 name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
+                value={form.formData.name}
+                onChange={form.handleChange}
                 placeholder="Ex: Fournisseur ABC"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 flex items-center gap-2">
-                Code <span className="text-destructive">*</span>
-                <button
-                  type="button"
-                  className="text-xs underline text-primary ml-2"
-                  tabIndex={-1}
-                  onClick={handleGenerateCode}
-                  title="Générer automatiquement à partir du nom"
-                  style={{ fontWeight: 500, outline: "none", background: "none", border: "none", padding: 0, cursor: "pointer" }}
-                >
-                  Générer automatiquement
-                </button>
-              </label>
-              <Input
-                name="code"
-                value={formData.code}
-                onChange={handleChange}
                 required
-                placeholder="Ex: SUPP-001"
-                autoComplete="off"
               />
-            </div>
-          </div>
-        </Card>
 
-        {/* Contact Information */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Informations de contact</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Personne de contact
-              </label>
-              <Input
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">
+                    Code <span className="text-red-500">*</span>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleGenerateCode}
+                    className="h-auto py-0 px-2 text-xs"
+                    disabled={!form.formData.name.trim()}
+                  >
+                    <Repeat className="h-3 w-3 mr-1" />
+                    Générer automatiquement
+                  </Button>
+                </div>
+                <FormField
+                  label=""
+                  name="code"
+                  value={form.formData.code}
+                  onChange={form.handleChange}
+                  placeholder="Ex: SUPP-001"
+                  required
+                />
+              </div>
+            </div>
+          </FormSection>
+
+          {/* Informations de contact */}
+          <FormSection title="Informations de contact" icon={Mail}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                label="Personne de contact"
                 name="contact_person"
-                value={formData.contact_person}
-                onChange={handleChange}
+                value={form.formData.contact_person}
+                onChange={form.handleChange}
                 placeholder="Nom du contact"
+                icon={User}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
-              <Input
-                type="email"
+
+              <FormField
+                label="Email"
                 name="email"
-                value={formData.email}
-                onChange={handleChange}
+                type="email"
+                value={form.formData.email}
+                onChange={form.handleChange}
                 placeholder="contact@fournisseur.com"
+                icon={Mail}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Téléphone</label>
-              <Input
+
+              <FormField
+                label="Téléphone"
                 name="phone"
-                value={formData.phone}
-                onChange={handleChange}
+                type="tel"
+                value={form.formData.phone}
+                onChange={form.handleChange}
                 placeholder="+224 XXX XXX XXX"
+                icon={Phone}
               />
             </div>
-          </div>
-        </Card>
+          </FormSection>
 
-        {/* Address Information */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Adresse</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Adresse</label>
-              <Input
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="Rue, numéro, bâtiment..."
-              />
-            </div>
+          {/* Adresse */}
+          <FormSection title="Adresse" icon={MapPin}>
+            <FormField
+              label="Adresse"
+              name="address"
+              value={form.formData.address}
+              onChange={form.handleChange}
+              placeholder="Rue, numéro, bâtiment..."
+            />
+
             <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <label className="block text-sm font-medium mb-2">Ville</label>
-                <Input
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder="Conakry"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Code postal
-                </label>
-                <Input
-                  name="postal_code"
-                  value={formData.postal_code}
-                  onChange={handleChange}
-                  placeholder="00000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Pays</label>
-                <Input
-                  name="country"
-                  value={formData.country}
-                  onChange={handleChange}
-                  placeholder="Guinée"
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
+              <FormField
+                label="Ville"
+                name="city"
+                value={form.formData.city}
+                onChange={form.handleChange}
+                placeholder="Conakry"
+                icon={Building}
+              />
 
-        {/* Additional Information */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Informations complémentaires</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Notes</label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                rows={4}
-                className="w-full px-3 py-2 border rounded-md bg-background"
-                placeholder="Informations supplémentaires sur le fournisseur..."
+              <FormField
+                label="Code postal"
+                name="postal_code"
+                value={form.formData.postal_code}
+                onChange={form.handleChange}
+                placeholder="00000"
+              />
+
+              <FormField
+                label="Pays"
+                name="country"
+                value={form.formData.country}
+                onChange={form.handleChange}
+                placeholder="Guinée"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="is_active"
-                checked={formData.is_active}
-                onChange={handleChange}
-                id="is_active"
-                className="h-4 w-4"
-              />
-              <label htmlFor="is_active" className="text-sm font-medium">
-                Fournisseur actif
-              </label>
-            </div>
-          </div>
-        </Card>
+          </FormSection>
 
-        {/* Actions */}
-        <div className="flex items-center gap-4">
-          <Button type="submit" disabled={loading}>
-            <Save className="mr-2 h-4 w-4" />
-            {loading ? "Création en cours..." : "Créer le fournisseur"}
-          </Button>
-          <Link href={`/apps/${slug}/inventory/suppliers`}>
-            <Button type="button" variant="outline">
-              Annuler
-            </Button>
-          </Link>
-        </div>
-      </form>
-    </div>
+          {/* Informations complémentaires */}
+          <FormSection title="Informations complémentaires" icon={FileText}>
+            <FormField
+              label="Notes"
+              name="notes"
+              value={form.formData.notes}
+              onChange={form.handleChange}
+              placeholder="Informations supplémentaires sur le fournisseur..."
+              multiline
+              rows={4}
+            />
+
+            <FormCheckbox
+              label="Fournisseur actif"
+              name="is_active"
+              checked={form.formData.is_active}
+              onChange={form.handleCheckboxChange}
+            />
+          </FormSection>
+
+          <FormActions
+            cancelUrl={`/apps/${slug}/inventory/suppliers`}
+            submitLabel="Créer le fournisseur"
+            loading={form.loading}
+          />
+        </form>
+      </div>
     </Can>
-
   );
 }

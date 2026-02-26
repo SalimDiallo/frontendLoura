@@ -16,4 +16,10 @@ export * from './confirmation-dialog';
 // Notifications
 export * from './NotificationPermissionPrompt';
 
+// Status Badges
+export * from './status-badge';
+
+// Entity Forms
+export * from './entity-form';
+
 // Note: Can component is already exported from apps/common

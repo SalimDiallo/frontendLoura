@@ -52,6 +52,7 @@ export interface Department {
   employee_count?: number;
   is_active: boolean;
   created_at: string;
+  parent_department_name?:string;
   updated_at: string;
 }
 

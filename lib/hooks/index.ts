@@ -15,6 +15,9 @@ export * from "./use-list-data";
 export * from "./use-detail-data";
 export * from "./use-crud-actions";
 
+// Hook de formulaire générique
+export * from "./use-entity-form";
+
 // Hooks PDF unifiés
 export * from "./usePDF";
 

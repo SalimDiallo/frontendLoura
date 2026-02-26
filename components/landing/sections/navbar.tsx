@@ -159,7 +159,7 @@ export function Navbar() {
               initial="hidden"
               animate="visible"
               exit="exit"
-              variants={drawerVariants}
+              // variants={drawerVariants}
             >
               {/* Mobile menu content */}
               <div className="flex flex-col gap-5">
@@ -210,7 +210,7 @@ export function Navbar() {
                 {/* Action buttons */}
                 <div className="flex flex-col gap-2">
                   <Link
-                    href="#"
+                    href="/auth"
                     className="group bg-foreground h-11 flex items-center justify-center gap-2 text-sm font-medium tracking-wide rounded-full text-background w-full px-4 transition-all ease-out active:scale-95"
                   >
                     Commencer

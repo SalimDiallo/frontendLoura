@@ -2,21 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import Link from "next/link";
-import { Alert, Button, Card, Form } from "@/components/ui";
-import {
-  FormInputField,
-  FormSelectField,
-  FormTextareaField,
-} from "@/components/ui/form-fields";
-import {
-  getDepartment,
-  updateDepartment,
-  getDepartments,
-} from "@/lib/services/hr/department.service";
+import { Alert, Button } from "@/components/ui";
+import { getDepartment, updateDepartment, getDepartments } from "@/lib/services/hr/department.service";
 import { getEmployees } from "@/lib/services/hr/employee.service";
 import type { Department, Employee } from "@/lib/types/hr";
 import {
@@ -24,24 +12,9 @@ import {
   HiOutlineArrowLeft,
   HiOutlineCheckCircle,
 } from "react-icons/hi2";
-
-const departmentSchema = z.object({
-  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-  code: z.string().min(2, "Le code doit contenir au moins 2 caractères"),
-  description: z.string().optional(),
-  manager: z.string().optional(),
-  parent_department: z.string().optional(),
-  is_active: z.boolean(),
-});
-
-type DepartmentFormData = {
-  name: string;
-  code: string;
-  description?: string;
-  manager?: string;
-  parent_department?: string;
-  is_active: boolean;
-};
+import DepartmentForm, { DepartmentFormData } from "@/components/hr/departements/departement/forms/DepartementForm";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function EditDepartmentPage() {
   const params = useParams();
@@ -51,20 +24,14 @@ export default function EditDepartmentPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [employees, setEmployees] = useState<Array<{ id: string; first_name: string; last_name: string }>>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [department, setDepartment] = useState<Department | null>(null);
 
-  const form = useForm<DepartmentFormData>({
-    resolver: zodResolver(departmentSchema),
-    defaultValues: {
-      is_active: true,
-    },
-  });
-
   useEffect(() => {
     loadFormData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadFormData = async () => {
@@ -75,19 +42,9 @@ export default function EditDepartmentPage() {
         getEmployees(slug),
         getDepartments({ is_active: true, organization_subdomain: slug }),
       ]);
-
       setDepartment(deptData);
-      setEmployees(employeesData.results.map((e: any) => ({ id: e.id, first_name: e.first_name || '', last_name: e.last_name || '' })));
-      setDepartments(depts.filter(d => d.id !== id)); // Exclure le département actuel
-
-      form.reset({
-        name: deptData.name,
-        code: deptData.code,
-        description: deptData.description || "",
-        manager: deptData.manager || "",
-        parent_department: deptData.parent_department || "",
-        is_active: deptData.is_active,
-      });
+      setEmployees(employeesData.results as unknown as Employee[]);
+      setDepartments(depts.filter((d: Department) => d.id !== id)); // Exclure le département actuel
     } catch (err) {
       console.error("Erreur lors du chargement des données:", err);
       setError("Erreur lors du chargement des données du formulaire");
@@ -100,15 +57,20 @@ export default function EditDepartmentPage() {
     try {
       setLoading(true);
       setError(null);
-
-      // Nettoyer les données : convertir les chaînes vides en undefined pour les champs optionnels
-      const cleanedData = {
-        ...data,
-        manager: data.manager || undefined,
-        parent_department: data.parent_department || undefined,
+      // Map frontend field names to backend API field names
+      const payload: Record<string, any> = {
+        name: data.name,
+        code: data.code,
+        description: data.description,
+        is_active: data.is_active,
       };
-
-      await updateDepartment(id, cleanedData);
+      // manager → manager_write (alias write-only pour head)
+      // Envoyer null si vidé pour permettre la suppression
+      payload.manager_write = data.manager || null;
+      // parent_department (envoyer null si vidé)
+      payload.parent_department = data.parent_department || null;
+      
+      await updateDepartment(id, payload);
       router.push(`/apps/${slug}/hr/departments`);
     } catch (err: any) {
       console.error(err);
@@ -144,7 +106,8 @@ export default function EditDepartmentPage() {
   }
 
   return (
-    <div className="space-y-6">
+  <Can permission={COMMON_PERMISSIONS.HR.UPDATE_DEPARTMENTS} showMessage>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -167,91 +130,29 @@ export default function EditDepartmentPage() {
 
       {error && <Alert variant="error">{error}</Alert>}
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Informations générales</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormInputField
-                name="name"
-                label="Nom du département"
-                placeholder="Ex: Ressources Humaines"
-                required
-              />
-              <FormInputField
-                name="code"
-                label="Code"
-                placeholder="Ex: RH"
-                required
-              />
-              <FormTextareaField
-                className="md:col-span-2"
-                name="description"
-                label="Description"
-                placeholder="Description du département..."
-                rows={3}
-              />
-            </div>
-          </Card>
-
-          <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Organisation</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormSelectField
-                name="manager"
-                label="Manager"
-                placeholder="Sélectionner un manager"
-                options={employees.map((emp) => ({
-                  value: emp.id,
-                  label: `${emp.first_name} ${emp.last_name}`,
-                }))}
-              />
-              <FormSelectField
-                name="parent_department"
-                label="Département parent"
-                placeholder="Sélectionner un département parent"
-                options={departments.map((dept) => ({
-                  value: dept.id,
-                  label: dept.name,
-                }))}
-              />
-            </div>
-          </Card>
-
-          <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Statut</h2>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="is_active"
-                {...form.register("is_active")}
-                className="size-4 rounded border-gray-300 text-primary focus:ring-primary"
-              />
-              <label htmlFor="is_active" className="text-sm font-medium">
-                Département actif
-              </label>
-            </div>
-          </Card>
-
-          <div className="flex items-center justify-end gap-4">
-            <Button type="button" variant="outline" asChild>
-              <Link href={`/apps/${slug}/hr/departments`}>
-                Annuler
-              </Link>
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>Enregistrement...</>
-              ) : (
-                <>
-                  <HiOutlineCheckCircle className="size-4 mr-2" />
-                  Enregistrer les modifications
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      </Form>
+      <DepartmentForm
+        formMode="edit"
+        initialValues={{
+          name: department.name,
+          code: department.code,
+          description: department.description || "",
+          manager: department.manager || "",
+          parent_department: department.parent_department || "",
+          is_active: department.is_active,
+        }}
+        employees={employees}
+        departments={departments}
+        loading={loading}
+        onSubmit={onSubmit}
+        cancelUrl={`/apps/${slug}/hr/departments`}
+        submitLabel={
+          <>
+            <HiOutlineCheckCircle className="size-4 mr-2" />
+            Enregistrer les modifications
+          </>
+        }
+      />
     </div>
+  </Can>
   );
 }

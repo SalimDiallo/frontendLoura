@@ -78,13 +78,21 @@ export abstract class BaseService<
   }
 
   /**
+   * Récupère tous les résultats (sans pagination) - helper pratique
+   */
+  async getAll(filters?: TFilters): Promise<T[]> {
+    const response = await this.list(filters);
+    return response.results || [];
+  }
+
+  /**
    * Construit les paramètres de requête à partir des filtres
    */
   protected buildQueryParams(filters?: TFilters): string {
     if (!filters) return '';
 
     const params = new URLSearchParams();
-    
+
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
         params.append(key, String(value));

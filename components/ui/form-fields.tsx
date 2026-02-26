@@ -272,9 +272,7 @@ export function FormSelectField({
               value={field.value ?? ''}
               onChange={(e) => {
                 const value = e.target.value;
-                // Convert to number if the value is numeric
-                const numValue = Number(value);
-                field.onChange(value === '' ? undefined : (!isNaN(numValue) && value !== '' ? numValue : value));
+                field.onChange(value === '' ? undefined : value);
               }}
               className={cn(
                 // Ajout du support mode nuit

@@ -1,70 +1,71 @@
 /**
  * Customer Service - Gestion des clients
+ * Refactoré pour utiliser BaseService
  */
 
+import { BaseService, type CrudEndpoints } from '@/lib/api/base-service';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { addOrganizationToData } from '@/lib/utils/organization';
 import type { Customer, CustomerCreate, CustomerUpdate, SaleList, CreditSale } from '@/lib/types/inventory';
+import type { FilterParams } from '@/lib/types/shared';
 
 /**
- * Get all customers
+ * Paramètres de filtrage pour les clients
  */
-export async function getCustomers(params?: {
+interface CustomerFilters extends FilterParams {
   is_active?: boolean;
   search?: string;
-}): Promise<Customer[]> {
-  const searchParams = new URLSearchParams();
-
-  if (params?.is_active !== undefined) searchParams.append('is_active', String(params.is_active));
-  if (params?.search) searchParams.append('search', params.search);
-
-  const queryString = searchParams.toString();
-  const url = queryString ? `${API_ENDPOINTS.INVENTORY.CUSTOMERS.LIST}?${queryString}` : API_ENDPOINTS.INVENTORY.CUSTOMERS.LIST;
-
-  const response = await apiClient.get<{ count: number; results: Customer[] }>(url);
-  return response.results || response as unknown as Customer[];
 }
 
 /**
- * Get a single customer
+ * Service pour la gestion des clients
  */
-export async function getCustomer(id: string): Promise<Customer> {
-  return apiClient.get<Customer>(API_ENDPOINTS.INVENTORY.CUSTOMERS.DETAIL(id));
+class CustomerService extends BaseService<Customer, CustomerCreate, CustomerUpdate, CustomerFilters> {
+  protected readonly endpoints: CrudEndpoints = API_ENDPOINTS.INVENTORY.CUSTOMERS;
+
+  /**
+   * Override create pour ajouter l'organisation
+   */
+  async create(data: CustomerCreate): Promise<Customer> {
+    const dataWithOrg = addOrganizationToData(data);
+    return super.create(dataWithOrg as CustomerCreate);
+  }
+
+  /**
+   * Liste tous les clients (retourne results pour compatibilité)
+   */
+  async getCustomers(filters?: CustomerFilters): Promise<Customer[]> {
+    const response = await this.list(filters);
+    return response.results || [];
+  }
+
+  /**
+   * Récupère l'historique des ventes d'un client
+   */
+  async getSalesHistory(customerId: string): Promise<SaleList[]> {
+    return apiClient.get<SaleList[]>(API_ENDPOINTS.INVENTORY.CUSTOMERS.SALES_HISTORY(customerId));
+  }
+
+  /**
+   * Récupère l'historique des crédits d'un client
+   */
+  async getCreditHistory(customerId: string): Promise<CreditSale[]> {
+    return apiClient.get<CreditSale[]>(API_ENDPOINTS.INVENTORY.CUSTOMERS.CREDIT_HISTORY(customerId));
+  }
 }
 
-/**
- * Create a new customer
- */
-export async function createCustomer(data: CustomerCreate): Promise<Customer> {
-  const dataWithOrg = addOrganizationToData(data);
-  return apiClient.post<Customer>(API_ENDPOINTS.INVENTORY.CUSTOMERS.CREATE, dataWithOrg);
-}
+// Instance singleton du service
+const customerService = new CustomerService();
 
-/**
- * Update a customer
- */
-export async function updateCustomer(id: string, data: CustomerUpdate): Promise<Customer> {
-  return apiClient.patch<Customer>(API_ENDPOINTS.INVENTORY.CUSTOMERS.UPDATE(id), data);
-}
+// Exports des méthodes pour compatibilité avec l'ancienne API
+export const getCustomers = customerService.getCustomers.bind(customerService);
+export const getCustomer = customerService.getById.bind(customerService);
+export const createCustomer = customerService.create.bind(customerService);
+export const updateCustomer = customerService.update.bind(customerService);
+export const deleteCustomer = customerService.delete.bind(customerService);
+export const getCustomerSalesHistory = customerService.getSalesHistory.bind(customerService);
+export const getCustomerCreditHistory = customerService.getCreditHistory.bind(customerService);
 
-/**
- * Delete a customer
- */
-export async function deleteCustomer(id: string): Promise<void> {
-  return apiClient.delete<void>(API_ENDPOINTS.INVENTORY.CUSTOMERS.DELETE(id));
-}
-
-/**
- * Get sales history for a customer
- */
-export async function getCustomerSalesHistory(customerId: string): Promise<SaleList[]> {
-  return apiClient.get<SaleList[]>(API_ENDPOINTS.INVENTORY.CUSTOMERS.SALES_HISTORY(customerId));
-}
-
-/**
- * Get credit history for a customer
- */
-export async function getCustomerCreditHistory(customerId: string): Promise<CreditSale[]> {
-  return apiClient.get<CreditSale[]>(API_ENDPOINTS.INVENTORY.CUSTOMERS.CREDIT_HISTORY(customerId));
-}
+// Export du service pour usage avancé
+export { customerService };

@@ -1,336 +1,243 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Input, Card, Alert } from "@/components/ui";
+import { useParams } from "next/navigation";
+import { Alert } from "@/components/ui";
 import { getProduct, updateProduct, getCategories } from "@/lib/services/inventory";
 import type { ProductUpdate, Category } from "@/lib/types/inventory";
 import { ProductUnit } from "@/lib/types/inventory";
-import { ArrowLeft, Save } from "lucide-react";
-import Link from "next/link";
+import { AlertTriangle, Package, DollarSign, BarChart3, Tag } from "lucide-react";
+import { useEntityForm } from "@/lib/hooks";
+import { FormHeader, FormActions, FormSection, FormField, FormCheckbox, FormSelect } from "@/components/common";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function EditProductPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params.slug as string;
   const productId = params.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
 
-  const [formData, setFormData] = useState<ProductUpdate>({
-    name: "",
-    sku: "",
-    description: "",
-    category: undefined,
-    purchase_price: 0,
-    selling_price: 0,
-    unit: ProductUnit.UNIT,
-    min_stock_level: 0,
-    max_stock_level: 0,
-    reorder_point: 0,
-    barcode: "",
-    is_active: true,
-  });
-
-  useEffect(() => {
-    loadData();
-  }, [productId]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  const form = useEntityForm<ProductUpdate>({
+    initialData: {
+      name: "",
+      sku: "",
+      description: "",
+      category: undefined,
+      purchase_price: 0,
+      selling_price: 0,
+      unit: ProductUnit.UNIT,
+      min_stock_level: 0,
+      max_stock_level: 0,
+      reorder_point: 0,
+      barcode: "",
+      is_active: true,
+    },
+    fetchData: async () => {
       const [productData, categoriesData] = await Promise.all([
         getProduct(productId),
         getCategories({ is_active: true }),
       ]);
-
-      setFormData({
-        name: productData.name,
-        sku: productData.sku,
-        description: productData.description || "",
-        category: productData.category || undefined,
-        purchase_price: productData.purchase_price,
-        selling_price: productData.selling_price,
-        unit: productData.unit,
-        min_stock_level: productData.min_stock_level,
-        max_stock_level: productData.max_stock_level,
-        reorder_point: productData.reorder_point,
-        barcode: productData.barcode || "",
-        is_active: productData.is_active,
-      });
-
       setCategories(categoriesData);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement du produit");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return productData;
+    },
+    onSubmit: (data) => updateProduct(productId, data),
+    redirectUrl: `/apps/${slug}/inventory/products/${productId}`,
+    validate: (data) => {
+      if (!data.name.trim()) return "Le nom du produit est requis";
+      if (!data.sku.trim()) return "Le SKU est requis";
+      return null;
+    },
+  });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "number" ? parseFloat(value) || 0 : type === "checkbox" ? (e.target as HTMLInputElement).checked : value || undefined,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    try {
-      setSaving(true);
-      await updateProduct(productId, formData);
-      router.push(`/apps/${slug}/inventory/products/${productId}`);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de la mise à jour du produit");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
+  if (form.loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 rounded bg-neutral-100 dark:bg-neutral-900 w-2/5 mb-2" />
+          <div className="h-10 rounded bg-neutral-100 dark:bg-neutral-900 mb-2" />
+          <div className="h-96 bg-neutral-100 dark:bg-neutral-900 rounded-xl mt-6" />
         </div>
       </div>
     );
   }
 
+  const unitOptions = [
+    { value: "unit", label: "Unité" },
+    { value: "kg", label: "Kilogramme" },
+    { value: "g", label: "Gramme" },
+    { value: "l", label: "Litre" },
+    { value: "ml", label: "Millilitre" },
+    { value: "m", label: "Mètre" },
+    { value: "cm", label: "Centimètre" },
+    { value: "box", label: "Boîte" },
+    { value: "pack", label: "Pack" },
+  ];
+
   return (
-  <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS}>
-        <div className="space-y-6 p-6 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={`/apps/${slug}/inventory/products/${productId}`}>
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold">Modifier le produit</h1>
-          <p className="text-muted-foreground mt-1">
-            Mettez à jour les informations du produit
-          </p>
-        </div>
-      </div>
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS} showMessage>
+      <div className="p-6 max-w-4xl mx-auto">
+        <FormHeader
+          title="Modifier le produit"
+          subtitle="Mettez à jour les informations du produit"
+          backUrl={`/apps/${slug}/inventory/products/${productId}`}
+        />
 
-      {/* Error */}
-      {error && (
-        <Alert variant="error" title="Erreur">
-          {error}
-        </Alert>
-      )}
+        {form.error && (
+          <Alert variant="error" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <div>
+              <h3 className="font-semibold">Erreur</h3>
+              <p className="text-sm">{form.error}</p>
+            </div>
+          </Alert>
+        )}
 
-      {/* Form */}
-      <form onSubmit={handleSubmit}>
-        <Card className="p-6 space-y-6">
-          {/* Informations de base */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Informations générales</h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Nom du produit <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  placeholder="Ex: Ordinateur portable"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  SKU <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  name="sku"
-                  value={formData.sku}
-                  onChange={handleChange}
-                  required
-                  placeholder="Ex: LAPTOP-001"
-                />
-              </div>
+        <form onSubmit={form.handleSubmit} className="space-y-6">
+          {/* Informations générales */}
+          <FormSection title="Informations générales" icon={Package}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Nom du produit"
+                name="name"
+                value={form.formData.name}
+                onChange={form.handleChange}
+                placeholder="Ex: Ordinateur portable"
+                required
+              />
+
+              <FormField
+                label="SKU"
+                name="sku"
+                value={form.formData.sku}
+                onChange={form.handleChange}
+                placeholder="Ex: LAPTOP-001"
+                required
+              />
+
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Description</label>
-                <textarea
+                <FormField
+                  label="Description"
                   name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border rounded-md bg-background"
+                  value={form.formData.description}
+                  onChange={form.handleChange}
                   placeholder="Description du produit..."
+                  multiline
+                  rows={3}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Catégorie</label>
-                <select
-                  name="category"
-                  value={formData.category || ""}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-md bg-background"
-                >
-                  <option value="">Aucune catégorie</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Code-barres</label>
-                <Input
-                  name="barcode"
-                  value={formData.barcode}
-                  onChange={handleChange}
-                  placeholder="Ex: 1234567890123"
-                />
-              </div>
-            </div>
-          </div>
 
-          {/* Prix */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Prix et unité</h2>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Prix d'achat  <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  type="number"
-                  name="purchase_price"
-                  value={formData.purchase_price}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Prix de vente  <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  type="number"
-                  name="selling_price"
-                  value={formData.selling_price}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Unité</label>
-                <select
-                  name="unit"
-                  value={formData.unit}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-md bg-background"
-                >
-                  <option value="unit">Unité</option>
-                  <option value="kg">Kilogramme</option>
-                  <option value="g">Gramme</option>
-                  <option value="l">Litre</option>
-                  <option value="ml">Millilitre</option>
-                  <option value="m">Mètre</option>
-                  <option value="cm">Centimètre</option>
-                  <option value="box">Boîte</option>
-                  <option value="pack">Pack</option>
-                </select>
-              </div>
+              <FormSelect
+                label="Catégorie"
+                name="category"
+                value={form.formData.category || ""}
+                onChange={form.handleChange}
+                options={[
+                  { value: "", label: "Aucune catégorie" },
+                  ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
+                ]}
+                icon={Tag}
+              />
+
+              <FormField
+                label="Code-barres"
+                name="barcode"
+                value={form.formData.barcode}
+                onChange={form.handleChange}
+                placeholder="Ex: 1234567890123"
+              />
             </div>
-          </div>
+          </FormSection>
+
+          {/* Prix et unité */}
+          <FormSection title="Prix et unité" icon={DollarSign}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                label="Prix d'achat"
+                name="purchase_price"
+                type="number"
+                value={form.formData.purchase_price}
+                onChange={form.handleChange}
+                min={0}
+                step={0.01}
+                required
+              />
+
+              <FormField
+                label="Prix de vente"
+                name="selling_price"
+                type="number"
+                value={form.formData.selling_price}
+                onChange={form.handleChange}
+                min={0}
+                step={0.01}
+                required
+              />
+
+              <FormSelect
+                label="Unité"
+                name="unit"
+                value={form.formData.unit}
+                onChange={form.handleChange}
+                options={unitOptions}
+              />
+            </div>
+          </FormSection>
 
           {/* Gestion du stock */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Gestion du stock</h2>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <label className="block text-sm font-medium mb-2">Seuil d'alerte stock</label>
-                <Input
-                  type="number"
-                  name="min_stock_level"
-                  value={formData.min_stock_level}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  ⚠️ Une alerte sera générée quand le stock descend en dessous de cette quantité
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Stock maximum</label>
-                <Input
-                  type="number"
-                  name="max_stock_level"
-                  value={formData.max_stock_level}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Point de réapprovisionnement</label>
-                <Input
-                  type="number"
-                  name="reorder_point"
-                  value={formData.reorder_point}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                />
-              </div>
+          <FormSection title="Gestion du stock" icon={BarChart3}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                label="Seuil d'alerte stock"
+                name="min_stock_level"
+                type="number"
+                value={form.formData.min_stock_level}
+                onChange={form.handleChange}
+                min={0}
+                step={0.01}
+                help="⚠️ Une alerte sera générée quand le stock descend en dessous de cette quantité"
+              />
+
+              <FormField
+                label="Stock maximum"
+                name="max_stock_level"
+                type="number"
+                value={form.formData.max_stock_level}
+                onChange={form.handleChange}
+                min={0}
+                step={0.01}
+              />
+
+              <FormField
+                label="Point de réapprovisionnement"
+                name="reorder_point"
+                type="number"
+                value={form.formData.reorder_point}
+                onChange={form.handleChange}
+                min={0}
+                step={0.01}
+              />
             </div>
-          </div>
+          </FormSection>
 
-          {/* Status */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
+          {/* Statut */}
+          <FormSection title="Statut" icon={Package}>
+            <FormCheckbox
+              label="Produit actif"
               name="is_active"
-              checked={formData.is_active}
-              onChange={handleChange}
-              id="is_active"
-              className="h-4 w-4"
+              checked={form.formData.is_active}
+              onChange={form.handleCheckboxChange}
             />
-            <label htmlFor="is_active" className="text-sm font-medium">
-              Produit actif
-            </label>
-          </div>
+          </FormSection>
 
-          {/* Actions */}
-          <div className="flex items-center gap-4 pt-4">
-            <Button type="submit" disabled={saving}>
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? "Enregistrement..." : "Enregistrer les modifications"}
-            </Button>
-            <Link href={`/apps/${slug}/inventory/products/${productId}`}>
-              <Button type="button" variant="outline">
-                Annuler
-              </Button>
-            </Link>
-          </div>
-        </Card>
-      </form>
-    </div>
-  </Can>
+          <FormActions
+            cancelUrl={`/apps/${slug}/inventory/products/${productId}`}
+            submitLabel="Enregistrer les modifications"
+            loading={form.loading}
+          />
+        </form>
+      </div>
+    </Can>
   );
 }

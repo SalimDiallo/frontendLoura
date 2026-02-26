@@ -1,355 +1,256 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Input, Card, Alert } from "@/components/ui";
+import { useParams } from "next/navigation";
+import { Alert } from "@/components/ui";
 import { getSupplier, updateSupplier } from "@/lib/services/inventory";
 import type { SupplierUpdate } from "@/lib/types/inventory";
-import { ArrowLeft, Save, RefreshCw } from "lucide-react";
-import Link from "next/link";
+import { AlertTriangle, Truck, User, Mail, Phone, MapPin, Building, FileText, CreditCard } from "lucide-react";
+import { useEntityForm } from "@/lib/hooks";
+import { FormHeader, FormActions, FormSection, FormField, FormCheckbox } from "@/components/common";
 import { generateSupplierCode } from "@/lib/utils/code-generator";
 import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function EditSupplierPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params.slug as string;
   const supplierId = params.id as string;
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState<SupplierUpdate>({
-    name: "",
-    code: "",
-    contact_person: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    postal_code: "",
-    country: "",
-    website: "",
-    tax_id: "",
-    payment_terms: "",
-    notes: "",
-    is_active: true,
+  const form = useEntityForm<SupplierUpdate>({
+    initialData: {
+      name: "",
+      code: "",
+      contact_person: "",
+      email: "",
+      phone: "",
+      address: "",
+      city: "",
+      postal_code: "",
+      country: "",
+      website: "",
+      tax_id: "",
+      payment_terms: "",
+      notes: "",
+      is_active: true,
+    },
+    fetchData: () => getSupplier(supplierId),
+    onSubmit: (data) => updateSupplier(supplierId, data),
+    redirectUrl: `/apps/${slug}/inventory/suppliers/${supplierId}`,
+    validate: (data) => {
+      if (!data.name.trim()) return "Le nom du fournisseur est requis";
+      if (!data.code.trim()) return "Le code fournisseur est requis";
+      return null;
+    },
   });
 
-  useEffect(() => {
-    loadSupplier();
-  }, [supplierId]);
-
-  const loadSupplier = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getSupplier(supplierId);
-
-      setFormData({
-        name: data.name,
-        code: data.code,
-        contact_person: data.contact_person || "",
-        email: data.email || "",
-        phone: data.phone || "",
-        address: data.address || "",
-        city: data.city || "",
-        postal_code: data.postal_code || "",
-        country: data.country || "",
-        website: data.website || "",
-        tax_id: data.tax_id || "",
-        payment_terms: data.payment_terms || "",
-        notes: data.notes || "",
-        is_active: data.is_active,
-      });
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement du fournisseur");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
-  };
-
   const handleGenerateCode = () => {
-    const code = generateSupplierCode(formData.name ?? "");
+    const code = generateSupplierCode(form.formData.name ?? "");
     if (code) {
-      setFormData(prev => ({ ...prev, code }));
+      form.setField('code', code);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    try {
-      setSaving(true);
-      await updateSupplier(supplierId, formData);
-      router.push(`/apps/${slug}/inventory/suppliers/${supplierId}`);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de la mise à jour du fournisseur");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
+  if (form.loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+      <div className="p-6 max-w-4xl mx-auto">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 rounded bg-neutral-100 dark:bg-neutral-900 w-2/5 mb-2" />
+          <div className="h-10 rounded bg-neutral-100 dark:bg-neutral-900 mb-2" />
+          <div className="h-96 bg-neutral-100 dark:bg-neutral-900 rounded-xl mt-6" />
         </div>
       </div>
     );
   }
 
   return (
-   <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_SUPPLIERS} showMessage>
-         <div className="space-y-6 p-6 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={`/apps/${slug}/inventory/suppliers/${supplierId}`}>
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold">Modifier le fournisseur</h1>
-          <p className="text-muted-foreground mt-1">
-            Mettez à jour les informations du fournisseur
-          </p>
-        </div>
-      </div>
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_SUPPLIERS} showMessage>
+      <div className="p-6 max-w-4xl mx-auto">
+        <FormHeader
+          title="Modifier le fournisseur"
+          subtitle="Modifiez les informations du fournisseur"
+          backUrl={`/apps/${slug}/inventory/suppliers`}
+        />
 
-      {/* Error */}
-      {error && (
-        <Alert variant="error" title="Erreur">
-          {error}
-        </Alert>
-      )}
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Informations générales</h2>
-          <div className="grid gap-4 md:grid-cols-2">
+        {form.error && (
+          <Alert variant="error" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Nom du fournisseur <span className="text-destructive">*</span>
-              </label>
-              <Input
+              <h3 className="font-semibold">Erreur</h3>
+              <p className="text-sm">{form.error}</p>
+            </div>
+          </Alert>
+        )}
+
+        <form onSubmit={form.handleSubmit} className="space-y-6">
+          {/* Informations de base */}
+          <FormSection title="Informations de base" icon={Truck}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Nom du fournisseur"
                 name="name"
-                value={formData.name}
-                onChange={handleChange}
+                value={form.formData.name}
+                onChange={form.handleChange}
+                placeholder="Nom complet ou raison sociale"
                 required
-                placeholder="Ex: ACME Corporation"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Code <span className="text-destructive">*</span>
-              </label>
-              <div className="flex gap-2">
-                <Input
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">
+                    Code fournisseur <span className="text-red-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateCode}
+                    className="text-xs text-primary hover:underline"
+                    disabled={!form.formData.name.trim()}
+                  >
+                    Générer
+                  </button>
+                </div>
+                <FormField
+                  label=""
                   name="code"
-                  value={formData.code}
-                  onChange={handleChange}
+                  value={form.formData.code}
+                  onChange={form.handleChange}
+                  placeholder="SUP-001"
                   required
-                  placeholder="Ex: SUPP-ACME-001"
-                  className="flex-1"
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGenerateCode}
-                  disabled={!formData.name}
-                  title="Générer automatiquement le code"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Généré automatiquement à partir du nom
-              </p>
-            </div>
-          </div>
-        </Card>
 
-        {/* Contact Information */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Informations de contact</h2>
-          <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium mb-2">Personne de contact</label>
-                <Input
-                  name="contact_person"
-                  value={formData.contact_person}
-                  onChange={handleChange}
-                  placeholder="Ex: Jean Dupont"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Email</label>
-                <Input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Ex: contact@acme.com"
-                />
-              </div>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium mb-2">Téléphone</label>
-                <Input
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="Ex: +224 123 456 789"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Site web</label>
-                <Input
-                  type="url"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleChange}
-                  placeholder="Ex: https://www.acme.com"
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
+              <FormField
+                label="Personne de contact"
+                name="contact_person"
+                value={form.formData.contact_person}
+                onChange={form.handleChange}
+                placeholder="Nom du contact principal"
+                icon={User}
+              />
 
-        {/* Address */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Adresse</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Adresse complète</label>
-              <Input
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="Ex: 123 Avenue de la République"
+              <FormField
+                label="Numéro fiscal (NIF)"
+                name="tax_id"
+                value={form.formData.tax_id}
+                onChange={form.handleChange}
+                placeholder="Numéro d'identification fiscale"
               />
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <label className="block text-sm font-medium mb-2">Ville</label>
-                <Input
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder="Ex: Conakry"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Code postal</label>
-                <Input
-                  name="postal_code"
-                  value={formData.postal_code}
-                  onChange={handleChange}
-                  placeholder="Ex: 00000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Pays</label>
-                <Input
-                  name="country"
-                  value={formData.country}
-                  onChange={handleChange}
-                  placeholder="Ex: Guinée"
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
+          </FormSection>
 
-        {/* Business Information */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Informations commerciales</h2>
-          <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium mb-2">Numéro fiscal</label>
-                <Input
-                  name="tax_id"
-                  value={formData.tax_id}
-                  onChange={handleChange}
-                  placeholder="Ex: GN-123456789"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Conditions de paiement</label>
-                <Input
-                  name="payment_terms"
-                  value={formData.payment_terms}
-                  onChange={handleChange}
-                  placeholder="Ex: Net 30 jours"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Notes</label>
-              <textarea
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-                rows={4}
-                className="w-full px-3 py-2 border rounded-md bg-background"
-                placeholder="Notes additionnelles sur le fournisseur..."
+          {/* Contact */}
+          <FormSection title="Contact" icon={Mail}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Email"
+                name="email"
+                type="email"
+                value={form.formData.email}
+                onChange={form.handleChange}
+                placeholder="email@exemple.com"
+                icon={Mail}
+              />
+
+              <FormField
+                label="Téléphone"
+                name="phone"
+                type="tel"
+                value={form.formData.phone}
+                onChange={form.handleChange}
+                placeholder="+224 XXX XXX XXX"
+                icon={Phone}
+              />
+
+              <FormField
+                label="Site web"
+                name="website"
+                value={form.formData.website}
+                onChange={form.handleChange}
+                placeholder="https://exemple.com"
               />
             </div>
-          </div>
-        </Card>
+          </FormSection>
 
-        {/* Status */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="is_active"
-              checked={formData.is_active}
-              onChange={handleChange}
-              id="is_active"
-              className="h-4 w-4"
+          {/* Adresse */}
+          <FormSection title="Adresse" icon={MapPin}>
+            <FormField
+              label="Adresse"
+              name="address"
+              value={form.formData.address}
+              onChange={form.handleChange}
+              placeholder="Rue, quartier, commune..."
+              className="md:col-span-2"
             />
-            <label htmlFor="is_active" className="text-sm font-medium">
-              Fournisseur actif
-            </label>
-          </div>
-        </Card>
 
-        {/* Actions */}
-        <div className="flex items-center gap-4">
-          <Button type="submit" disabled={saving}>
-            <Save className="mr-2 h-4 w-4" />
-            {saving ? "Enregistrement..." : "Enregistrer les modifications"}
-          </Button>
-          <Link href={`/apps/${slug}/inventory/suppliers/${supplierId}`}>
-            <Button type="button" variant="outline">
-              Annuler
-            </Button>
-          </Link>
-        </div>
-      </form>
-    </div>
-   </Can>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                label="Ville"
+                name="city"
+                value={form.formData.city}
+                onChange={form.handleChange}
+                placeholder="Conakry"
+                icon={Building}
+              />
+
+              <FormField
+                label="Code postal"
+                name="postal_code"
+                value={form.formData.postal_code}
+                onChange={form.handleChange}
+                placeholder="Code postal"
+              />
+
+              <FormField
+                label="Pays"
+                name="country"
+                value={form.formData.country}
+                onChange={form.handleChange}
+                placeholder="Guinée"
+              />
+            </div>
+          </FormSection>
+
+          {/* Conditions de paiement */}
+          <FormSection title="Conditions commerciales" icon={CreditCard}>
+            <FormField
+              label="Conditions de paiement"
+              name="payment_terms"
+              value={form.formData.payment_terms}
+              onChange={form.handleChange}
+              placeholder="Ex: 30 jours net, 60 jours fin de mois..."
+              help="Délais et conditions de paiement habituels avec ce fournisseur"
+            />
+          </FormSection>
+
+          {/* Notes */}
+          <FormSection title="Notes" icon={FileText}>
+            <FormField
+              label="Notes internes"
+              name="notes"
+              value={form.formData.notes}
+              onChange={form.handleChange}
+              placeholder="Informations complémentaires sur ce fournisseur..."
+              multiline
+              rows={4}
+            />
+          </FormSection>
+
+          {/* Statut */}
+          <FormSection title="Statut" icon={Building}>
+            <FormCheckbox
+              label="Fournisseur actif"
+              name="is_active"
+              checked={form.formData.is_active}
+              onChange={form.handleCheckboxChange}
+            />
+          </FormSection>
+
+          <FormActions
+            cancelUrl={`/apps/${slug}/inventory/suppliers`}
+            submitLabel="Mettre à jour"
+            loading={form.loading}
+          />
+        </form>
+      </div>
+    </Can>
   );
 }

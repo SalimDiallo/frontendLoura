@@ -34,7 +34,7 @@ import { cn, formatDate, formatShortDate } from '@/lib/utils';
 import { usePDF, PDFEndpoints } from '@/lib/hooks';
 import { PDFPreviewWrapper } from '@/components/ui';
 import { useUser } from '@/lib/hooks';
-import { getLeaveStatusConfig } from '@/lib/utils/BadgeStatus';
+import { LeaveStatusBadge, LEAVE_STATUS_CONFIG } from '@/components/common';
 import { COMMON_PERMISSIONS } from '@/lib/types/permissions';
 
 export default function LeaveRequestDetailPage() {
@@ -199,8 +199,8 @@ export default function LeaveRequestDetailPage() {
 
   if (!leave) return null;
 
-  const statusConfig = getLeaveStatusConfig(leave.status);
-  const StatusIcon = statusConfig.icon;
+  const statusConfig = LEAVE_STATUS_CONFIG[leave.status];
+  const StatusIcon = statusConfig?.icon;
   const isPending = leave.status === 'pending';
 
   // Approveur info - let’s be defensive in case some fields are missing/null
