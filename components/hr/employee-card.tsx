@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import { Card } from '@/components/ui';
-import { EmploymentStatusBadge } from './status-badge';
 import type { Employee } from '@/lib/types/hr';
-import { User, Mail, Phone, Briefcase } from 'lucide-react';
+import { Briefcase, Mail, Phone, User } from 'lucide-react';
+import Link from 'next/link';
+import { EmploymentStatusBadge } from './status-badge';
 
 interface EmployeeCardProps {
   employee: Employee;
@@ -16,9 +16,9 @@ export function EmployeeCard({ employee, orgSlug }: EmployeeCardProps) {
         <div className="flex items-start gap-4">
           {/* Avatar */}
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            {employee.photo_url ? (
+            {employee.avatar_url ? (
               <img
-                src={employee.photo_url}
+                src={employee.avatar_url}
                 alt={`${employee.first_name} ${employee.last_name}`}
                 className="h-12 w-12 rounded-full object-cover"
               />

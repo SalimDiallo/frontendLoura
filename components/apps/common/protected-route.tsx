@@ -5,12 +5,12 @@
 
 'use client';
 
-import React, { PropsWithChildren } from 'react';
-import { useRouter } from 'next/navigation';
-import { usePermissionContext } from './permission-provider';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import React, { PropsWithChildren } from 'react';
 import { HiOutlineShieldExclamation } from 'react-icons/hi2';
+import { usePermissionContext } from './permission-provider';
 
 // ============================================
 // Types
@@ -35,49 +35,6 @@ interface ProtectedRouteProps extends PropsWithChildren {
 // ============================================
 // ProtectedRoute Component
 // ============================================
-
-/**
- * Composant pour protéger une route avec des permissions
- */
-export function ProtectedRoute({ children, config, fallback }: ProtectedRouteProps) {
-  const router = useRouter();
-  const { hasPermission, hasAnyPermission, hasAllPermissions, isAdmin, isLoading } = usePermissionContext();
-
-  // Afficher un loader pendant le chargement
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-          <p className="mt-4 text-sm text-muted-foreground">Vérification des permissions...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Admin a toujours accès
-  if (isAdmin) {
-    return <>{children}</>;
-  }
-
-  // Vérifier les permissions requises (OR logic)
-  if (config.requiredPermissions && config.requiredPermissions.length > 0) {
-    const hasAccess = hasAnyPermission(config.requiredPermissions);
-    if (!hasAccess) {
-      return renderDenied(config, fallback, router);
-    }
-  }
-
-  // Vérifier toutes les permissions (AND logic)
-  if (config.requireAllPermissions && config.requireAllPermissions.length > 0) {
-    const hasAccess = hasAllPermissions(config.requireAllPermissions);
-    if (!hasAccess) {
-      return renderDenied(config, fallback, router);
-    }
-  }
-
-  return <>{children}</>;
-}
 
 function renderDenied(
   config: RouteProtectionConfig,

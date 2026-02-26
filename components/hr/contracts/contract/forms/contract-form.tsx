@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -11,26 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from "@/components/ui/form";
-import { ContractType, type ContractCreate, type Contract, SalaryPeriod } from "@/lib/types/hr";
-import { contractService } from "@/lib/services/hr";
-import { Alert } from "@/components/ui/alert";
-import { 
-  HiOutlineDocumentText,
-  HiOutlineCalendar,
-  HiOutlineBanknotes,
-  HiOutlineClock,
-  HiOutlineCheckCircle,
-} from "react-icons/hi2";
 import { formatCurrency } from "@/lib";
+import { contractService } from "@/lib/services/hr";
+import { ContractType, SalaryPeriod, type Contract, type ContractCreate } from "@/lib/types/hr";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import {
+  HiOutlineBanknotes,
+  HiOutlineCalendar,
+  HiOutlineCheckCircle,
+  HiOutlineClock,
+  HiOutlineDocumentText,
+} from "react-icons/hi2";
 
 interface ContractFormProps {
   orgSlug: string;

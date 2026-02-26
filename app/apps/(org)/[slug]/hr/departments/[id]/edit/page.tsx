@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { Can } from "@/components/apps/common";
+import DepartmentForm, { DepartmentFormData } from "@/components/hr/departements/departement/forms/DepartementForm";
 import { Alert, Button } from "@/components/ui";
-import { getDepartment, updateDepartment, getDepartments } from "@/lib/services/hr/department.service";
+import { getDepartment, getDepartments, updateDepartment } from "@/lib/services/hr/department.service";
 import { getEmployees } from "@/lib/services/hr/employee.service";
 import type { Department, Employee } from "@/lib/types/hr";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
-  HiOutlineBriefcase,
   HiOutlineArrowLeft,
+  HiOutlineBriefcase,
   HiOutlineCheckCircle,
 } from "react-icons/hi2";
-import DepartmentForm, { DepartmentFormData } from "@/components/hr/departements/departement/forms/DepartementForm";
-import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function EditDepartmentPage() {
   const params = useParams();

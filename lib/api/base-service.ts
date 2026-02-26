@@ -8,8 +8,8 @@
  * @template TFilters - Type pour les filtres
  */
 
+import type { FilterParams, PaginatedResponse } from '@/lib/types/shared';
 import { apiClient } from './client';
-import type { PaginatedResponse, FilterParams } from '@/lib/types/shared';
 
 /**
  * Configuration d'un endpoint CRUD

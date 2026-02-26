@@ -3,17 +3,12 @@
  */
 
 // Client API principal
-export { apiClient, tokenManager, ApiError } from './client';
+export { apiClient, ApiError, tokenManager } from './client';
 
 // Configuration
-export { API_CONFIG, STORAGE_KEYS, API_ENDPOINTS } from './config';
+export { API_CONFIG, API_ENDPOINTS, STORAGE_KEYS } from './config';
 
 // Service de base (pour créer de nouveaux services)
 export {
-  BaseService,
-  ActivatableService,
-  type CrudEndpoints,
-  type ActivatableEndpoints,
-  type ListOptions,
-  type Activatable,
+  ActivatableService, BaseService, type Activatable, type ActivatableEndpoints, type CrudEndpoints, type ListOptions
 } from './base-service';

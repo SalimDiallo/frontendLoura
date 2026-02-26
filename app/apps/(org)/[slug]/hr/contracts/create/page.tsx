@@ -1,28 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Can } from "@/components/apps/common";
+import { ContractForm } from "@/components/hr/contracts/contract/forms/contract-form";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { formatCurrency } from "@/lib";
+import { useUser } from "@/lib/hooks";
+import { contractService, getEmployees } from "@/lib/services/hr";
+import type { Contract, EmployeeListItem } from "@/lib/types/hr";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import Link from "next/link";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   HiOutlineArrowLeft,
-  HiOutlineDocumentText,
-  HiOutlineUser,
-  HiOutlineMagnifyingGlass,
   HiOutlineCheckCircle,
+  HiOutlineDocumentText,
+  HiOutlineMagnifyingGlass,
+  HiOutlineUser,
 } from "react-icons/hi2";
-import { Button, Card, Alert, Badge, Input } from "@/components/ui";
-import { ContractForm } from "@/components/hr/contract-form";
-import { getEmployees } from "@/lib/services/hr";
-import { contractService } from "@/lib/services/hr";
-import type { EmployeeListItem, Contract } from "@/lib/types/hr";
-import { ProtectedRoute } from "@/components/apps/common";
-import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
-import { formatCurrency } from "@/lib";
 
 export default function CreateContractPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const user = useUser();
   const slug = params.slug as string;
   const preselectedEmployeeId = searchParams.get('employee');
 
@@ -53,7 +54,9 @@ export default function CreateContractPage() {
       setLoading(true);
       setError(null);
       const data = await getEmployees(slug, { page_size: 1000, is_active: true });
-      setEmployees(data.results);
+      // Filtrer les employés pour exclure le current user
+      const filteredData = data.results.filter(emp => emp.id !== user?.id);
+      setEmployees(filteredData);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erreur lors du chargement des employés";
       setError(errorMessage);
@@ -115,7 +118,7 @@ export default function CreateContractPage() {
   }
 
   return (
-    <ProtectedRoute config={HR_ROUTE_PERMISSIONS['/hr/contracts/create']}>
+    <Can permission={COMMON_PERMISSIONS.HR.CREATE_CONTRACTS} showMessage>
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -270,6 +273,6 @@ export default function CreateContractPage() {
           </>
         )}
       </div>
-    </ProtectedRoute>
+    </Can>
   );
 }

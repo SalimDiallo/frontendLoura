@@ -1,17 +1,17 @@
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Card, Button, Form } from "@/components/ui";
+import { Button, Card, Form } from "@/components/ui";
 import {
   FormInputField,
-  FormTextareaField,
   FormSelectField,
+  FormTextareaField,
 } from "@/components/ui/form-fields";
-import Link from "next/link";
-import { HiOutlineCheckCircle, HiOutlineSparkles } from "react-icons/hi2";
 import type { Department, Employee } from "@/lib/types/hr";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { HiOutlineCheckCircle, HiOutlineSparkles } from "react-icons/hi2";
+import * as z from "zod";
 
 export const departmentSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),

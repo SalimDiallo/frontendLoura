@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Can } from "@/components/apps/common";
+import { ContractForm } from "@/components/hr/contracts/contract/forms/contract-form";
+import { Alert, Button, Card } from "@/components/ui";
+import { contractService } from "@/lib/services/hr";
+import type { Contract } from "@/lib/types/hr";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   HiOutlineArrowLeft,
   HiOutlineDocumentText,
 } from "react-icons/hi2";
-import { Button, Card, Alert } from "@/components/ui";
-import { ContractForm } from "@/components/hr/contract-form";
-import { contractService } from "@/lib/services/hr";
-import type { Contract } from "@/lib/types/hr";
-import { ProtectedRoute } from "@/components/apps/common";
-import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
 
 export default function EditContractPage() {
   const params = useParams();
@@ -78,7 +78,8 @@ export default function EditContractPage() {
   }
 
   return (
-    <ProtectedRoute config={HR_ROUTE_PERMISSIONS['/hr/contracts/:id/edit']}>
+    <Can permission={COMMON_PERMISSIONS.HR.UPDATE_CONTRACTS} showMessage>
+
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -109,6 +110,6 @@ export default function EditContractPage() {
           />
         </Card>
       </div>
-    </ProtectedRoute>
+    </Can>
   );
 }

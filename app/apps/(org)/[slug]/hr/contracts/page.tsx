@@ -1,86 +1,41 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Can } from "@/components/apps/common";
+import { ActionConfirmation, DeleteConfirmation } from "@/components/common/confirmation-dialog";
+import { ContractsHeader } from "@/components/hr/contracts/ContractsHeader";
+import { ContractsSearchFilter } from "@/components/hr/contracts/ContractsSearchFilter";
+import { ContractsStatsCards } from "@/components/hr/contracts/ContractsStatsCards";
+import { ContractsTable } from "@/components/hr/contracts/ContractsTable";
+import { Alert, PDFPreviewWrapper } from "@/components/ui";
+import { KeyboardHint, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
+import { usePDF, useUser } from '@/lib/hooks';
+import { KeyboardShortcut, commonShortcuts, useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
 import { contractService } from "@/lib/services/hr";
 import type { Contract } from "@/lib/types/hr";
-import {
-  HiOutlinePlusCircle,
-  HiOutlineMagnifyingGlass,
-  HiOutlineEllipsisVertical,
-  HiOutlineEye,
-  HiOutlinePencil,
-  HiOutlineTrash,
-  HiOutlineDocumentText,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
-  HiOutlineCheckCircle,
-  HiOutlineXCircle,
-  HiOutlineArrowDownTray,
-} from "react-icons/hi2";
-import { API_CONFIG } from "@/lib/api/config";
-import { Alert, Button, Card, Input, Badge } from "@/components/ui";
-import { ProtectedRoute, Can } from "@/components/apps/common";
-import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { usePDF, PDFEndpoints } from '@/lib/hooks';
-import { PDFPreviewWrapper } from '@/components/ui';
-import { cn, formatCurrency } from "@/lib/utils";
-import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
-import { HiOutlineQuestionMarkCircle } from "react-icons/hi2";
-
-const CONTRACT_TYPE_LABELS: Record<string, string> = {
-  permanent: "CDI",
-  temporary: "CDD",
-  contract: "Contractuel",
-  internship: "Stage",
-  freelance: "Freelance",
-};
-
-const CONTRACT_TYPE_COLORS: Record<string, string> = {
-  permanent: "bg-green-100 text-green-800 border-green-200",
-  temporary: "bg-blue-100 text-blue-800 border-blue-200",
-  contract: "bg-purple-100 text-purple-800 border-purple-200",
-  internship: "bg-orange-100 text-orange-800 border-orange-200",
-  freelance: "bg-pink-100 text-pink-800 border-pink-200",
-};
-
-const SALARY_PERIOD_LABELS: Record<string, string> = {
-  hourly: "/h",
-  daily: "/jour",
-  monthly: "/mois",
-  annual: "/an",
-};
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function ContractsPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const user = useUser();
 
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [deletingName, setDeletingName] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const [filterType, setFilterType] = useState<string | null>(null);
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
+
+  // Confirmation dialogs states for activate/deactivate
+  const [actDialogOpen, setActDialogOpen] = useState(false);
+  const [actTarget, setActTarget] = useState<Contract | null>(null);
+  const [actLoading, setActLoading] = useState(false);
 
   const { preview, previewState, closePreview, } = usePDF({
     onSuccess: () => {},
@@ -106,8 +61,6 @@ export default function ContractsPage() {
         contract_type: filterType || undefined,
         is_active: filterActive !== null ? filterActive : undefined,
       });
-      console.log('Contract data:', data);
-
       setContracts(data.results || []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Erreur lors du chargement des contrats";
@@ -118,38 +71,50 @@ export default function ContractsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce contrat ?")) return;
+  const handleDelete = (id: string, name?: string) => {
+    setDeleting(id);
+    setDeletingName(name || "");
+  };
 
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    setDeleteLoading(true);
     try {
-      setDeleting(id);
-      await contractService.deleteContract(slug, id);
+      await contractService.deleteContract(slug, deleting);
       await loadContracts();
     } catch (err) {
       alert("Erreur lors de la suppression");
       console.error(err);
     } finally {
+      setDeleteLoading(false);
       setDeleting(null);
+      setDeletingName(null);
     }
   };
 
-  const handleToggleActive = async (contract: Contract) => {
+  const handleToggleActive = (contract: Contract) => {
+    setActTarget(contract);
+    setActDialogOpen(true);
+  };
+
+  const confirmToggleActive = async () => {
+    if (!actTarget) return;
+    setActLoading(true);
     try {
-      if (contract.is_active) {
-        // Désactivation - confirmation simple
-        if (!confirm("Êtes-vous sûr de vouloir désactiver ce contrat ?")) return;
-        await contractService.deactivateContract(slug, contract.id);
+      if (actTarget.is_active) {
+        await contractService.deactivateContract(slug, actTarget.id);
       } else {
-        // Activation - confirmation explicative
-        const confirmMessage = `Êtes-vous sûr de vouloir activer ce contrat ?\n\n⚠️ Important : Si ${contract.employee_name || "cet employé"} a d'autres contrats actifs, ils seront automatiquement désactivés.\n\nUn employé ne peut avoir qu'un seul contrat actif à la fois.`;
-        if (!confirm(confirmMessage)) return;
-        await contractService.activateContract(slug, contract.id);
+        await contractService.activateContract(slug, actTarget.id);
       }
       await loadContracts();
     } catch (err: any) {
       const message = err?.message || "Erreur lors de la modification du statut";
       alert(message);
       console.error(err);
+    } finally {
+      setActLoading(false);
+      setActDialogOpen(false);
+      setActTarget(null);
     }
   };
 
@@ -162,8 +127,9 @@ export default function ContractsPage() {
   };
 
   const filteredContracts = contracts.filter((contract) => {
-    const searchString = `${contract.employee_name || ''} ${contract.contract_type_display || ''}`
-      .toLowerCase();
+    // Exclure le contrat si l'employé est l'utilisateur courant
+    if (contract.employee === user?.id) return false;
+    const searchString = `${contract.employee_name || ''} ${contract.contract_type_display || ''}`.toLowerCase();
     const query = searchQuery.toLowerCase();
     return searchString.includes(query);
   });
@@ -224,11 +190,58 @@ export default function ContractsPage() {
         </div>
       </div>
     );
-  }
+  }200000.00
 
   return (
     <Can permission={COMMON_PERMISSIONS.HR.VIEW_CONTRACTS} showMessage>
       <div className="space-y-6">
+        {/* Modals: Delete & (De)Activate */}
+        <DeleteConfirmation
+          open={!!deleting}
+          onOpenChange={(open) => {
+            if (!open) {
+              setDeleting(null);
+              setDeletingName(null);
+            }
+          }}
+          itemName={deletingName || ""}
+          onConfirm={confirmDelete}
+          loading={deleteLoading}
+          title="Confirmer la suppression du contrat"
+          description={
+            deletingName
+              ? `Êtes-vous sûr de vouloir supprimer le contrat de "${deletingName}" ? Cette action est irréversible.`
+              : 'Êtes-vous sûr de vouloir supprimer ce contrat ? Cette action est irréversible.'
+          }
+        />
+
+        <ActionConfirmation
+          open={actDialogOpen}
+          onOpenChange={(open) => {
+            setActDialogOpen(open);
+            if (!open) setActTarget(null);
+          }}
+          action={{
+            label: actTarget
+              ? actTarget.is_active
+                ? 'Désactiver'
+                : 'Activer'
+              : '',
+            variant: actTarget?.is_active ? 'destructive' : 'default',
+            icon: actTarget?.is_active ? 'warning' : 'info',
+          }}
+          target={actTarget?.employee_name || ''}
+          description={
+            actTarget
+              ? actTarget.is_active
+                ? "Êtes-vous sûr de vouloir désactiver ce contrat ?"
+                : `Êtes-vous sûr de vouloir activer ce contrat ?\n\n⚠️ Important : Si ${actTarget.employee_name || "cet employé"} a d'autres contrats actifs, ils seront automatiquement désactivés.\n\nUn employé ne peut avoir qu'un seul contrat actif à la fois.`
+              : undefined
+          }
+          onConfirm={confirmToggleActive}
+          loading={actLoading}
+        />
+
         {/* Modal des raccourcis */}
         <ShortcutsHelpModal
           isOpen={showShortcuts}
@@ -240,317 +253,44 @@ export default function ContractsPage() {
         {error && <Alert variant="error">{error}</Alert>}
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <HiOutlineDocumentText className="size-7" />
-              Contrats
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Gérez tous les contrats de vos employés
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowShortcuts(true)}
-              aria-label="Afficher les raccourcis clavier"
-              title="Raccourcis clavier (?)"
-            >
-              <HiOutlineQuestionMarkCircle className="size-4" />
-            </Button>
-            <Can permission={COMMON_PERMISSIONS.HR.CREATE_CONTRACTS}>
-              <Button asChild>
-                <Link href={`/apps/${slug}/hr/contracts/create`}>
-                  <HiOutlinePlusCircle className="size-4 mr-2" />
-                  Nouveau contrat
-                  <ShortcutBadge shortcut={shortcuts.find(s => s.key === "n")!} />
-                </Link>
-              </Button>
-            </Can>
-          </div>
-        </div>
-
+        <ContractsHeader slug={slug} onShowShortcuts={() => setShowShortcuts(true)} shortcuts={shortcuts}/>
 
         {/* Stats Cards - Cliquables pour filtrer */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card 
-            className={`p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md ${
-              filterActive === null && !filterType ? 'ring-2 ring-primary' : ''
-            }`}
-            onClick={() => {
-              setFilterActive(null);
-              setFilterType(null);
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                <HiOutlineDocumentText className="size-5 text-primary" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{contracts.length}</div>
-                <div className="text-xs text-muted-foreground">Total</div>
-              </div>
-            </div>
-          </Card>
-          
-          <Card 
-            className={`p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md ${
-              filterActive === true ? 'ring-2 ring-green-500' : ''
-            }`}
-            onClick={() => setFilterActive(filterActive === true ? null : true)}
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-green-100">
-                <HiOutlineCheckCircle className="size-5 text-green-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-green-600">{activeContracts.length}</div>
-                <div className="text-xs text-muted-foreground">Actifs</div>
-              </div>
-            </div>
-          </Card>
-          
-          <Card 
-            className={`p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md ${
-              filterActive === false ? 'ring-2 ring-gray-400' : ''
-            }`}
-            onClick={() => setFilterActive(filterActive === false ? null : false)}
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-gray-100">
-                <HiOutlineXCircle className="size-5 text-gray-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-gray-600">{inactiveContracts.length}</div>
-                <div className="text-xs text-muted-foreground">Inactifs</div>
-              </div>
-            </div>
-          </Card>
-          
-          <Card 
-            className={`p-4 border-0 shadow-sm cursor-pointer transition-all hover:shadow-md ${
-              filterType === 'permanent' ? 'ring-2 ring-foreground' : ''
-            }`}
-            onClick={() => setFilterType(filterType === 'permanent' ? null : 'permanent')}
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100">
-                <span className="text-sm font-bold text-foreground">CDI</span>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-foreground">
-                  {contracts.filter((c) => c.contract_type === 'permanent').length}
-                </div>
-                <div className="text-xs text-muted-foreground">Permanents</div>
-              </div>
-            </div>
-          </Card>
-        </div>
+        <ContractsStatsCards
+          contracts={contracts}
+          activeContracts={activeContracts}
+          inactiveContracts={inactiveContracts}
+          filterActive={filterActive}
+          setFilterActive={setFilterActive}
+          filterType={filterType}
+          setFilterType={setFilterType}
+        />
 
         {/* Search and Filters */}
-        <Card className="p-6 border-0 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                placeholder="Rechercher par employé ou type..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-20"
-                aria-label="Rechercher des contrats"
-              />
-              <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs text-muted-foreground">
-                Ctrl+K
-              </kbd>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant={filterActive === true ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setFilterActive(filterActive === true ? null : true);
-                  loadContracts();
-                }}
-              >
-                Actifs
-                <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">A</kbd>
-              </Button>
-              <Button
-                variant={filterActive === false ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setFilterActive(filterActive === false ? null : false);
-                  loadContracts();
-                }}
-              >
-                Inactifs
-                <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">I</kbd>
-              </Button>
-            </div>
-          </div>
-        </Card>
-
+        <ContractsSearchFilter
+          searchInputRef={searchInputRef}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filterActive={filterActive}
+          setFilterActive={setFilterActive}
+          loadContracts={loadContracts}
+        />
+        
         {/* Contracts Table */}
-        <Card className="border-0 shadow-sm">
-          {filteredContracts.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-                  <HiOutlineDocumentText className="size-8 text-muted-foreground" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Aucun contrat</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {searchQuery ? "Aucun résultat pour cette recherche" : "Commencez par ajouter votre premier contrat"}
-                  </p>
-                </div>
-                {!searchQuery && (
-                  <Can permission={COMMON_PERMISSIONS.HR.CREATE_CONTRACTS}>
-                    <Button asChild>
-                      <Link href={`/apps/${slug}/hr/contracts/create`}>
-                        <HiOutlinePlusCircle className="size-4 mr-2" />
-                        Ajouter un contrat
-                      </Link>
-                    </Button>
-                  </Can>
-                )}
-              </div>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Employé</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Période</TableHead>
-                  <TableHead>Salaire de base</TableHead>
-                  <TableHead>Heures/sem</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredContracts.map((contract, index) => (
-                  <TableRow
-                    key={contract.id}
-                    className={cn(
-                      "cursor-pointer transition-colors",
-                      selectedIndex === index && "bg-primary/10 ring-1 ring-primary"
-                    )}
-                    onClick={() => setSelectedIndex(index)}
-                    onDoubleClick={() => router.push(`/apps/${slug}/hr/contracts/${contract.id}`)}
-                    tabIndex={0}
-                    role="row"
-                    aria-selected={selectedIndex === index}
-                  >
-                    <TableCell>
-                      <div className="font-medium">{contract.employee_name || 'Sans nom'}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={CONTRACT_TYPE_COLORS[contract.contract_type] || ""}>
-                        {CONTRACT_TYPE_LABELS[contract.contract_type] || contract.contract_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div>{new Date(contract.start_date).toLocaleDateString('fr-FR')}</div>
-                        {contract.end_date && (
-                          <div className="text-muted-foreground">
-                            → {new Date(contract.end_date).toLocaleDateString('fr-FR')}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        {formatCurrency(contract.base_salary)} 
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {SALARY_PERIOD_LABELS[contract.salary_period || 'monthly']}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{contract.hours_per_week || '-'}h</span>
-                    </TableCell>
-                    <TableCell>
-                      {contract.is_active ? (
-                        <Badge className="bg-green-100 text-green-800 border-green-200">
-                          <HiOutlineCheckCircle className="size-3 mr-1" />
-                          Actif
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-gray-100 text-gray-800">
-                          <HiOutlineXCircle className="size-3 mr-1" />
-                          Inactif
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" disabled={deleting === contract.id}>
-                            <HiOutlineEllipsisVertical className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
+        <ContractsTable
+          contracts={contracts}
+          filteredContracts={filteredContracts}
+          selectedIndex={selectedIndex}
+          setSelectedIndex={setSelectedIndex}
+          router={router}
+          slug={slug}
+          deleting={deleting}
+          handlePreviewPDF={handlePreviewPDF}
+          handleToggleActive={handleToggleActive}
+          handleDelete={(id: string, name: string) => handleDelete(id, name)}
+          searchQuery={searchQuery}
+        />
 
-                          <DropdownMenuItem asChild>
-                            <Link href={`/apps/${slug}/hr/contracts/${contract.id}`}>
-                              <HiOutlineEye className="size-4 mr-2" />
-                              Voir le détail
-                            </Link>
-                          </DropdownMenuItem>
-                          <Can permission={COMMON_PERMISSIONS.HR.VIEW_CONTRACTS}>
-                            <DropdownMenuItem onClick={() => handlePreviewPDF(contract.id, contract.employee_name || 'contrat')}>
-                              <HiOutlineArrowDownTray className="size-4 mr-2" /> {/* Changed icon to more appropriate or keep Eye? ArrowDownTray is better for export/preview */}
-                              Aperçu PDF
-                            </DropdownMenuItem>
-                          </Can>
-                          <Can permission={COMMON_PERMISSIONS.HR.UPDATE_CONTRACTS}>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/apps/${slug}/hr/contracts/${contract.id}/edit`}>
-                                <HiOutlinePencil className="size-4 mr-2" />
-                                Modifier
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggleActive(contract)}>
-                              {contract.is_active ? (
-                                <>
-                                  <HiOutlineXCircle className="size-4 mr-2" />
-                                  Désactiver
-                                </>
-                              ) : (
-                                <>
-                                  <HiOutlineCheckCircle className="size-4 mr-2" />
-                                  Activer
-                                </>
-                              )}
-                            </DropdownMenuItem>
-                          </Can>
-                          <Can permission={COMMON_PERMISSIONS.HR.DELETE_CONTRACTS}>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleDelete(contract.id)}
-                            >
-                              <HiOutlineTrash className="size-4 mr-2" />
-                              Supprimer
-                            </DropdownMenuItem>
-                          </Can>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </Card>
       </div>
 
       {/* Hint */}
