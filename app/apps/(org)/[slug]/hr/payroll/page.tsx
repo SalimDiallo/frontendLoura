@@ -1,21 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Card } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Can } from "@/components/apps/common";
+import { EmptyStatePaylips } from "@/components/hr/payrolls/EmptyStatePaylips";
+import { PayslipsTable } from "@/components/hr/payrolls/PayslipsTable";
+import { StatsBar } from "@/components/hr/payrolls/StatsBar";
+import { Label, PDFPreviewWrapper } from "@/components/ui";
 import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Label } from "@/components/ui";
 import {
   Select,
   SelectContent,
@@ -23,254 +17,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  HiOutlineBanknotes,
-  HiOutlineCheckCircle,
-  HiOutlineXCircle,
-  HiOutlineDocumentText,
-  HiOutlineMagnifyingGlass,
-  HiOutlineSparkles,
-  HiOutlineArrowPath,
-  HiOutlineCurrencyDollar,
-  HiOutlinePlusCircle,
-  HiOutlineUserPlus,
-} from "react-icons/hi2";
-import { formatCurrency, cn } from "@/lib/utils";
-import { getPayrolls, markPayrollAsPaid, deletePayroll } from "@/lib/services/hr";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useHasPermission, useIsAdmin, usePDF, useUser } from "@/lib/hooks";
+import { deletePayroll, getPayrolls, markPayrollAsPaid } from "@/lib/services/hr";
 import { getPayrollPeriods } from "@/lib/services/hr/payroll-period.service";
 import type { Payroll, PayrollPeriod } from "@/lib/types/hr";
-import { usePDF } from "@/lib/hooks";
-import { PDFPreviewWrapper } from "@/components/ui";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { API_CONFIG } from "@/lib/api/config";
 import Link from "next/link";
-import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
-import { useHasPermission, useIsAdmin, useUser } from "@/lib/hooks";
-import { Can } from "@/components/apps/common";
-import { Download, Eye } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  HiOutlineArrowPath,
+  HiOutlineBanknotes,
+  HiOutlineCheckCircle,
+  HiOutlineCurrencyDollar,
+  HiOutlineMagnifyingGlass,
+  HiOutlinePlusCircle,
+  HiOutlineSparkles,
+  HiOutlineXCircle
+} from "react-icons/hi2";
 
-// ─── Shared payslip table rendered identically for both tabs ─────────────────
-function PayslipsTable({
-  payslips,
-  slug,
-  canViewPaies,
-  processingId,
-  onMarkPaid,
-  onDeletePayslip,
-  onPreviewPDF,
-}: {
-  payslips: Payroll[];
-  slug: string;
-  canViewPaies: boolean;
-  processingId: string | null;
-  onMarkPaid: (id: string) => void;
-  onDeletePayslip: (id: string) => void;
-  onPreviewPDF: (id: string, name: string) => void;
-}) {
-  const router = useRouter();
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Période</TableHead>
-          <TableHead>Employé</TableHead>
-          <TableHead className="text-right">Brut</TableHead>
-          <TableHead className="text-right">Déductions</TableHead>
-          <TableHead className="text-right">Net</TableHead>
-          <TableHead>Statut</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {payslips.map((payslip) => (
-          <TableRow key={payslip.id} className="group hover:bg-muted/50 transition-colors">
-            <TableCell>
-              <p className="font-medium">
-                {payslip.payroll_period_name ?? (
-                  <span className="italic text-muted-foreground text-sm">Sans période</span>
-                )}
-              </p>
-            </TableCell>
-            <TableCell>
-              <p className="font-medium">{payslip.employee_name}</p>
-              <p className="text-xs text-muted-foreground">{payslip.employee_id}</p>
-            </TableCell>
-            <TableCell className="text-right text-muted-foreground">
-              {formatCurrency(payslip.gross_salary)}
-            </TableCell>
-            <TableCell className="text-right text-red-500">
-              -{formatCurrency(payslip.total_deductions)}
-            </TableCell>
-            <TableCell className="text-right font-bold text-green-600">
-              {formatCurrency(payslip.net_salary)}
-            </TableCell>
-            <TableCell>{getStatusBadgeNode(payslip.status)}</TableCell>
-            <TableCell className="text-right">
-              <div className="flex justify-end gap-1 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.push(`/apps/${slug}/hr/payroll/${payslip.id}`)}
-                >
-                  <Eye className="text-primary" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onPreviewPDF(String(payslip.id), payslip.employee_name || "")}
-                >
-                  <Download className="text-secondary" />
-                </Button>
-                <Can permission={COMMON_PERMISSIONS.HR.PROCESS_PAYROLL}>
-                {payslip.status !== "paid" && canViewPaies &&  (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onMarkPaid(String(payslip.id))}
-                    disabled={processingId === String(payslip.id)}
-                  >
-                    {processingId === String(payslip.id) ? (
-                      <HiOutlineArrowPath className="size-4 animate-spin" />
-                    ) : (
-                      "Payer"
-                    )}
-                  </Button>
-                )}
-                {payslip.status === "draft" && canViewPaies && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => onDeletePayslip(String(payslip.id))}
-                  >
-                    ×
-                  </Button>
-                )}
-                </Can>
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-
-// ─── Stats bar shown above each table ────────────────────────────────────────
-function StatsBar({
-  payslips,
-  canViewPaies,
-  processingId,
-  onMarkAllPaid,
-}: {
-  payslips: Payroll[];
-  canViewPaies: boolean;
-  processingId: string | null;
-  onMarkAllPaid: (rows: Payroll[]) => void;
-}) {
-  const totalNet = payslips.reduce((sum, p) => sum + (Number(p.net_salary) || 0), 0);
-  const paidCount = payslips.filter((p) => p.status === "paid").length;
-  const pendingCount = payslips.filter((p) => p.status !== "paid").length;
-
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-muted/40 rounded-t-lg border-b">
-      <div className="flex items-center gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">Total net :</span>
-          <span className="font-bold text-lg text-green-600">{formatCurrency(totalNet)}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="success">{paidCount} payée{paidCount !== 1 ? "s" : ""}</Badge>
-          {pendingCount > 0 && (
-            <Badge variant="warning">{pendingCount} en attente</Badge>
-          )}
-        </div>
-      </div>
-
-      {pendingCount > 0 && canViewPaies && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onMarkAllPaid(payslips)}
-          disabled={processingId === "all"}
-        >
-          {processingId === "all" ? (
-            <HiOutlineArrowPath className="size-4 animate-spin mr-2" />
-          ) : (
-            <HiOutlineCheckCircle className="size-4 mr-2" />
-          )}
-          Tout marquer payé
-        </Button>
-      )}
-    </div>
-  );
-}
-
-// ─── Empty state shown when a tab has no matching payslips ───────────────────
-function EmptyState({
-  slug,
-  globallyEmpty,
-  currentPeriod,
-  selectedPeriodId,
-}: {
-  slug: string;
-  globallyEmpty: boolean;
-  currentPeriod?: PayrollPeriod;
-  selectedPeriodId: string;
-}) {
-  return (
-    <div className="p-12 text-center">
-      <HiOutlineDocumentText className="size-16 mx-auto mb-4 text-muted-foreground/30" />
-      {globallyEmpty ? (
-        <>
-          <p className="text-lg font-medium mb-2">Commencez à gérer vos paies</p>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Créez une fiche de paie individuelle ou générez des fiches en masse pour tous vos employés.
-          </p>
-         <Can permission={COMMON_PERMISSIONS.HR.CREATE_PAYROLL}>
-         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              className={buttonVariants({ variant: "outline" })}
-              href={`/apps/${slug}/hr/payroll/create`}
-            >
-              <HiOutlineUserPlus className="size-4 mr-2" />
-              Paie individuelle
-            </Link>
-            <Link
-              className={buttonVariants()}
-              href={`/apps/${slug}/hr/payroll/generate`}
-            >
-              <HiOutlineSparkles className="size-4 mr-2" />
-              Générer en masse
-            </Link>
-          </div>
-         </Can>
-        </>
-      ) : (
-        <>
-          <p className="text-lg font-medium mb-2">Aucune fiche trouvée</p>
-          <p className="text-muted-foreground mb-4">
-            {selectedPeriodId === "none"
-              ? "Aucune fiche de paie ad-hoc (sans période)"
-              : currentPeriod
-                ? `Aucune fiche pour "${currentPeriod.name}"`
-                : "Essayez de modifier vos filtres ou créez une nouvelle fiche"}
-          </p>
-         <Can permission={COMMON_PERMISSIONS.HR.CREATE_PAYROLL}>
-            <Link
-                className={buttonVariants({ variant: "outline" })}
-                href={`/apps/${slug}/hr/payroll/create`}>
-                <HiOutlineUserPlus className="size-4 mr-2" />
-                Créer une fiche
-             </Link>
-         </Can>
-        </>
-      )}
-    </div>
-  );
-}
+// Import the ActionConfirmation dialog
+import { ActionConfirmation, DeleteConfirmation } from "@/components/common/confirmation-dialog";
 
 export default function PayrollPage() {
   const params = useParams();
@@ -299,6 +67,10 @@ export default function PayrollPage() {
     onSuccess: () => setSuccess('PDF chargé avec succès'),
     onError: (err) => setError(err),
   });
+
+  // Confirmation UI State
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string | null, open: boolean }>({ id: null, open: false });
+  const [confirmMarkAllPaid, setConfirmMarkAllPaid] = useState<{ rows: Payroll[]; open: boolean }>({ rows: [], open: false });
 
   // ======================== DATA LOADING ===========================
   const loadData = useCallback(async () => {
@@ -402,17 +174,22 @@ export default function PayrollPage() {
     }
   };
 
-  const handleMarkAllPaid = async (rows: Payroll[]) => {
-    const unpaid = (rows || []).filter((p) => p.status !== "paid");
-    if (unpaid.length === 0) {
+  // Change: NOT confirmation here (single mark paid does not use the dialog)
+
+  // Mark ALL as paid – Use ActionConfirmation dialog
+  const onMarkAllPaidClick = (rows: Payroll[]) => {
+    if ((rows || []).filter((p) => p.status !== "paid").length === 0) {
       setError("Toutes les fiches sont déjà payées");
       return;
     }
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(`Marquer ${unpaid.length} fiche(s) comme payée(s) ?`)
-    )
-      return;
+    setConfirmMarkAllPaid({ rows, open: true });
+  };
+
+  const doMarkAllPaid = async () => {
+    const rows = confirmMarkAllPaid.rows || [];
+    const unpaid = rows.filter((p) => p.status !== "paid");
+    setConfirmMarkAllPaid({ rows: [], open: false });
+    if (unpaid.length === 0) return;
 
     try {
       setProcessingId("all");
@@ -426,9 +203,15 @@ export default function PayrollPage() {
     }
   };
 
-  const handleDeletePayslip = async (id: string) => {
-    if (typeof window !== "undefined" && !window.confirm("Supprimer cette fiche de paie ?"))
-      return;
+  // Delete payslip — via ActionConfirmation dialog
+  const onDeletePayslipClick = (id: string) => {
+    setConfirmDelete({ id, open: true });
+  };
+
+  const doDeletePayslip = async () => {
+    const id = confirmDelete.id;
+    setConfirmDelete({ id: null, open: false });
+    if (!id) return;
     try {
       await deletePayroll(id);
       setSuccess("Fiche supprimée");
@@ -459,11 +242,29 @@ export default function PayrollPage() {
     );
   }
 
-  console.log(othersPayslips)
-
   // ======================== RENDER ===============================
   return (
     <div className="space-y-6">
+      {/* ActionConfirmation dialogs */}
+      <DeleteConfirmation
+        open={confirmDelete.open}
+        description="Êtes-vous sûr de vouloir supprimer cette fiche de paie ? Cette action est irréversible."
+        onOpenChange={() => setConfirmDelete({ id: null, open: false })}
+        onConfirm={doDeletePayslip}
+        loading={false}
+      />
+
+      <ActionConfirmation
+       action={{
+        label: "Confirmer"
+       }}
+        open={confirmMarkAllPaid.open}
+        description={`Marquer ${confirmMarkAllPaid.rows.filter((p) => p.status !== "paid").length} fiche(s) comme payée(s) ?`}
+        onOpenChange={() => setConfirmMarkAllPaid({ rows: [], open: false })}
+        onConfirm={doMarkAllPaid}
+        loading={processingId === "all"}
+      />
+
       {/* PDF Modal */}
       <PDFPreviewWrapper previewState={previewState} onClose={closePreview} />
 
@@ -505,16 +306,20 @@ export default function PayrollPage() {
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             <HiOutlineCurrencyDollar className="size-4 mr-2" />
-            Avances
+            Gestion des avances
           </Link>
+          
+          <Can permission={COMMON_PERMISSIONS.HR.CREATE_PAYROLL}>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push(`/apps/${slug}/hr/payroll/create`)}
+            onClick={() => router.push(`/apps/${slug}/hr/payroll/generate`)}
           >
-            <HiOutlinePlusCircle className="size-4 mr-2" />
-            Paie individuelle
+            <HiOutlineSparkles className="size-4 mr-2" />
+            Générer en masse
           </Button>
+          </Can>
+
           <Button
             variant="ghost"
             size="sm"
@@ -524,14 +329,16 @@ export default function PayrollPage() {
           >
             <HiOutlineArrowPath className="size-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push(`/apps/${slug}/hr/payroll/generate`)}
-          >
-            <HiOutlineSparkles className="size-4 mr-2" />
-            Générer en masse
-          </Button>
+
+          <Can permission={COMMON_PERMISSIONS.HR.CREATE_PAYROLL}>
+            <Button
+              onClick={() => router.push(`/apps/${slug}/hr/payroll/create`)}
+            >
+              <HiOutlinePlusCircle className="size-4 mr-2" />
+              Creer une fiche de paie
+            </Button>
+          </Can>
+
         </div>
       </div>
 
@@ -602,7 +409,7 @@ export default function PayrollPage() {
         <TabsContent value="mine">
           <Card className="overflow-hidden">
             {myPayslips.length === 0 ? (
-              <EmptyState
+              <EmptyStatePaylips
                 slug={slug}
                 globallyEmpty={payslips.length === 0}
                 currentPeriod={currentPeriod}
@@ -614,15 +421,18 @@ export default function PayrollPage() {
                   payslips={myPayslips}
                   canViewPaies={canViewPaies}
                   processingId={processingId}
-                  onMarkAllPaid={handleMarkAllPaid}
+                  // Replaced mark-all handler to show confirmation dialog
+                  onMarkAllPaid={onMarkAllPaidClick}
+                  isMine
                 />
                 <PayslipsTable
                   payslips={myPayslips}
                   slug={slug}
+                  isMine={true}
                   canViewPaies={canViewPaies}
                   processingId={processingId}
                   onMarkPaid={handleMarkPaid}
-                  onDeletePayslip={handleDeletePayslip}
+                  onDeletePayslip={onDeletePayslipClick}
                   onPreviewPDF={handlePreviewPDF}
                 />
               </>
@@ -634,7 +444,7 @@ export default function PayrollPage() {
         <TabsContent value="others">
           <Card className="overflow-hidden">
             {othersPayslips.length === 0 ? (
-              <EmptyState
+              <EmptyStatePaylips
                 slug={slug}
                 globallyEmpty={payslips.length === 0}
                 currentPeriod={currentPeriod}
@@ -646,7 +456,7 @@ export default function PayrollPage() {
                   payslips={othersPayslips}
                   canViewPaies={canViewPaies}
                   processingId={processingId}
-                  onMarkAllPaid={handleMarkAllPaid}
+                  onMarkAllPaid={onMarkAllPaidClick}
                 />
                 <PayslipsTable
                   payslips={othersPayslips}
@@ -654,7 +464,7 @@ export default function PayrollPage() {
                   canViewPaies={canViewPaies}
                   processingId={processingId}
                   onMarkPaid={handleMarkPaid}
-                  onDeletePayslip={handleDeletePayslip}
+                  onDeletePayslip={onDeletePayslipClick}
                   onPreviewPDF={handlePreviewPDF}
                 />
               </>

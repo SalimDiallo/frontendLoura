@@ -1,20 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Can } from "@/components/apps/common";
 import { Alert } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -23,36 +12,49 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  HiOutlineBanknotes,
-  HiOutlineArrowLeft,
-  HiOutlinePlusCircle,
-  HiOutlineTrash,
-  HiOutlineCalendar,
-  HiChevronDown,
-  HiMagnifyingGlass,
-} from "react-icons/hi2";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { formatCurrency } from "@/lib";
 import {
-  createPayroll,
-  getPayrollPeriods,
   contractService,
-  getPayrollAdvances,
+  createPayroll,
   createPayrollPeriod,
+  getEmployees,
+  getPayrollAdvances,
+  getPayrollPeriods,
 } from "@/lib/services/hr";
-import { getEmployees } from "@/lib/services/hr";
 import type {
+  Contract,
+  EmployeeListItem,
+  PayrollAdvance,
   PayrollCreate,
   PayrollItem,
-  EmployeeListItem,
   PayrollPeriod,
-  Contract,
-  PayrollAdvance,
 } from "@/lib/types/hr";
 import {
   DEFAULT_ALLOWANCE_TEMPLATES,
   DEFAULT_DEDUCTION_TEMPLATES,
 } from "@/lib/types/hr";
-import { formatCurrency } from "@/lib";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import Link from "next/link";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import {
+  HiChevronDown,
+  HiMagnifyingGlass,
+  HiOutlineArrowLeft,
+  HiOutlineBanknotes,
+  HiOutlineCalendar,
+  HiOutlinePlusCircle,
+  HiOutlineTrash,
+} from "react-icons/hi2";
 
 export default function CreatePayrollPage() {
   const params = useParams();
@@ -727,7 +729,9 @@ export default function CreatePayrollPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-7xl animate-in fade-in-50 duration-500 pb-20">
+    <Can permission={COMMON_PERMISSIONS.HR.CREATE_PAYROLL} showMessage>
+
+<div className="container mx-auto max-w-7xl animate-in fade-in-50 duration-500 pb-20">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
@@ -1259,5 +1263,7 @@ export default function CreatePayrollPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </Can>
+  
   );
 }

@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { Card } from "@/components/ui/card";
+import { Can } from "@/components/apps/common";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -15,14 +13,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatCurrency } from "@/lib";
+import { getPayroll, patchPayroll } from "@/lib/services/hr";
+import type { Payroll, PayrollItem, PayrollUpdate } from "@/lib/types/hr";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
-  HiOutlineBanknotes,
   HiOutlineArrowLeft,
+  HiOutlineBanknotes,
   HiOutlinePlusCircle,
   HiOutlineTrash,
 } from "react-icons/hi2";
-import { getPayroll, patchPayroll } from "@/lib/services/hr";
-import type { Payroll, PayrollUpdate, PayrollItem } from "@/lib/types/hr";
 
 export default function EditPayrollPage() {
   const params = useParams();
@@ -197,7 +200,8 @@ export default function EditPayrollPage() {
   }
 
   return (
-    <div className="space-y-6">
+  <Can permission={COMMON_PERMISSIONS.HR.UPDATE_PAYROLL} showMessage>
+      <div className="space-y-6">
       {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" asChild>
@@ -400,28 +404,28 @@ export default function EditPayrollPage() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Salaire de base</span>
-                <span className="font-medium">{(formData.base_salary || 0).toFixed(2)} GNF</span>
+                <span className="font-medium">{formatCurrency(formData.base_salary ?? 0)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Total primes</span>
                 <span className="font-medium text-green-600">
-                  +{(formData.allowances || []).reduce((sum, a) => sum + (Number(a.amount) || 0), 0).toFixed(2)} GNF
+                  +{formatCurrency((formData.allowances || []).reduce((sum, a) => sum + (Number(a.amount) || 0), 0))} 
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Salaire brut</span>
-                <span className="font-semibold">{calculateGrossSalary().toFixed(2)} GNF</span>
+                <span className="font-semibold">{formatCurrency(calculateGrossSalary())}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Total déductions</span>
                 <span className="font-medium text-red-600">
-                  -{(formData.deductions || []).reduce((sum, d) => sum + (Number(d.amount) || 0), 0).toFixed(2)} GNF
+                  -{formatCurrency((formData.deductions || []).reduce((sum, d) => sum + (Number(d.amount) || 0), 0))}
                 </span>
               </div>
               <div className="border-t pt-3 flex justify-between items-center">
                 <span className="text-lg font-semibold">Salaire net</span>
                 <span className="text-xl font-bold text-primary">
-                  {calculateNetSalary().toFixed(2)} GNF
+                  {formatCurrency(calculateNetSalary())}
                 </span>
               </div>
             </div>
@@ -459,5 +463,6 @@ export default function EditPayrollPage() {
           </div>
         </form>
     </div>
+  </Can>
   );
 }

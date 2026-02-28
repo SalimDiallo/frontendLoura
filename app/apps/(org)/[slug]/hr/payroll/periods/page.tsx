@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 /**
  * Cette page redirige vers la page de paie principale avec l'onglet périodes sélectionné

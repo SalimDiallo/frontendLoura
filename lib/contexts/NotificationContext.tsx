@@ -1,9 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { usePushNotifications } from '@/lib/hooks/usePushNotifications';
 import { getUnreadCount } from '@/lib/services/notifications';
 import type { Notification } from '@/lib/types/notifications';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 interface NotificationContextValue {
   unreadCount: number;
@@ -18,7 +18,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [unreadCount, setUnreadCount] = useState(0);
   const [hasAskedPermission, setHasAskedPermission] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
 

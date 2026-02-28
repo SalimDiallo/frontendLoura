@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
@@ -256,6 +256,7 @@ export default function GeneratePayslipsPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   // Data
   const [periods, setPeriods] = useState<PayrollPeriod[]>([]);
@@ -270,6 +271,9 @@ export default function GeneratePayslipsPage() {
   const [filterPosition, setFilterPosition] = useState<string>("all");
   const [autoApprove, setAutoApprove] = useState(false);
 
+  // Confirmation dialog
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
   // Period creation dialog
   const [showPeriodDialog, setShowPeriodDialog] = useState(false);
   const [creatingPeriod, setCreatingPeriod] = useState(false);
@@ -282,10 +286,10 @@ export default function GeneratePayslipsPage() {
 
   // --------------------------------------------
   // Utility: Get effective base salary (custom or from contract)
-  // To fix ReferenceError, declare this before code that needs it (e.g., in useMemo below).
   // --------------------------------------------
   const getEffectiveBaseSalary = (emp: EmployeeWithContract): number => {
-    return emp.customBaseSalary !== null ? emp.customBaseSalary : (emp.contract?.base_salary ? emp.contract.base_salary : 0);
+    if (emp.customBaseSalary !== null) return emp.customBaseSalary;
+    return emp.contract?.base_salary ? Number(emp.contract.base_salary) : 0;
   };
 
   // ============================================
@@ -487,10 +491,10 @@ export default function GeneratePayslipsPage() {
     return filteredEmployees.filter(emp => emp.contract !== null && !emp.error);
   }, [filteredEmployees]);
 
-  // Selected employees count
-  const selectedCount = employees.filter(emp => emp.selected && emp.contract).length;
-  const selectedTotal = employees.filter(emp => emp.selected && emp.contract)
-    .reduce((sum, emp) => sum + getEffectiveBaseSalary(emp), 0);
+  // Selected employees count and REAL totals (with allowances/deductions/advances)
+  const selectedEmployeesList = useMemo(() => 
+    employees.filter(emp => emp.selected && emp.contract), [employees]);
+  const selectedCount = selectedEmployeesList.length;
 
   // ============================================
   // Actions
@@ -560,11 +564,11 @@ export default function GeneratePayslipsPage() {
     }));
   };
 
-  // Add a deduction to an employee (with net check)
+  // Add a deduction to an employee (with net check + user feedback)
   const addDeduction = (employeeId: string, name: string, amount: number) => {
+    let rejected = false;
     setEmployees(prev => prev.map(emp => {
       if (emp.id === employeeId) {
-        // Vérifier que l'ajout ne rend pas le net négatif
         const baseSalary = getEffectiveBaseSalary(emp);
         const totalAllowances = emp.allowances.reduce((sum, a) => sum + a.amount, 0);
         const currentDeductions = emp.deductions.reduce((sum, d) => sum + d.amount, 0);
@@ -576,7 +580,7 @@ export default function GeneratePayslipsPage() {
         const currentNet = gross - currentDeductions - currentAdvances;
         
         if (currentNet - amount < 0) {
-          // Ne pas ajouter cette déduction
+          rejected = true;
           return emp;
         }
         
@@ -592,6 +596,10 @@ export default function GeneratePayslipsPage() {
       }
       return emp;
     }));
+    if (rejected) {
+      setWarning(`Impossible d'ajouter la déduction "${name}" (${formatCurrency(amount)}): le salaire net deviendrait négatif.`);
+      setTimeout(() => setWarning(null), 5000);
+    }
   };
 
   // Remove an item (allowance or deduction) from an employee
@@ -626,8 +634,36 @@ export default function GeneratePayslipsPage() {
     return { gross, totalDeductions: totalDed, net, totalAdvances, baseSalary };
   };
 
+  // Selected totals (must be after calculateEmployeeTotals)
+  const selectedTotals = useMemo(() => {
+    let totalGross = 0;
+    let totalDeductions = 0;
+    let totalNet = 0;
+    let totalBase = 0;
+    let totalAdvances = 0;
+    for (const emp of selectedEmployeesList) {
+      const t = calculateEmployeeTotals(emp);
+      totalBase += t.baseSalary;
+      totalGross += t.gross;
+      totalDeductions += t.totalDeductions;
+      totalNet += t.net;
+      totalAdvances += t.totalAdvances;
+    }
+    return { totalGross, totalDeductions, totalNet, totalBase, totalAdvances };
+  }, [selectedEmployeesList]);
+
+  // Show confirmation dialog before generating
+  const requestGenerate = () => {
+    const selected = employees.filter(emp => emp.selected && emp.contract);
+    if (selected.length === 0) {
+      setError("Veuillez sélectionner au moins un employé");
+      return;
+    }
+    setShowConfirmDialog(true);
+  };
+
   const handleGenerate = async () => {
-    // La période est maintenant optionnelle
+    setShowConfirmDialog(false);
 
     const selectedEmployees = employees.filter(emp => emp.selected && emp.contract);
     const selectedEmployeeIds = selectedEmployees.map(emp => emp.id);
@@ -687,6 +723,7 @@ export default function GeneratePayslipsPage() {
 
       const result = await generateBulkPayslips(selectedPeriod || null, {
         organizationSlug: slug,
+        auto_deduct_advances: false,  // Ne pas auto-déduire, utiliser seulement les avances manuellement sélectionnées
         auto_approve: autoApprove,
         employee_ids: selectedEmployeeIds,
         employee_custom_data: employeeCustomData,
@@ -714,7 +751,7 @@ export default function GeneratePayslipsPage() {
       // Redirect after success
       setTimeout(() => {
         router.push(`/apps/${slug}/hr/payroll`);
-      }, 2000);
+      }, 3000);
 
     } catch (err: any) {
       setError(err?.data?.detail || err?.data?.error || err?.message || "Erreur lors de la génération");
@@ -816,8 +853,9 @@ export default function GeneratePayslipsPage() {
       </div>
 
       {/* Alerts */}
-      {error && <Alert variant="error">{error}</Alert>}
-      {success && <Alert variant="success">{success}</Alert>}
+      {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
+      {success && <Alert variant="success" onClose={() => setSuccess(null)}>{success}</Alert>}
+      {warning && <Alert variant="warning" onClose={() => setWarning(null)}>{warning}</Alert>}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* Main Content */}
@@ -1324,11 +1362,6 @@ export default function GeneratePayslipsPage() {
                 <span className="font-semibold">{selectedCount}</span>
               </div>
 
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Total salaires bruts</span>
-                <span className="font-semibold">{formatCurrency(selectedTotal)}</span>
-              </div>
-
               {selectedPeriod && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Période</span>
@@ -1337,6 +1370,39 @@ export default function GeneratePayslipsPage() {
                   </span>
                 </div>
               )}
+
+              <hr className="my-2" />
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Salaires de base</span>
+                <span className="text-sm">{formatCurrency(selectedTotals.totalBase)}</span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Total brut</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(selectedTotals.totalGross)}</span>
+              </div>
+
+              {selectedTotals.totalDeductions > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Déductions</span>
+                  <span className="text-sm text-red-600 dark:text-red-400">-{formatCurrency(selectedTotals.totalDeductions)}</span>
+                </div>
+              )}
+
+              {selectedTotals.totalAdvances > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Avances</span>
+                  <span className="text-sm text-orange-600 dark:text-orange-400">-{formatCurrency(selectedTotals.totalAdvances)}</span>
+                </div>
+              )}
+
+              <hr className="my-2" />
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-semibold">Total net à payer</span>
+                <span className="font-bold text-lg">{formatCurrency(selectedTotals.totalNet)}</span>
+              </div>
             </div>
 
             <hr className="my-4" />
@@ -1344,7 +1410,7 @@ export default function GeneratePayslipsPage() {
             <Button 
               className="w-full" 
               size="lg"
-              onClick={handleGenerate}
+              onClick={requestGenerate}
               disabled={generating || selectedCount === 0}
             >
               {generating ? (
@@ -1387,6 +1453,85 @@ export default function GeneratePayslipsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HiOutlineSparkles className="size-5 text-primary" />
+              Confirmer la génération
+            </DialogTitle>
+            <DialogDescription>
+              Vérifiez le récapitulatif avant de lancer la génération des fiches de paie.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg border p-4 space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Employés</span>
+                <span className="font-semibold">{selectedCount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Période</span>
+                <span className="font-medium text-sm">
+                  {selectedPeriod 
+                    ? periods.find(p => p.id === selectedPeriod)?.name || "-"
+                    : <span className="text-amber-600">Mode ad-hoc (sans période)</span>
+                  }
+                </span>
+              </div>
+              <hr />
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Total brut</span>
+                <span className="font-semibold text-emerald-600">{formatCurrency(selectedTotals.totalGross)}</span>
+              </div>
+              {selectedTotals.totalDeductions > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Total déductions</span>
+                  <span className="text-red-600">-{formatCurrency(selectedTotals.totalDeductions)}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="font-semibold">Net à payer</span>
+                <span className="font-bold text-lg">{formatCurrency(selectedTotals.totalNet)}</span>
+              </div>
+            </div>
+
+            {autoApprove && (
+              <Alert variant="warning">
+                Les fiches seront automatiquement approuvées à la création.
+              </Alert>
+            )}
+
+            {!selectedPeriod && (
+              <Alert variant="info">
+                Génération en mode ad-hoc (sans période associée).
+              </Alert>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleGenerate} disabled={generating}>
+              {generating ? (
+                <>
+                  <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Génération...
+                </>
+              ) : (
+                <>
+                  <HiOutlineSparkles className="size-4 mr-2" />
+                  Confirmer et générer
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Period Creation Dialog */}
       <Dialog open={showPeriodDialog} onOpenChange={setShowPeriodDialog}>

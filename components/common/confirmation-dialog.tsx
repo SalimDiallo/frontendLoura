@@ -14,12 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
 import {
-  HiOutlineExclamationTriangle,
   HiOutlineCheckCircle,
+  HiOutlineExclamationTriangle,
   HiOutlineInformationCircle,
 } from 'react-icons/hi2';
-import { cn } from '@/lib/utils';
 
 // ============================================================================
 // CONFIRMATION DIALOG
@@ -29,7 +29,7 @@ export interface ConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  description: string;
+  description: string | React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   confirmVariant?: 'default' | 'destructive';

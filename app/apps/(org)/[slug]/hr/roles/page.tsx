@@ -1,16 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Can } from "@/components/apps/common";
+import { Alert, Badge, Button, Card, Input, Switch } from "@/components/ui";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,26 +10,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Alert, Button, Card, Input, Badge, Switch } from "@/components/ui";
-import { getRoles, deleteRole } from "@/lib/services/hr/role.service";
-import type { Role } from "@/lib/types/hr";
+import { KeyboardHint, ShortcutBadge, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
 import {
-  HiOutlinePlusCircle,
-  HiOutlineMagnifyingGlass,
-  HiOutlineEllipsisVertical,
-  HiOutlineEye,
-  HiOutlinePencil,
-  HiOutlineTrash,
-  HiOutlineShieldCheck,
-  HiOutlineEyeSlash,
-} from "react-icons/hi2";
-import { Can, ProtectedRoute } from "@/components/apps/common";
-import { HR_ROUTE_PERMISSIONS } from "@/lib/config/route-permissions";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { KeyboardShortcut, commonShortcuts, useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
+import { deleteRole, getRoles } from "@/lib/services/hr/role.service";
+import type { Role } from "@/lib/types/hr";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn } from "@/lib/utils";
-import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
-import { HiOutlineQuestionMarkCircle } from "react-icons/hi2";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  HiOutlineEllipsisVertical,
+  HiOutlineEye,
+  HiOutlineEyeSlash,
+  HiOutlineMagnifyingGlass,
+  HiOutlinePencil,
+  HiOutlinePlusCircle,
+  HiOutlineQuestionMarkCircle,
+  HiOutlineShieldCheck,
+  HiOutlineTrash,
+} from "react-icons/hi2";
 
 export default function RolesPage() {
   const params = useParams();

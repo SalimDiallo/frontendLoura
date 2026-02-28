@@ -190,7 +190,7 @@ export default function ContractsPage() {
         </div>
       </div>
     );
-  }200000.00
+  }
 
   return (
     <Can permission={COMMON_PERMISSIONS.HR.VIEW_CONTRACTS} showMessage>
