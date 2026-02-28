@@ -335,7 +335,7 @@ export default function GeneratePayslipsPage() {
       
       setEmployees(employeesWithContracts);
 
-      // Load contracts for each employee
+      // Load ALL active contracts in 1 single request (instead of N individual calls)
       await loadContractsForEmployees(employeesWithContracts);
 
       // Auto-select current period
@@ -352,28 +352,44 @@ export default function GeneratePayslipsPage() {
   };
 
   const loadContractsForEmployees = async (employeesList: EmployeeWithContract[]) => {
-    const updatedEmployees = await Promise.all(
-      employeesList.map(async (emp) => {
-        try {
-          const contract = await contractService.getActiveContract(slug, emp.id);
-          return {
-            ...emp,
-            contract,
-            loadingContract: false,
-            error: contract ? null : "Pas de contrat actif",
-          };
-        } catch (err) {
-          return {
-            ...emp,
-            contract: null,
-            loadingContract: false,
-            error: "Pas de contrat actif",
-          };
+    try {
+      // 1 seule requête pour tous les contrats actifs de l'organisation
+      const allContracts = await contractService.getContracts(slug, {
+        is_active: true,
+        page_size: 500,  // Suffisant pour couvrir tous les employés
+      });
+      
+      // Indexer les contrats par employee ID pour un lookup O(1)
+      const contractsByEmployee = new Map<string, Contract>();
+      for (const contract of allContracts.results) {
+        // contract.employee est l'ID string de l'employé
+        if (contract.employee && !contractsByEmployee.has(contract.employee)) {
+          contractsByEmployee.set(contract.employee, contract);
         }
-      })
-    );
+      }
 
-    setEmployees(updatedEmployees);
+      // Associer les contrats aux employés
+      const updatedEmployees = employeesList.map(emp => {
+        const contract = contractsByEmployee.get(emp.id) || null;
+        return {
+          ...emp,
+          contract,
+          loadingContract: false,
+          error: contract ? null : "Pas de contrat actif",
+        };
+      });
+
+      setEmployees(updatedEmployees);
+    } catch (err) {
+      // Fallback: marquer tous comme sans contrat
+      console.error("Error loading contracts:", err);
+      setEmployees(employeesList.map(emp => ({
+        ...emp,
+        contract: null,
+        loadingContract: false,
+        error: "Erreur de chargement du contrat",
+      })));
+    }
   };
 
   // Load advances for a specific employee
