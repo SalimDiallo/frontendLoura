@@ -1,41 +1,38 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Card, Button, Badge, Alert } from '@/components/ui';
-import { 
-  getLeaveRequest, 
-  approveLeaveRequest, 
-  rejectLeaveRequest,
-  deleteLeaveRequest 
+import { LEAVE_STATUS_CONFIG } from '@/components/common';
+import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
+import { Alert, Badge, Button, Card, PDFPreviewWrapper } from '@/components/ui';
+import { PDFEndpoints, usePDF, useUser } from '@/lib/hooks';
+import {
+  approveLeaveRequest,
+  deleteLeaveRequest,
+  getLeaveRequest,
+  rejectLeaveRequest
 } from '@/lib/services/hr';
 import type { LeaveRequest } from '@/lib/types/hr';
+import { COMMON_PERMISSIONS } from '@/lib/types/permissions';
+import { cn, formatDate, formatShortDate } from '@/lib/utils';
 import {
+  AlertCircle,
   ArrowLeft,
   Calendar,
-  Clock,
-  User,
-  FileText,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Loader2,
-  Trash2,
-  Download,
   CalendarDays,
-  MessageSquare,
-  UserCheck,
-  Hourglass,
+  CheckCircle2,
+  Clock,
+  Download,
   FileDown,
-  Mail,
+  FileText,
+  Loader2,
+  MessageSquare,
+  Trash2,
+  User,
+  UserCheck,
+  XCircle
 } from 'lucide-react';
-import { cn, formatDate, formatShortDate } from '@/lib/utils';
-import { usePDF, PDFEndpoints } from '@/lib/hooks';
-import { PDFPreviewWrapper } from '@/components/ui';
-import { useUser } from '@/lib/hooks';
-import { LeaveStatusBadge, LEAVE_STATUS_CONFIG } from '@/components/common';
-import { COMMON_PERMISSIONS } from '@/lib/types/permissions';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function LeaveRequestDetailPage() {
   const params = useParams();
@@ -50,6 +47,7 @@ export default function LeaveRequestDetailPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectNotes, setRejectNotes] = useState('');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const { preview, previewState, closePreview } = usePDF({
     onSuccess: () => setSuccess('PDF chargé avec succès'),
@@ -108,8 +106,6 @@ export default function LeaveRequestDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette demande ?')) return;
-    
     try {
       setActionLoading('delete');
       await deleteLeaveRequest(leaveId);
@@ -132,7 +128,6 @@ export default function LeaveRequestDetailPage() {
       setError('Erreur lors du chargement du PDF');
     }
   };
- 
 
   // Logic for permission to approve/reject
   let canApproveOrReject = false;
@@ -140,22 +135,14 @@ export default function LeaveRequestDetailPage() {
     const isUserLeave = user.id === leave.employee;
     const isAdmin = user.user_type === 'admin';
     const isEmployee = user.user_type === 'employee' || userType === 'employee';
-    // permissions can be string[] or undefined
     const perms = Array.isArray(user.permissions) ? user.permissions : [];
-    // If employee, allow if they have "hr.approve_leave_requests" and NOT their own leave
     if (isEmployee) {
       canApproveOrReject =
         !isUserLeave &&
         perms.includes(COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS);
-    }
-    // If admin, same logic as before, but admin can approve/reject as long as not own leave
-    else if (isAdmin) {
+    } else if (isAdmin) {
       canApproveOrReject = !isUserLeave;
-    }
-    // Other user types: inherit previous logic (for "manager", etc)
-    else {
-      // Permission could come from user.permissions as an array
-      // (keeping legacy 'approve_leaves' for other custom roles)
+    } else {
       const hasApprovePermission = perms.includes('approve_leaves');
       canApproveOrReject = !isUserLeave && hasApprovePermission;
     }
@@ -164,7 +151,6 @@ export default function LeaveRequestDetailPage() {
   // Logic for permission to delete own leave (can delete if not approved)
   let canDeleteOwn = false;
   if (leave && user) {
-    // user.id can be string or number, so toString both for safety if needed
     canDeleteOwn = (user.id === leave.employee) 
       && leave.status !== 'approved' && leave.status !== 'cancelled' &&  leave.status !== "rejected";
   }
@@ -526,7 +512,7 @@ export default function LeaveRequestDetailPage() {
                 <Button 
                   variant="outline"
                   className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={handleDelete}
+                  onClick={() => setShowDeleteDialog(true)}
                   disabled={actionLoading !== null}
                 >
                   {actionLoading === 'delete' ? (
@@ -558,7 +544,7 @@ export default function LeaveRequestDetailPage() {
                 canDeleteOwn &&  <Button 
                 variant="outline"
                 className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                onClick={handleDelete}
+                onClick={() => setShowDeleteDialog(true)}
                 disabled={actionLoading !== null}
               >
                 {actionLoading === 'delete' ? (
@@ -617,6 +603,18 @@ export default function LeaveRequestDetailPage() {
           </Card>
         </div>
       )}
+
+      {/* Supprimer (confirmation dialog) */}
+      <ConfirmationDialog
+        open={showDeleteDialog}
+        onOpenChange={() => setShowDeleteDialog(false)}
+        title="Supprimer la demande"
+        description="Êtes-vous sûr de vouloir supprimer cette demande ? Cette action est irréversible."
+        confirmLabel="Supprimer"
+        confirmVariant="destructive"
+        loading={actionLoading === 'delete'}
+        onConfirm={handleDelete}
+      />
 
       {/* PDF Preview Modal */}
       <PDFPreviewWrapper previewState={previewState} onClose={closePreview} />

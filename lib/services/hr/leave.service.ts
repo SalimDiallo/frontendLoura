@@ -10,7 +10,6 @@ import type {
   LeaveRequestUpdate,
   LeaveRequestApprove,
   LeaveRequestListResponse,
-  LeaveBalance,
   LeaveStats,
 } from '@/lib/types/hr';
 
@@ -121,40 +120,4 @@ export async function deleteLeaveRequest(id: string): Promise<void> {
   return apiClient.delete<void>(API_ENDPOINTS.HR.LEAVE_REQUESTS.DELETE(id));
 }
 
-/**
- * Récupère tous les soldes de congés
- */
-export async function getLeaveBalances(params?: {
-  employee?: string;
-  year?: number;
-}): Promise<LeaveBalance[]> {
-  const searchParams = new URLSearchParams();
 
-  if (params?.employee) searchParams.append('employee', params.employee);
-  if (params?.year) searchParams.append('year', String(params.year));
-
-  const queryString = searchParams.toString();
-  const url = queryString ? `${API_ENDPOINTS.HR.LEAVE_BALANCES.LIST}?${queryString}` : API_ENDPOINTS.HR.LEAVE_BALANCES.LIST;
-
-  const response = await apiClient.get<any>(url);
-
-  // Handle both paginated and direct array responses
-  if (response && typeof response === 'object') {
-    if (Array.isArray(response)) {
-      return response;
-    } else if (response.results && Array.isArray(response.results)) {
-      return response.results;
-    }
-  }
-
-  return [];
-}
-
-/**
- * Récupère les soldes de congés d'un employé pour l'année en cours
- * Note: Utilise l'endpoint LIST avec filtre employee au lieu d'un endpoint dédié
- */
-export async function getEmployeeLeaveBalances(employeeId: string, year?: number): Promise<LeaveBalance[]> {
-  const currentYear = year || new Date().getFullYear();
-  return getLeaveBalances({ employee: employeeId, year: currentYear });
-}

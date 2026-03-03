@@ -136,6 +136,8 @@ export default function PayrollDetailPage() {
     );
   }
 
+  console.log(payroll);
+
   return (
     <div className="space-y-6">
       {/* PDF Modal */}
@@ -279,13 +281,13 @@ export default function PayrollDetailPage() {
           <div>
             <div className="text-sm text-muted-foreground">Date de début</div>
             <div className="font-medium mt-1">
-              {payroll.start_date ? new Date(payroll.start_date).toLocaleDateString("fr-FR") : 'N/A'}
+              {payroll.period_start ? new Date(payroll.period_start).toLocaleDateString("fr-FR") : 'N/A'}
             </div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">Date de fin</div>
             <div className="font-medium mt-1">
-              {payroll.end_date ? new Date(payroll.end_date).toLocaleDateString("fr-FR") : 'N/A'}
+              {payroll.period_end ? new Date(payroll.period_end).toLocaleDateString("fr-FR") : 'N/A'}
             </div>
           </div>
           <div>

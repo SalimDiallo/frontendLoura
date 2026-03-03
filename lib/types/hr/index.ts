@@ -322,25 +322,11 @@ export interface LeaveType {
   updated_at: string;
 }
 
-export interface LeaveBalance {
-  id: string;
-  employee: string;
-  employee_name?: string;
-  leave_type: string; // LeaveType ID
-  leave_type_name?: string;
-  year: number;
-  total_days: number;
-  used_days: number;
-  pending_days: number;
-  available_days: number; // Calculated field from backend
-  created_at: string;
-  updated_at: string;
-}
-
 export interface LeaveRequest {
   id: string;
   employee: string;
-  leave_type: string; // LeaveType ID
+  leave_type?: string; // LeaveType ID (optional)
+  title?: string;
   start_date: string;
   end_date: string;
   start_half_day?: boolean;
@@ -370,6 +356,7 @@ export interface LeaveRequestHistoryApiResponse {
   leave_type: string;
   leave_type_name: string;
   leave_type_color: string;
+  title?: string;
   start_date: string;
   end_date: string;
   start_half_day: boolean;
@@ -388,7 +375,8 @@ export interface LeaveRequestHistoryApiResponse {
 
 
 export interface LeaveRequestCreate {
-  leave_type: string; // LeaveType ID
+  leave_type?: string; // LeaveType ID (optional)
+  title?: string;
   start_date: string;
   end_date: string;
   start_half_day?: boolean;
@@ -438,6 +426,9 @@ export interface Payroll {
   gross_salary: number;
   total_deductions: number;
   net_salary: number;
+
+  period_end?: string;
+  period_start?: string;
 
   currency?: string;
   worked_hours?: number;

@@ -59,6 +59,8 @@ import { getEmployees } from "@/lib/services/hr/employee.service";
 import { getDepartments } from "@/lib/services/hr/department.service";
 import { getPositions } from "@/lib/services/hr/position.service";
 import type { PayrollPeriod, EmployeeListItem, Department, Position, Contract, PayrollAdvance } from "@/lib/types/hr";
+import { Can } from "@/components/apps/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 // ============================================
 // Types
@@ -847,7 +849,8 @@ export default function GeneratePayslipsPage() {
   }
 
   return (
-    <div className="space-y-6">
+ <Can permission={COMMON_PERMISSIONS.HR.CREATE_PAYROLL} showMessage>
+     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -1632,5 +1635,6 @@ export default function GeneratePayslipsPage() {
         </DialogContent>
       </Dialog>
     </div>
+ </Can>
   );
 }

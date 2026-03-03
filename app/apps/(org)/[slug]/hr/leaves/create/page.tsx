@@ -1,40 +1,45 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import Link from "next/link";
-import { Alert, Button, Card, Form, Badge } from "@/components/ui";
+import { Alert, Button, Card, Form } from "@/components/ui";
 import {
   FormTextareaField,
 } from "@/components/ui/form-fields";
-import { createLeaveRequest, getLeaveBalances } from "@/lib/services/hr/leave.service";
-import { getLeaveTypes } from "@/lib/services/hr/leave-type.service";
-import { getCurrentEmployee } from "@/lib/services/hr/employee.service";
-import type { LeaveType, LeaveBalance, Employee } from "@/lib/types/hr";
+import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/client";
-import { formatLeaveDays, formatLeaveDaysWithLabel } from "@/lib/utils/leave";
+import { useUser } from "@/lib/hooks";
+import { getLeaveTypes } from "@/lib/services/hr/leave-type.service";
+import { createLeaveRequest, getLeaveRequests } from "@/lib/services/hr/leave.service";
+import type { LeaveRequest, LeaveRequestCreate, LeaveType } from "@/lib/types/hr";
+import { formatLeaveDaysWithLabel } from "@/lib/utils/leave";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
-  HiOutlineCalendar,
   HiOutlineArrowLeft,
+  HiOutlineCalendar,
   HiOutlineCheckCircle,
   HiOutlineInformationCircle,
+  HiOutlineUserGroup,
+  HiOutlineXMark,
 } from "react-icons/hi2";
-import { useUser } from "@/lib/hooks";
-import { HiOutlineUserGroup, HiOutlineClock, HiOutlineStar } from "react-icons/hi2";
+import * as z from "zod";
 
 // Use react-day-picker for improved UX on range
-import { DayPicker } from "react-day-picker";
+import { addDays, eachDayOfInterval, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import { Maximize } from "lucide-react";
 
-// Zod + RHF schema as before
+// =================================================================================
+// ZOD SCHEMA
+// =================================================================================
+
 const leaveRequestSchema = z
   .object({
-    leave_type: z.string().min(1, "Le type de congé est requis"),
+    leave_type: z.string().optional(),
+    title: z.string().optional(),
     period: z.object({
       from: z.date({ message: "Date de début requise" }),
       to: z.date({ message: "Date de fin requise" }),
@@ -52,88 +57,103 @@ const leaveRequestSchema = z
       message: "La date de fin doit être supérieure ou égale à la date de début",
       path: ["period", "to"],
     }
+  )
+  .refine(
+    (data) => {
+      // If no leave_type selected, title is required
+      if (!data.leave_type) {
+        return !!data.title?.trim();
+      }
+      return true;
+    },
+    {
+      message: "Le titre est obligatoire si aucun type de congé n'est sélectionné",
+      path: ["title"],
+    }
   );
 
-type LeaveRequestFormData = z.infer<typeof leaveRequestSchema> & {
-  // legacy for type (not stored but will exist virtually)
-  start_date?: string;
-  end_date?: string;
-};
+type LeaveRequestFormData = z.infer<typeof leaveRequestSchema>;
+
+// =================================================================================
+// LEAVE TYPE SELECTOR
+// =================================================================================
 
 function LeaveTypeSelector({
   leaveTypes,
-  // leaveBalances,
   selected,
   onSelect,
 }: {
   leaveTypes: LeaveType[];
-  // leaveBalances: LeaveBalance[];
   selected: string;
   onSelect: (id: string) => void;
 }) {
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {leaveTypes.length === 0 && (
-          <div className="p-4 text-center text-muted-foreground">
-            Aucun type de congé disponible.
-          </div>
-        )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {leaveTypes.map((type) => {
-          // const balance = leaveBalances.find((b) => b.leave_type === type.id);
           const isSelected = selected === type.id;
           return (
             <button
               key={type.id}
               type="button"
               className={[
-                "relative group rounded-xl border shadow transition-all px-4 py-4 text-left bg-background text-foreground",
+                "relative group rounded-xl border-2 transition-all px-4 py-4 text-left",
                 isSelected
-                  ? "ring-2 ring-primary border-primary"
-                  : "hover:ring-2 hover:ring-primary/40 border-muted"
+                  ? "ring-2 ring-primary border-primary bg-primary/5"
+                  : "hover:border-primary/40 border-muted bg-background hover:bg-muted/30",
               ].join(" ")}
               aria-pressed={isSelected}
-              onClick={() => onSelect(type.id)}
+              onClick={() => onSelect(isSelected ? "" : type.id)}
               tabIndex={0}
               data-testid={`leave-type-${type.id}`}
             >
-              <div className="flex items-center gap-2 mb-1">
+              {/* Color indicator */}
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <span
+                  className="inline-block size-3 rounded-full ring-2 ring-offset-1 ring-offset-background"
+                  style={{
+                    backgroundColor: type.color || "#3B82F6",
+                  }}
+                />
                 {isSelected ? (
-                  <span className="inline-flex items-center justify-center rounded-full bg-primary/80 p-1 text-white text-xs">
-                    <HiOutlineCheckCircle className="size-4" />
-                  </span>
+                  <HiOutlineCheckCircle className="size-4 text-primary" />
                 ) : (
-                  <span className="inline-flex items-center justify-center rounded-full p-1">
-                    <HiOutlineUserGroup className="size-4 text-muted-foreground" />
-                  </span>
+                  <HiOutlineUserGroup className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                 )}
-                <span className="font-semibold text-primary">{type.name}</span>
+                <span className={`font-semibold text-sm ${isSelected ? "text-primary" : "text-foreground"}`}>
+                  {type.name}
+                </span>
               </div>
               {type.description && (
-                <div className="text-xs text-muted-foreground mb-2">
+                <p className="text-xs text-muted-foreground line-clamp-2 ml-[22px]">
                   {type.description}
-                </div>
+                </p>
               )}
               {isSelected && (
-                <span className="absolute top-2 right-2 rounded-full bg-primary/90 text-white px-2 py-0.5 text-xs">
-                  Sélectionné
+                <span className="absolute top-2 right-2 rounded-full bg-primary text-white px-2 py-0.5 text-[10px] font-medium">
+                  ✓
                 </span>
               )}
             </button>
           );
         })}
       </div>
-      {leaveTypes.length > 0 && (
-        <input type="hidden" name="leave_type" value={selected} readOnly />
-      )}
-      {!selected && (
-        <div className="text-sm text-destructive mt-2 ml-1">
-          Merci de sélectionner un type de congé.
+
+      {leaveTypes.length === 0 && (
+        <div className="text-center py-6">
+          <HiOutlineCalendar className="size-10 mx-auto mb-2 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground">
+            Aucun type de congé disponible — renseignez un titre à la place
+          </p>
         </div>
       )}
     </div>
   );
 }
+
+// =================================================================================
+// MAIN PAGE
+// =================================================================================
 
 export default function CreateLeaveRequestPage() {
   const params = useParams();
@@ -143,17 +163,36 @@ export default function CreateLeaveRequestPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
-  // const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
+  const [existingRequests, setExistingRequests] = useState<LeaveRequest[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [calculatedDays, setCalculatedDays] = useState<number>(0);
 
   const user = useUser();
+
+  // Build the list of disabled dates from existing pending/approved requests
+  const disabledDates = (() => {
+    const dates: Date[] = [];
+    for (const req of existingRequests) {
+      try {
+        const start = parseISO(req.start_date);
+        const end = parseISO(req.end_date);
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          const interval = eachDayOfInterval({ start, end });
+          dates.push(...interval);
+        }
+      } catch {
+        // skip malformed dates
+      }
+    }
+    return dates;
+  })();
 
   // useForm with react-hook-form + Zod
   const form = useForm<LeaveRequestFormData>({
     resolver: zodResolver(leaveRequestSchema),
     defaultValues: {
       leave_type: "",
+      title: "",
       period: {
         from: undefined,
         to: undefined,
@@ -168,9 +207,14 @@ export default function CreateLeaveRequestPage() {
   const period = form.watch("period");
   const startHalfDay = form.watch("start_half_day");
   const endHalfDay = form.watch("end_half_day");
+  const titleValue = form.watch("title");
 
-  // Date Picker: help focusing opening on click
   const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Whether a leave type is selected
+  const hasLeaveType = !!selectedLeaveType;
+  // Whether title is required (no leave type selected)
+  const titleRequired = !hasLeaveType;
 
   useEffect(() => {
     loadFormData();
@@ -191,6 +235,13 @@ export default function CreateLeaveRequestPage() {
     }
   }, [period, startHalfDay, endHalfDay]);
 
+  // Clear title validation errors when leave type changes
+  useEffect(() => {
+    if (hasLeaveType) {
+      form.clearErrors("title");
+    }
+  }, [hasLeaveType, form]);
+
   const loadFormData = async () => {
     try {
       setLoadingData(true);
@@ -202,18 +253,22 @@ export default function CreateLeaveRequestPage() {
         return;
       }
 
-      const employee = await getCurrentEmployee();
+      // Fetch leave types and existing requests in parallel
+      const [types, pendingRes, approvedRes] = await Promise.all([
+        getLeaveTypes({ is_active: true }),
+        getLeaveRequests({ employee: user.id, status: "pending", page_size: 200 }),
+        getLeaveRequests({ employee: user.id, status: "approved", page_size: 200 }),
+      ]);
 
-      const currentYear = new Date().getFullYear();
-      // const balances = await getLeaveBalances({
-      //   employee: employee.id,
-      //   year: currentYear,
-      // });
-      // setLeaveBalances(balances);
-
-      const types = await getLeaveTypes({ is_active: true });
       setLeaveTypes(types);
-    } catch (err: any) {
+
+      // Combine pending + approved requests
+      const allRequests = [
+        ...(pendingRes?.results || []),
+        ...(approvedRes?.results || []),
+      ];
+      setExistingRequests(allRequests);
+    } catch (err: unknown) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
@@ -224,7 +279,6 @@ export default function CreateLeaveRequestPage() {
     }
   };
 
-  // date: Date objects expected
   const calculateBusinessDays = (
     start: Date,
     end: Date,
@@ -253,15 +307,6 @@ export default function CreateLeaveRequestPage() {
     return leaveTypes.find(type => type.id === selectedLeaveType) || null;
   };
 
-  // const getLeaveBalance = (): LeaveBalance | null => {
-  //   if (!selectedLeaveType || !Array.isArray(leaveBalances)) return null;
-  //   return (
-  //     leaveBalances.find(
-  //       (balance) => balance.leave_type === selectedLeaveType
-  //     ) || null
-  //   );
-  // };
-
   const onSelectLeaveType = (typeId: string) => {
     form.setValue("leave_type", typeId, { shouldValidate: true, shouldDirty: true });
   };
@@ -278,25 +323,24 @@ export default function CreateLeaveRequestPage() {
         data.end_half_day
       );
 
-      // Convert to yyyy-mm-dd
       const formatDate = (d: Date) =>
         d.toISOString().split("T")[0];
 
-      const requestData: any = {
-        leave_type: data.leave_type,
+      const requestData: LeaveRequestCreate = {
+        leave_type: data.leave_type || undefined,
+        title: data.title || "",
         start_date: formatDate(data.period.from),
         end_date: formatDate(data.period.to),
         start_half_day: data.start_half_day,
         end_half_day: data.end_half_day,
         total_days: totalDays,
         reason: data.reason,
-        employee: user?.id,
       };
 
       await createLeaveRequest(requestData);
 
       router.push(`/apps/${slug}/hr/leaves/history`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.data && typeof err.data === "object") {
           const errorMessages = Object.entries(err.data)
@@ -311,31 +355,30 @@ export default function CreateLeaveRequestPage() {
         } else {
           setError(`${err.message} (Status: ${err.status})`);
         }
+      } else if (err instanceof Error) {
+        setError(err.message);
       } else {
-        setError(err?.message || "Erreur lors de la création de la demande");
+        setError("Erreur lors de la création de la demande");
       }
     } finally {
       setLoading(false);
     }
   };
 
+  // Loading state
   if (loadingData) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="h-96 bg-muted rounded"></div>
+          <div className="h-8 bg-muted rounded w-1/4" />
+          <div className="h-96 bg-muted rounded" />
         </div>
       </div>
     );
   }
 
-  if (
-    user &&
-    (
-      user.user_type === "admin"
-    )
-  ) {
+  // Admin cannot request leaves
+  if (user && user.user_type === "admin") {
     return (
       <div className="flex flex-col min-h-[70vh] items-center justify-center">
         <Card className="p-8 max-w-lg w-full shadow-md border-0">
@@ -345,12 +388,8 @@ export default function CreateLeaveRequestPage() {
               Accès réservé
             </h2>
             <p className="text-lg text-muted-foreground">
-              En tant que <span className="font-bold text-primary">
-                {user.user_type === "admin"
-                  ? "administrateur"
-                  : "propriétaire"
-                }
-              </span>, vous ne pouvez pas demander de congés.
+              En tant que <span className="font-bold text-primary">administrateur</span>,
+              vous ne pouvez pas demander de congés.
             </p>
             <Button asChild size="lg" className="mt-4">
               <Link href={`/apps/${slug}/hr/leaves`}>
@@ -364,9 +403,7 @@ export default function CreateLeaveRequestPage() {
   }
 
   const leaveTypeDetails = getSelectedLeaveTypeDetails();
-  // const leaveBalance = getLeaveBalance();
 
-  // For calendar display format
   const dayjsFormat = (d?: Date) =>
     d && !isNaN(d.getTime()) ? d.toLocaleDateString("fr-FR") : "";
 
@@ -387,46 +424,132 @@ export default function CreateLeaveRequestPage() {
             </h1>
           </div>
           <p className="text-sm text-muted-foreground mt-1 ml-10">
-            Créez une nouvelle demande de congé
+            Remplissez les informations pour créer votre demande
           </p>
         </div>
       </div>
 
-      {error && <Alert variant="error">{error}</Alert>}
+      {error && (
+        <Alert variant="error" className="flex items-start justify-between">
+          <span className="whitespace-pre-line">{error}</span>
+          <Button variant="ghost" size="sm" onClick={() => setError(null)}>
+            <HiOutlineXMark className="size-4" />
+          </Button>
+        </Alert>
+      )}
 
-      {/* Sélectionneur de type de congé amélioré */}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+          {/* ─── Step 1: Leave Type (optional) ─── */}
           <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Type de congé</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <span className="flex items-center justify-center size-6 rounded-full bg-primary text-white text-xs font-bold">1</span>
+                Type de congé
+                <span className="text-xs text-muted-foreground font-normal">(optionnel)</span>
+              </h2>
+              {hasLeaveType && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground"
+                  onClick={() => onSelectLeaveType("")}
+                >
+                  <HiOutlineXMark className="size-4 mr-1" />
+                  Désélectionner
+                </Button>
+              )}
+            </div>
             <LeaveTypeSelector
               leaveTypes={leaveTypes}
-              // leaveBalances={leaveBalances}
-              selected={selectedLeaveType}
+              selected={selectedLeaveType || ""}
               onSelect={onSelectLeaveType}
             />
+            {!hasLeaveType && leaveTypes.length > 0 && (
+              <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-dashed border-muted-foreground/20">
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <HiOutlineInformationCircle className="size-4 shrink-0" />
+                  Vous pouvez sélectionner un type ci-dessus, ou simplement renseigner un titre à l&apos;étape suivante.
+                </p>
+              </div>
+            )}
           </Card>
 
+          {/* Leave type details banner */}
           {leaveTypeDetails && (
-            <Card className="p-4 border-0 shadow-sm">
+            <Card className="p-4 border-0 shadow-sm bg-muted/40">
               <div className="flex items-start gap-3">
-                <HiOutlineInformationCircle className="size-5 text-foreground flex-shrink-0 mt-0.5" />
+                <span
+                  className="inline-block size-4 rounded-full mt-0.5 shrink-0"
+                  style={{ backgroundColor: leaveTypeDetails.color }}
+                />
                 <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-blue-900">
+                  <h3 className="text-sm font-semibold">
                     {leaveTypeDetails.name}
                   </h3>
                   {leaveTypeDetails.description && (
-                    <p className="text-sm text-blue-700 mt-1">
+                    <p className="text-sm text-muted-foreground mt-0.5">
                       {leaveTypeDetails.description}
                     </p>
                   )}
+                  <div className="flex items-center gap-3 mt-1.5">
+                    {leaveTypeDetails.is_paid && (
+                      <span className="text-xs text-green-600 font-medium">✓ Congé payé</span>
+                    )}
+                    {!leaveTypeDetails.is_paid && (
+                      <span className="text-xs text-muted-foreground">Non payé</span>
+                    )}
+                    {leaveTypeDetails.max_consecutive_days && (
+                      <span className="text-xs text-muted-foreground">
+                        Max {leaveTypeDetails.max_consecutive_days} jours consécutifs
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>
           )}
 
+          {/* ─── Step 2: Title ─── */}
           <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Période</h2>
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+              <span className="flex items-center justify-center size-6 rounded-full bg-primary text-white text-xs font-bold">2</span>
+              Titre de la demande
+              {titleRequired ? (
+                <span className="text-xs text-destructive font-medium">*obligatoire</span>
+              ) : (
+                <span className="text-xs text-muted-foreground font-normal">(optionnel)</span>
+              )}
+            </h2>
+            <Input
+              {...form.register("title")}
+              placeholder={
+                titleRequired
+                  ? "Ex: Vacances familiales, Formation, Rendez-vous médical..."
+                  : "Ex: Vacances familiales (optionnel si un type est sélectionné)"
+              }
+              className={`text-sm ${form.formState.errors.title ? "border-destructive" : ""}`}
+            />
+            {form.formState.errors.title && (
+              <p className="text-sm text-destructive mt-1.5">
+                {form.formState.errors.title.message}
+              </p>
+            )}
+            {titleRequired && !titleValue?.trim() && (
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Un titre est requis car aucun type de congé n&apos;est sélectionné
+              </p>
+            )}
+          </Card>
+
+          {/* ─── Step 3: Period ─── */}
+          <Card className="p-6 border-0 shadow-sm">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+              <span className="flex items-center justify-center size-6 rounded-full bg-primary text-white text-xs font-bold">3</span>
+              Période
+            </h2>
             <div className="flex flex-col md:flex-row gap-6 md:items-center">
               <Controller
                 control={form.control}
@@ -439,40 +562,53 @@ export default function CreateLeaveRequestPage() {
                     <DayPicker
                       mode="range"
                       selected={field.value}
-                      onSelect={(range) => {
-                        // DayPicker passes undefined if empty
+                      onSelect={(range:any) => {
                         if (range) field.onChange(range);
                       }}
                       locale={fr}
                       showOutsideDays
                       numberOfMonths={2}
+                      disabled={[
+                        { before: new Date() },
+                        ...disabledDates.map((d) => d),
+                      ]}
+                      modifiers={{
+                        booked: disabledDates,
+                      }}
                       modifiersClassNames={{
                         selected: "bg-primary text-white",
                         range_start: "bg-primary text-primary",
                         range_end: "bg-primary text-white",
                         range_middle: "bg-primary/30 text-primary",
                         today: "border border-primary",
+                        booked:
+                          "!bg-red-100 !text-red-400 line-through dark:!bg-red-900/30 dark:!text-red-400",
                       }}
                       className="mx-auto"
                     />
-                    <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
-                      <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground">Date de début</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">
-                            {dayjsFormat(field.value?.from) || "—"}
-                          </span>
-                          {field.value?.from && (
-                            <input
-                              type="hidden"
-                              value={field.value?.from?.toISOString().split("T")[0]}
-                              name="start_date"
-                              // fake legacy for native forms
-                              readOnly
-                            />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
+                    {disabledDates.length > 0 && (
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <span className="inline-block size-3 rounded-sm bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800" />
+                          Jours déjà couverts par une demande (en attente ou approuvée)
+                        </span>
+                      </div>
+                    )}
+                    <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                      <div className="flex flex-col p-3 rounded-lg bg-muted/50">
+                        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Date de début</span>
+                        <span className="font-semibold text-sm mt-1">
+                          {dayjsFormat(field.value?.from) || "—"}
+                        </span>
+                        {field.value?.from && (
+                          <input
+                            type="hidden"
+                            value={field.value.from.toISOString().split("T")[0]}
+                            name="start_date"
+                            readOnly
+                          />
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
                           <input
                             type="checkbox"
                             id="start_half_day"
@@ -484,22 +620,20 @@ export default function CreateLeaveRequestPage() {
                           </label>
                         </div>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground">Date de fin</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">
-                            {dayjsFormat(field.value?.to) || "—"}
-                          </span>
-                          {field.value?.to && (
-                            <input
-                              type="hidden"
-                              value={field.value?.to?.toISOString().split("T")[0]}
-                              name="end_date"
-                              readOnly
-                            />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
+                      <div className="flex flex-col p-3 rounded-lg bg-muted/50">
+                        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Date de fin</span>
+                        <span className="font-semibold text-sm mt-1">
+                          {dayjsFormat(field.value?.to) || "—"}
+                        </span>
+                        {field.value?.to && (
+                          <input
+                            type="hidden"
+                            value={field.value.to.toISOString().split("T")[0]}
+                            name="end_date"
+                            readOnly
+                          />
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
                           <input
                             type="checkbox"
                             id="end_half_day"
@@ -525,10 +659,11 @@ export default function CreateLeaveRequestPage() {
               />
             </div>
             {calculatedDays > 0 && (
-              <div className="mt-4 p-3 bg-muted rounded-lg">
+              <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg flex items-center gap-3">
+                <HiOutlineCalendar className="size-5 text-primary shrink-0" />
                 <p className="text-sm font-medium">
-                  Durée totale:{" "}
-                  <span className="text-primary">
+                  Durée totale :{" "}
+                  <span className="text-primary font-bold">
                     {formatLeaveDaysWithLabel(calculatedDays)} ouvrables
                   </span>
                 </p>
@@ -536,8 +671,13 @@ export default function CreateLeaveRequestPage() {
             )}
           </Card>
 
+          {/* ─── Step 4: Reason ─── */}
           <Card className="p-6 border-0 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Motif (optionnel)</h2>
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+              <span className="flex items-center justify-center size-6 rounded-full bg-primary text-white text-xs font-bold">4</span>
+              Motif
+              <span className="text-xs text-muted-foreground font-normal">(optionnel)</span>
+            </h2>
             <FormTextareaField
               name="reason"
               label="Motif de la demande"
@@ -546,51 +686,14 @@ export default function CreateLeaveRequestPage() {
             />
           </Card>
 
-          {/* {leaveBalance && selectedLeaveType && (
-            <Card className="p-4 border-0 shadow-sm bg-muted">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Total alloué</p>
-                  <p className="text-lg font-semibold">{formatLeaveDays(leaveBalance.total_days)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Utilisé</p>
-                  <p className="text-lg font-semibold text-red-600">{formatLeaveDays(leaveBalance.used_days)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">En attente</p>
-                  <p className="text-lg font-semibold text-orange-600">{formatLeaveDays(leaveBalance.pending_days)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Disponible</p>
-                  <p className="text-lg font-semibold text-green-600">{formatLeaveDays(leaveBalance.available_days)}</p>
-                </div>
-              </div>
-            </Card>
-          )} */}
-
-          {/* {leaveBalance && calculatedDays > leaveBalance.available_days && (
-            <Alert variant="warning">
-              <HiOutlineInformationCircle className="size-4" />
-              <span>
-                Attention : Cette demande dépasse votre solde disponible (
-                {formatLeaveDaysWithLabel(leaveBalance.available_days)} restants).
-              </span>
-            </Alert>
-          )} */}
-
+          {/* ─── Submit ─── */}
           <div className="flex items-center justify-end gap-4">
             <Button type="button" variant="outline" asChild>
               <Link href={`/apps/${slug}/hr/leaves`}>Annuler</Link>
             </Button>
             <Button
               type="submit"
-              disabled={
-                loading ||
-                calculatedDays === 0 ||
-                !selectedLeaveType ||
-                leaveTypes.length === 0
-              }
+              disabled={loading || calculatedDays === 0}
             >
               {loading ? (
                 <>Création en cours...</>

@@ -2,6 +2,7 @@
 
 import { Icons } from "@/components/landing/icons";
 import { FlickeringGrid } from "@/components/landing/ui/flickering-grid";
+import Logo from "@/components/ui/Logo";
 import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { siteConfig } from "@/lib/landing/config";
 import { ChevronRightIcon } from "@radix-ui/react-icons";
@@ -16,11 +17,7 @@ export function FooterSection() {
         {/* Logo et description */}
         <div className="flex flex-col items-start justify-start gap-y-6 max-w-sm">
           <Link href="/" className="flex items-center gap-3">
-            <Icons.logo className="size-9" />
-            <p className="text-2xl tracking-tight">
-              <span className="font-display font-bold">Loura</span>
-              <span className="font-light text-muted-foreground">Tech</span>
-            </p>
+          <Logo className="flex justify-center items-center gap-2" />
           </Link>
           <p className="tracking-tight text-muted-foreground text-sm leading-relaxed">
             {siteConfig.hero.description}

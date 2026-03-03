@@ -110,15 +110,6 @@ export const API_ENDPOINTS = {
       UPDATE: (id: string) => `/hr/leave-types/${id}/`,
       DELETE: (id: string) => `/hr/leave-types/${id}/`,
     },
-    // Soldes de congés
-    LEAVE_BALANCES: {
-      LIST: '/hr/leave-balances/',
-      CREATE: '/hr/leave-balances/',
-      DETAIL: (id: string) => `/hr/leave-balances/${id}/`,
-      UPDATE: (id: string) => `/hr/leave-balances/${id}/`,
-      DELETE: (id: string) => `/hr/leave-balances/${id}/`,
-      EMPLOYEE: (employeeId: string) => `/hr/employees/${employeeId}/leave-balances/`,
-    },
     // Demandes de congés
     LEAVE_REQUESTS: {
       LIST: '/hr/leave-requests/',

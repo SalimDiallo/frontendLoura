@@ -1,50 +1,49 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { Card, Alert, Button } from "@/components/ui";
-import {
-  HiOutlineCalendar,
-  HiOutlineChartBar,
-  HiOutlineClipboardDocumentList,
-  HiOutlineMagnifyingGlass,
-  HiOutlineQuestionMarkCircle,
-  HiOutlineEye,
-  HiOutlineCheckCircle,
-  HiOutlineXCircle,
-  HiOutlineDocumentArrowDown,
-} from "react-icons/hi2";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { ConfirmationDialog } from "@/components/common/confirmation-dialog";
+import { Alert, Button, Card } from "@/components/ui";
 import {
-  ShortcutsHelpModal,
   KeyboardHint,
+  ShortcutsHelpModal,
 } from "@/components/ui/shortcuts-help";
 import {
-  useKeyboardShortcuts,
-  KeyboardShortcut,
-  commonShortcuts,
-} from "@/lib/hooks/use-keyboard-shortcuts";
-import {
-  getLeaveRequests,
-  approveLeaveRequest,
-  rejectLeaveRequest,
-} from "@/lib/services/hr/leave.service";
-import type { LeaveRequest } from "@/lib/types/hr";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ApiError } from "@/lib/api/client";
 import { useUser } from "@/lib/hooks";
 import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
+  KeyboardShortcut,
+  commonShortcuts,
+  useKeyboardShortcuts,
+} from "@/lib/hooks/use-keyboard-shortcuts";
+import {
+  approveLeaveRequest,
+  getLeaveRequests,
+  rejectLeaveRequest,
+} from "@/lib/services/hr/leave.service";
+import type { LeaveRequest } from "@/lib/types/hr";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { format, parseISO } from "date-fns";
-import { ConfirmationDialog } from "@/components/common/confirmation-dialog";
 import { TypeIcon } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  HiOutlineCalendar,
+  HiOutlineChartBar,
+  HiOutlineCheckCircle,
+  HiOutlineClipboardDocumentList,
+  HiOutlineEye,
+  HiOutlineMagnifyingGlass,
+  HiOutlineQuestionMarkCircle,
+  HiOutlineXCircle
+} from "react-icons/hi2";
 
 // Import the document download hook used in leave details
 
@@ -276,6 +275,7 @@ export default function LeavesPage() {
       setGlobalActionMessage(
         e?.message || "Erreur lors de l'approbation."
       );
+      setError("Erreur lors de l'approbation.");
     } finally {
       setActionLoading(null);
     }
@@ -290,6 +290,7 @@ export default function LeavesPage() {
       await reloadRequests();
     } catch (e: any) {
       setGlobalActionMessage(e?.message || "Erreur lors du rejet.");
+      setError("Erreur lors du rejet.");
     } finally {
       setActionLoading(null);
     }

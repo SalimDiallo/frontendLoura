@@ -1,9 +1,8 @@
 import { HeroVideoSection } from "@/components/landing/sections/hero-video-section";
-import { buttonVariants } from "@/components/ui";
-import { siteConfig } from "@/lib/landing/config";
-import Link from "next/link";
-import { ArrowRight, Star } from "lucide-react";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
+import { siteConfig } from "@/lib/landing/config";
+import { ArrowRight, Star } from "lucide-react";
+import Link from "next/link";
 
 export function HeroSection() {
   const { hero } = siteConfig;
@@ -14,7 +13,7 @@ export function HeroSection() {
       className="w-full relative overflow-visible"
       style={{ minHeight: "700px" }}
     >
-          <BackgroundRippleEffect />
+      <BackgroundRippleEffect  />
       <div className="relative flex flex-col items-center w-full px-6">
         {/* Fond gradient avec une touche de luminosité */}
 

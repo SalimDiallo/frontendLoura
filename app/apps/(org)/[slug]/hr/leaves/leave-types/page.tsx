@@ -1,28 +1,28 @@
 "use client";
-
-import { useEffect, useMemo, useState, useCallback } from "react";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { Button, Card } from "@/components/ui";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
-  DialogFooter
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  getLeaveTypes,
-  deleteLeaveType,
   createLeaveType,
+  deleteLeaveType,
+  getLeaveTypes,
   updateLeaveType,
 } from "@/lib/services/hr/leave-type.service";
 import type { LeaveType } from "@/lib/types/hr";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { Pencil, Trash2 } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // -- Formulaire création/édition (presque inchangé, on harmonise juste le style)
 function LeaveTypeForm({
@@ -30,11 +30,13 @@ function LeaveTypeForm({
   onSuccess,
   onCancel,
   mode,
+  slug
 }: {
   initial?: Partial<LeaveType>;
   onSuccess: (lt: LeaveType) => void;
   onCancel: () => void;
   mode: "create" | "edit";
+  slug:string
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -53,7 +55,7 @@ function LeaveTypeForm({
     try {
       let result: LeaveType;
       if (mode === "create") {
-        result = await createLeaveType({ name: name.trim(), description: description.trim() });
+        result = await createLeaveType({ name: name.trim(), description: description.trim(), organization_subdomain:slug });
       } else if (initial?.id) {
         result = await updateLeaveType(initial.id, { name: name.trim(), description: description.trim() });
       } else {
@@ -101,7 +103,12 @@ function LeaveTypeForm({
   );
 }
 
-export default function LeaveTypesPage() {
+export default function LeaveTypesPage({
+  params: { slug }
+}: {
+  params: { slug: string }
+}) {
+
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +121,12 @@ export default function LeaveTypesPage() {
     data?: LeaveType | null;
   }>({ open: false, mode: "create", data: null });
   const [message, setMessage] = useState<string | null>(null);
+
+  // Get slug from params for use in hooks or API
+  // Since this is a Client Component (uses hooks), get slug from useParams
+  // (do not use the slug argument directly in the function body, for consistency with other pages)
+  const params = useParams();
+  const realSlug = params?.slug as string || slug;
 
   // Permissions : harmonisation à la page principale, pouvoir faire le check à terme
   const perms = COMMON_PERMISSIONS?.HR || {};
@@ -298,6 +311,7 @@ export default function LeaveTypesPage() {
               initial={modalState.data || undefined}
               onCancel={closeModal}
               onSuccess={handleModalSuccess}
+              slug={realSlug}
             />
           </DialogContent>
         </Dialog>
