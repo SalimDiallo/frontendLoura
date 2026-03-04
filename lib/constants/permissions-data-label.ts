@@ -47,7 +47,7 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   // Leave Requests
   { code: COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS, label: "Voir les congés", category: "Congés", module: "hr", depends: [] },
   // { code: COMMON_PERMISSIONS.HR.CREATE_LEAVE_REQUESTS, label: "Demander des congés", category: "Congés", module: "hr", depends: [] },
-  { code: COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS, label: "Approuver des congés", category: "Congés", module: "hr", depends: [] },
+  { code: COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS, label: "Gerer les soldes et approuver des congés des autres", category: "Congés", module: "hr", depends: [] },
 
   // Payroll
   { code: COMMON_PERMISSIONS.HR.VIEW_PAYROLL, label: "Voir la paie", category: "Paie", module: "hr", depends: [] },

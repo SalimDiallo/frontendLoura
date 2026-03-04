@@ -42,6 +42,7 @@ import {
   HiOutlineEye,
   HiOutlineMagnifyingGlass,
   HiOutlineQuestionMarkCircle,
+  HiOutlineUserGroup,
   HiOutlineXCircle
 } from "react-icons/hi2";
 
@@ -397,6 +398,15 @@ export default function LeavesPage() {
                   </Button>
             </Can>
 
+            <Can permission={COMMON_PERMISSIONS.HR.APPROVE_LEAVE_REQUESTS}>
+                <Button variant="outline" asChild>
+                    <Link href={`/apps/${slug}/hr/leaves/balances`}>
+                      <HiOutlineUserGroup className="size-4 mr-2" />
+                        Soldes de Congés
+                    </Link>
+                  </Button>
+            </Can>
+
             {userType !== "admin" && (
               <Button variant="outline" asChild>
                 <Link href={`/apps/${slug}/hr/leaves/history`}>
@@ -472,9 +482,9 @@ export default function LeavesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Employé</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Début</TableHead>
-                  <TableHead>Fin</TableHead>
+                  <TableHead>Type ou titre</TableHead>
+                  <TableHead>Date de début</TableHead>
+                  <TableHead>Date de fin</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
@@ -516,10 +526,17 @@ export default function LeavesPage() {
                           {req.employee ? `${req.employee_name ?? ""}` : "–"}
                         </TableCell>
                         <TableCell>
-                          <LeaveTypeBadge
-                            type={leaveTypeText}
-                            color={colorCls}
-                          />
+                          {req.leave_type_name && (
+                            <LeaveTypeBadge
+                              type={leaveTypeText}
+                              color={colorCls}
+                            />
+                          )}
+                          {req.title && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-muted text-muted-foreground">
+                              {req.title}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {req.start_date

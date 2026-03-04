@@ -113,7 +113,7 @@ export interface DeleteConfirmationProps {
   onConfirm: () => void | Promise<void>;
   loading?: boolean;
   title?: string;
-  description?: string;
+  description?: string | React.ReactNode;
 }
 
 export function DeleteConfirmation({
@@ -158,7 +158,7 @@ export interface ActionConfirmationProps {
     icon?: 'warning' | 'info' | 'success';
   };
   target?: string;
-  description?: string;
+  description?: string | React.ReactNode;
   onConfirm: () => void | Promise<void>;
   loading?: boolean;
 }

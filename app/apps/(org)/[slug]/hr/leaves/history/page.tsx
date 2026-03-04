@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { Card, Alert, Button, Badge, Input } from "@/components/ui";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -12,24 +10,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  HiOutlineArrowLeft,
-  HiOutlineClock,
-  HiOutlineCheckCircle,
-  HiOutlineXCircle,
-  HiOutlineCalendar,
-  HiOutlineMagnifyingGlass,
-  HiOutlineDocumentText,
-  HiOutlinePlus,
-  HiOutlineEye,
-} from "react-icons/hi2";
-import { getLeaveRequestsHistory } from "@/lib/services/hr/leave.service";
+import { useUser } from "@/lib/hooks";
 import { getLeaveTypes } from "@/lib/services/hr/leave-type.service";
+import { getLeaveRequestsHistory } from "@/lib/services/hr/leave.service";
 import type { LeaveRequestHistoryApiResponse, LeaveType } from "@/lib/types/hr";
 import { exportLeaveRequestToPDF } from "@/lib/utils/pdf-export";
-import { useUser } from "@/lib/hooks";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, EyeClosed } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import {
+  HiOutlineArrowLeft,
+  HiOutlineCalendar,
+  HiOutlineCheckCircle,
+  HiOutlineClock,
+  HiOutlineDocumentText,
+  HiOutlineEye,
+  HiOutlineMagnifyingGlass,
+  HiOutlinePlus,
+  HiOutlineXCircle,
+} from "react-icons/hi2";
 
 export default function LeaveHistoryPage() {
   const params = useParams();
@@ -254,7 +253,7 @@ export default function LeaveHistoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Demandé le</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>Type ou titre</TableHead>
                   <TableHead>Période</TableHead>
                   <TableHead>Durée</TableHead>
                   <TableHead>Statut</TableHead>
@@ -281,16 +280,18 @@ export default function LeaveHistoryPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div
-                          className="size-3 rounded-full"
-                          style={{
-                            backgroundColor:
-                              request.leave_type_color || "#3B82F6",
-                          }}
-                        />
-                        <span className="text-sm">
-                          {request.leave_type_name || "N/A"}
-                        </span>
+                        {request.leave_type_name && (
+                        <div>
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-muted text-muted-foreground">
+                              {request.leave_type_name || "N/A"}
+                            </span>
+                          </div>
+                        )}
+                        {request.title && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-muted text-muted-foreground">
+                            {request.title}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

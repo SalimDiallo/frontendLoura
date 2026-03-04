@@ -120,4 +120,21 @@ export async function deleteLeaveRequest(id: string): Promise<void> {
   return apiClient.delete<void>(API_ENDPOINTS.HR.LEAVE_REQUESTS.DELETE(id));
 }
 
+/**
+ * Récupère les soldes de congés de l'employé connecté
+ */
+import type { LeaveBalance } from '@/lib/types/hr';
+
+export async function getMyLeaveBalances(year?: number): Promise<LeaveBalance[]> {
+  const searchParams = new URLSearchParams();
+  if (year) searchParams.append('year', String(year));
+
+  const queryString = searchParams.toString();
+  const url = queryString
+    ? `${API_ENDPOINTS.HR.LEAVE_REQUESTS.MY_BALANCES}?${queryString}`
+    : API_ENDPOINTS.HR.LEAVE_REQUESTS.MY_BALANCES;
+
+  return apiClient.get<LeaveBalance[]>(url);
+}
+
 

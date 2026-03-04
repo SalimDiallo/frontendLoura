@@ -115,12 +115,22 @@ export const API_ENDPOINTS = {
       LIST: '/hr/leave-requests/',
       CREATE: '/hr/leave-requests/',
       HISTORY: '/hr/leave-requests/history',
+      MY_BALANCES: '/hr/leave-requests/my-balances/',
       DETAIL: (id: string) => `/hr/leave-requests/${id}/`,
       UPDATE: (id: string) => `/hr/leave-requests/${id}/`,
       DELETE: (id: string) => `/hr/leave-requests/${id}/`,
       APPROVE: (id: string) => `/hr/leave-requests/${id}/approve/`,
       REJECT: (id: string) => `/hr/leave-requests/${id}/reject/`,
       EXPORT_PDF: (id: string) => `/hr/leave-requests/${id}/export-pdf/`,
+    },
+    // Soldes de congés
+    LEAVE_BALANCES: {
+      LIST: '/hr/leave-balances/',
+      CREATE: '/hr/leave-balances/',
+      DETAIL: (id: string) => `/hr/leave-balances/${id}/`,
+      UPDATE: (id: string) => `/hr/leave-balances/${id}/`,
+      DELETE: (id: string) => `/hr/leave-balances/${id}/`,
+      INITIALIZE: '/hr/leave-balances/initialize/',
     },
     // Périodes de paie
     PAYROLL_PERIODS: {

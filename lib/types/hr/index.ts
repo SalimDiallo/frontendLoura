@@ -349,6 +349,19 @@ export interface LeaveRequest {
   approver_name?: string;
 }
 
+export interface LeaveBalance {
+  id: string;
+  employee: string;
+  employee_name: string;
+  year: number;
+  allocated_days: number;
+  used_days: number;
+  pending_days: number;
+  remaining_days: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface LeaveRequestHistoryApiResponse {
   id: string;
   employee: string;

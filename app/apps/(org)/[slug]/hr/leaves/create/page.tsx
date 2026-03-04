@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/client";
 import { useUser } from "@/lib/hooks";
 import { getLeaveTypes } from "@/lib/services/hr/leave-type.service";
-import { createLeaveRequest, getLeaveRequests } from "@/lib/services/hr/leave.service";
-import type { LeaveRequest, LeaveRequestCreate, LeaveType } from "@/lib/types/hr";
+import { createLeaveRequest, getLeaveRequests, getMyLeaveBalances } from "@/lib/services/hr/leave.service";
+import type { LeaveBalance, LeaveRequest, LeaveRequestCreate, LeaveType } from "@/lib/types/hr";
 import { formatLeaveDaysWithLabel } from "@/lib/utils/leave";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
@@ -27,7 +27,7 @@ import {
 import * as z from "zod";
 
 // Use react-day-picker for improved UX on range
-import { addDays, eachDayOfInterval, parseISO } from "date-fns";
+import { eachDayOfInterval, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
@@ -164,26 +164,61 @@ export default function CreateLeaveRequestPage() {
   const [error, setError] = useState<string | null>(null);
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [existingRequests, setExistingRequests] = useState<LeaveRequest[]>([]);
+  const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [calculatedDays, setCalculatedDays] = useState<number>(0);
 
   const user = useUser();
 
+  // Helper: normalize date to midnight (00:00:00) for accurate comparison
+  const normalizeDate = (date: Date): Date => {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+  };
+
+  // Today at midnight (for disabling past dates)
+  const today = normalizeDate(new Date());
+
   // Build the list of disabled dates from existing pending/approved requests
   const disabledDates = (() => {
     const dates: Date[] = [];
+
+    console.log('🔍 Building disabled dates from', existingRequests.length, 'requests');
+
     for (const req of existingRequests) {
+      console.log('🔍 Processing request:', req.id, 'Status:', req.status, 'Dates:', req.start_date, '-', req.end_date);
+
+      // Only include pending or approved requests
+      if (req.status !== 'pending' && req.status !== 'approved') {
+        console.log('⏭️  Skipping request (status not pending/approved)');
+        continue;
+      }
+
       try {
         const start = parseISO(req.start_date);
         const end = parseISO(req.end_date);
+
+        console.log('🔍 Parsed dates:', start, '-', end);
+
         if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
           const interval = eachDayOfInterval({ start, end });
-          dates.push(...interval);
+          console.log('📅 Generated interval:', interval.length, 'days');
+
+          // Normalize each date to midnight for consistent comparison
+          const normalizedInterval = interval.map(normalizeDate);
+          dates.push(...normalizedInterval);
+        } else {
+          console.log('❌ Invalid dates after parsing');
         }
-      } catch {
-        // skip malformed dates
+      } catch (error) {
+        console.log('❌ Error parsing dates:', error);
       }
     }
+
+    console.log('✅ Total disabled dates:', dates.length);
+    console.log('📅 Sample disabled dates:', dates.slice(0, 3));
+
     return dates;
   })();
 
@@ -253,20 +288,45 @@ export default function CreateLeaveRequestPage() {
         return;
       }
 
-      // Fetch leave types and existing requests in parallel
-      const [types, pendingRes, approvedRes] = await Promise.all([
+      // Fetch leave types, existing requests, and balances in parallel
+      const currentYear = new Date().getFullYear();
+
+
+      // For employees, fetch their own requests
+      // For admins, we need a different approach since they don't have employee records
+      const requestParams = user.user_type === 'employee'
+        ? { employee: user.id, page_size: 200 }
+        : { page_size: 200, organization_subdomain: slug };
+
+      console.log('🔍 Fetching requests with params:', requestParams);
+
+      const [types, pendingRes, approvedRes, balances] = await Promise.all([
         getLeaveTypes({ is_active: true }),
-        getLeaveRequests({ employee: user.id, status: "pending", page_size: 200 }),
-        getLeaveRequests({ employee: user.id, status: "approved", page_size: 200 }),
+        getLeaveRequests({ ...requestParams, status: "pending" }),
+        getLeaveRequests({ ...requestParams, status: "approved" }),
+        getMyLeaveBalances(currentYear),
       ]);
 
       setLeaveTypes(types);
+      setLeaveBalances(balances);
+
+      console.log('🔍 API Response - Pending:', pendingRes);
+      console.log('🔍 API Response - Approved:', approvedRes);
 
       // Combine pending + approved requests
       const allRequests = [
         ...(pendingRes?.results || []),
         ...(approvedRes?.results || []),
       ];
+
+      console.log('🔍 DEBUG: Loaded requests:', {
+        pending: pendingRes?.results?.length || 0,
+        approved: approvedRes?.results?.length || 0,
+        total: allRequests.length,
+        sampleRequest: allRequests[0],
+        allRequests: allRequests
+      });
+
       setExistingRequests(allRequests);
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -407,6 +467,20 @@ export default function CreateLeaveRequestPage() {
   const dayjsFormat = (d?: Date) =>
     d && !isNaN(d.getTime()) ? d.toLocaleDateString("fr-FR") : "";
 
+  // Vérifier si le solde est insuffisant (solde global)
+  const hasInsufficientBalance = (() => {
+    if (!calculatedDays || calculatedDays === 0) {
+      return false;
+    }
+    const currentYear = new Date().getFullYear();
+    const balance = leaveBalances.find(b => b.year === currentYear);
+    if (!balance) {
+      return false; // Pas de solde configuré = pas de limite
+    }
+    const remainingDaysNum = Math.max(0, Number(balance.remaining_days));
+    return remainingDaysNum < calculatedDays;
+  })();
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -512,6 +586,54 @@ export default function CreateLeaveRequestPage() {
             </Card>
           )}
 
+          {/* Leave balance info - Global balance (all leave types combined) */}
+          {leaveBalances.length > 0 && (() => {
+            // Get balance for current year (global balance)
+            const currentYear = new Date().getFullYear();
+            const balance = leaveBalances.find(b => b.year === currentYear);
+            if (!balance) return null;
+
+            const remainingDaysNum = Math.max(0, Number(balance.remaining_days));
+            const hasEnough = calculatedDays === 0 || remainingDaysNum >= calculatedDays;
+            const isLow = remainingDaysNum <= 5 && remainingDaysNum > 0;
+
+            return (
+              <Card className={`p-4 border-0 shadow-sm ${hasEnough ? 'bg-green-50 dark:bg-green-950/20' : 'bg-red-50 dark:bg-red-950/20'}`}>
+                <div className="flex items-start gap-3">
+                  <HiOutlineInformationCircle className={`size-5 shrink-0 mt-0.5 ${hasEnough ? 'text-green-600' : 'text-red-600'}`} />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold">Solde de congés {currentYear} (tous types confondus)</h3>
+                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wide">Alloués</span>
+                        <span className="text-sm font-bold">{balance.allocated_days} j</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wide">Utilisés</span>
+                        <span className="text-sm font-bold">{balance.used_days} j</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wide">En attente</span>
+                        <span className="text-sm font-bold">{balance.pending_days} j</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wide">Restants</span>
+                        <span className={`text-sm font-bold ${isLow ? 'text-orange-600' : hasEnough ? 'text-green-600' : 'text-red-600'}`}>
+                          {remainingDaysNum} j
+                        </span>
+                      </div>
+                    </div>
+                    {calculatedDays > 0 && !hasEnough && (
+                      <p className="mt-2 text-xs text-red-600 font-medium">
+                        ⚠️ Vous demandez {calculatedDays} jour{calculatedDays > 1 ? 's' : ''} mais vous n'avez que {remainingDaysNum} jour{remainingDaysNum > 1 ? 's' : ''} disponible{remainingDaysNum > 1 ? 's' : ''}.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            );
+          })()}
+
           {/* ─── Step 2: Title ─── */}
           <Card className="p-6 border-0 shadow-sm">
             <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
@@ -569,8 +691,8 @@ export default function CreateLeaveRequestPage() {
                       showOutsideDays
                       numberOfMonths={2}
                       disabled={[
-                        { before: new Date() },
-                        ...disabledDates.map((d) => d),
+                        { before: today },
+                        ...disabledDates,
                       ]}
                       modifiers={{
                         booked: disabledDates,
@@ -687,13 +809,27 @@ export default function CreateLeaveRequestPage() {
           </Card>
 
           {/* ─── Submit ─── */}
+          {hasInsufficientBalance && (
+            <Alert variant="error" className="animate-in fade-in">
+              <div className="flex items-start gap-3">
+                <HiOutlineXMark className="size-5 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-sm">Solde insuffisant</p>
+                  <p className="text-sm mt-0.5">
+                    Vous ne pouvez pas soumettre cette demande car vous n'avez pas assez de jours disponibles.
+                    Veuillez réduire la durée ou contacter votre administrateur.
+                  </p>
+                </div>
+              </div>
+            </Alert>
+          )}
           <div className="flex items-center justify-end gap-4">
             <Button type="button" variant="outline" asChild>
               <Link href={`/apps/${slug}/hr/leaves`}>Annuler</Link>
             </Button>
             <Button
               type="submit"
-              disabled={loading || calculatedDays === 0}
+              disabled={loading || calculatedDays === 0 || hasInsufficientBalance}
             >
               {loading ? (
                 <>Création en cours...</>

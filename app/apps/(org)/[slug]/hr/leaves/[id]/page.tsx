@@ -25,6 +25,7 @@ import {
   FileText,
   Loader2,
   MessageSquare,
+  Text,
   Trash2,
   User,
   UserCheck,
@@ -370,7 +371,9 @@ export default function LeaveRequestDetailPage() {
           </Card>
 
           {/* Leave Type */}
-          <Card className="p-6">
+        {
+          leave.leave_type_name && (
+            <Card className="p-6">
             <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
               <Calendar className="size-5 text-primary" />
               Type de congé
@@ -383,6 +386,24 @@ export default function LeaveRequestDetailPage() {
               <span className="font-medium">{leave.leave_type_name || 'Non spécifié'}</span>
             </div>
           </Card>
+        )}
+
+         {
+          leave.title && (
+            <Card className="p-6">
+            <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
+              <Text className="size-5 text-primary" />
+            Titre
+            </h2>
+            <div className="flex items-center gap-3">
+              <div 
+                className="size-4 rounded-full"
+                style={{ backgroundColor: leave.leave_type_color || '#6B7280' }}
+              />
+              <span className="font-medium">{leave.title || 'Non spécifié'}</span>
+            </div>
+            </Card>
+         )}
 
           {/* Approver Mini-card (if info available) */}
           {(approverName || approvalDate) && (
