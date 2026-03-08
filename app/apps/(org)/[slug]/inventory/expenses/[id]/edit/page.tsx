@@ -1,23 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { FormActions, FormField, FormHeader, FormSection, FormSelect } from "@/components/common";
 import { Alert, Label } from "@/components/ui";
 import { QuickSelect } from "@/components/ui/quick-select";
-import { getExpense, updateExpense, getExpenseCategories, createExpenseCategory } from "@/lib/services/inventory";
-import type { ExpenseUpdate, ExpenseCategory } from "@/lib/types/inventory";
-import {
-  AlertTriangle,
-  Receipt,
-  Calendar,
-  Wallet,
-  User,
-  FileText,
-  Tag,
-} from "lucide-react";
 import { formatCurrency } from "@/lib";
 import { useEntityForm } from "@/lib/hooks";
-import { FormHeader, FormActions, FormSection, FormField, FormSelect } from "@/components/common";
+import { createExpenseCategory, getExpense, getExpenseCategories, updateExpense } from "@/lib/services/inventory";
+import type { ExpenseCategory, ExpenseUpdate } from "@/lib/types/inventory";
+import {
+  AlertTriangle,
+  Calendar,
+  FileText,
+  Receipt,
+  Tag,
+  User,
+  Wallet,
+} from "lucide-react";
+import { useParams } from "next/navigation";
+import { useState } from "react";
 
 export default function EditExpensePage() {
   const params = useParams();
@@ -125,7 +125,7 @@ export default function EditExpensePage() {
             </div>
 
             <FormField
-              label="Montant (GNF)"
+              label="Montant"
               name="amount"
               type="number"
               value={form.formData.amount}
@@ -162,8 +162,8 @@ export default function EditExpensePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               label="Date"
-              name="expense_date"
               type="date"
+              name="expense_date"
               value={form.formData.expense_date}
               onChange={form.handleChange}
               required

@@ -1,26 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Card, Badge } from "@/components/ui";
-import { getExpense, deleteExpense } from "@/lib/services/inventory";
+import { Can } from "@/components/apps/common";
+import { Alert, Badge, Button, Card } from "@/components/ui";
+import { formatCurrency } from "@/lib";
+import { deleteExpense, getExpense } from "@/lib/services/inventory";
 import type { Expense } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import {
-  ArrowLeft,
   AlertTriangle,
-  Edit,
-  Trash2,
+  ArrowLeft,
   Calendar,
-  Wallet,
-  User,
-  FileText,
-  Receipt,
   CreditCard,
-  Tag,
+  Edit,
+  FileText,
   Loader2,
+  Receipt,
+  Tag,
+  Trash2,
+  User,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function ExpenseDetailPage() {
   const params = useParams();
@@ -61,8 +63,6 @@ export default function ExpenseDetailPage() {
     }
   };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("fr-GN", { style: "decimal", minimumFractionDigits: 0 }).format(amount) + " GNF";
 
   const getPaymentMethodLabel = (method: string) => {
     const methods: Record<string, string> = {
@@ -98,7 +98,8 @@ export default function ExpenseDetailPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+   <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES} showMessage>
+       <div className="p-6 max-w-3xl mx-auto space-y-6">
       {/* Delete Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -134,16 +135,20 @@ export default function ExpenseDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" asChild>
+         <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_EXPENSES}>
+         <Button variant="outline" asChild>
             <Link href={`/apps/${slug}/inventory/expenses/${id}/edit`}>
               <Edit className="mr-2 h-4 w-4" />
               Modifier
             </Link>
           </Button>
-          <Button variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
+         </Can>
+         <Can permission={COMMON_PERMISSIONS.INVENTORY.DELETE_EXPENSES}>
+         <Button variant="destructive" onClick={() => setShowDeleteConfirm(true)}>
             <Trash2 className="mr-2 h-4 w-4" />
             Supprimer
           </Button>
+         </Can>
         </div>
       </div>
 
@@ -163,7 +168,7 @@ export default function ExpenseDetailPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Montant de la dépense</p>
-              <p className="text-3xl font-bold text-red-600">-{formatCurrency(expense.amount)}</p>
+              <p className="text-3xl font-bold text-red-600">{formatCurrency(expense.amount)}</p>
             </div>
           </div>
           <Badge variant="default" className="text-lg">
@@ -245,5 +250,6 @@ export default function ExpenseDetailPage() {
         )}
       </div>
     </div>
+   </Can>
   );
 }

@@ -192,7 +192,9 @@ export function OrganisationSideBar() {
         hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS)
           ? { title: "Approvisionnement", url: `/apps/${orgSlug}/inventory/orders`, icon: HiOutlineTruck }
           : null,
-        { title: "Dépenses", url: `/apps/${orgSlug}/inventory/expenses`, icon: HiOutlineCurrencyDollar },
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES)
+          ? { title: "Dépenses", url: `/apps/${orgSlug}/inventory/expenses`, icon: HiOutlineCurrencyDollar }
+          : null,
         hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_PRODUCTS)
           ? { title: "Produits", url: `/apps/${orgSlug}/inventory/products`, icon: HiOutlineCube }
           : null,

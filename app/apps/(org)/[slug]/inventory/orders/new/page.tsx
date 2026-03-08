@@ -1,33 +1,35 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Input, Card, Alert, Badge } from "@/components/ui";
+import { Can, usePermissionContext } from "@/components/apps/common";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
 import { QuickSelect } from "@/components/ui/quick-select";
-import { createOrder, getSuppliers, getWarehouses, getProducts, createSupplier, createWarehouse } from "@/lib/services/inventory";
-import type { OrderCreate, OrderItemCreate, Supplier, Warehouse, ProductList } from "@/lib/types/inventory";
+import { createOrder, createSupplier, createWarehouse, getProducts, getSuppliers, getWarehouses } from "@/lib/services/inventory";
+import type { OrderCreate, OrderItemCreate, ProductList, Supplier, Warehouse } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { formatCurrency } from "@/lib/utils";
 import {
   ArrowLeft,
-  Plus,
-  Trash2,
-  Package,
-  Truck,
   Building2,
   Calendar,
-  Search,
   CheckCircle,
-  Loader2,
   ChevronDown,
   ChevronUp,
-  Warehouse as WarehouseIcon,
+  Loader2,
+  Package,
+  Search,
+  Trash2,
+  Truck,
+  Warehouse as WarehouseIcon
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 export default function NewOrderPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
+  const {hasPermission} = usePermissionContext();
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -202,7 +204,8 @@ export default function NewOrderPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+  <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_ORDERS} showMessage>
+        <div className="p-6 max-w-3xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href={`/apps/${slug}/inventory/orders`}>
@@ -238,6 +241,8 @@ export default function NewOrderPage() {
                   setSuppliers(prev => [...prev, newSupplier]);
                   return { id: newSupplier.id, name: newSupplier.name };
                 }}
+
+                canCreate={hasPermission(COMMON_PERMISSIONS.INVENTORY.CREATE_SUPPLIERS)}
                 placeholder="Rechercher un fournisseur..."
                 icon={Building2}
                 accentColor="green"
@@ -251,6 +256,7 @@ export default function NewOrderPage() {
                 label="Entrepôt"
                 items={warehouses.map(w => ({ id: w.id, name: w.name, subtitle: w.city || w.code }))}
                 selectedId={formData.warehouse}
+                canCreate={hasPermission(COMMON_PERMISSIONS.INVENTORY.CREATE_WAREHOUSES)}
                 onSelect={(id) => setFormData(prev => ({ ...prev, warehouse: id }))}
                 onCreate={async (name) => {
                   const code = `WH-${Date.now().toString(36).toUpperCase()}`;
@@ -522,7 +528,7 @@ export default function NewOrderPage() {
             <Button
               type="submit"
               disabled={loading || items.length === 0 || !formData.supplier || !formData.warehouse}
-              className="flex-1 h-12 bg-foreground hover:bg-blue-700"
+              className="flex-1 h-12 bg-primary hover:bg-blue-700"
             >
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -540,5 +546,6 @@ export default function NewOrderPage() {
         </Card>
       </form>
     </div>
+  </Can>
   );
 }

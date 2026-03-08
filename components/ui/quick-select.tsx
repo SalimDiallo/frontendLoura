@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
 import { Button, Input } from "@/components/ui";
-import { Search, Plus, X, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Check, Loader2, Plus, Search, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 
 export interface QuickSelectItem {
   id: string;
@@ -24,6 +24,7 @@ interface QuickSelectProps {
   extraFieldLabel?: string;
   disabled?: boolean;
   required?: boolean;
+  canCreate?:boolean
 }
 
 const colorClasses = {
@@ -77,6 +78,7 @@ export function QuickSelect({
   extraFieldLabel,
   disabled = false,
   required = false,
+  canCreate = true
 }: QuickSelectProps) {
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -160,7 +162,7 @@ export function QuickSelect({
             className={cn("pl-10", onCreate && "pr-20")}
             disabled={disabled}
           />
-          {onCreate && !disabled && (
+          {onCreate && canCreate && !disabled && (
             <Button
               type="button"
               variant="ghost"

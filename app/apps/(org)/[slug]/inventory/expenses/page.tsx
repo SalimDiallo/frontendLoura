@@ -1,41 +1,39 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card, Input } from "@/components/ui";
-import { usePDF, PDFEndpoints } from "@/lib/hooks";
-import { PDFPreviewWrapper } from "@/components/ui";
-import { 
-  getExpenses, 
-  getExpenseSummary, 
-  deleteExpense, 
+import { Can } from "@/components/apps/common";
+import { Alert, Badge, Button, Card, Input, PDFPreviewWrapper } from "@/components/ui";
+import { usePDF } from "@/lib/hooks";
+import {
+  deleteExpense,
   getExpenseCategories,
-  downloadExpensesPdf,
-  getExpensesPdfBlob 
+  getExpenses,
+  getExpenseSummary
 } from "@/lib/services/inventory";
 import type { Expense, ExpenseCategory, ExpenseSummary } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn, formatCurrency } from "@/lib/utils";
 import {
-  Plus,
-  Search,
   AlertTriangle,
-  Receipt,
   Calendar,
-  Eye,
-  Trash2,
-  Edit,
-  TrendingUp,
-  TrendingDown,
-  PieChart,
   Download,
-  Keyboard,
-  X,
-  Filter,
-  Wallet,
+  Edit,
+  Eye,
   FileText,
-  Loader2,
+  Filter,
+  Keyboard,
+  PieChart,
+  Plus,
+  Receipt,
+  Search,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+  X
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 export default function ExpensesPage() {
   const params = useParams();
@@ -195,7 +193,8 @@ export default function ExpensesPage() {
   }
 
   return (
-    <div className="space-y-4 p-3 md:p-4">
+   <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES} showMessage>
+       <div className="space-y-4 p-3 md:p-4">
       {/* Shortcuts Modal */}
       {showShortcuts && (
         <div
@@ -225,22 +224,24 @@ export default function ExpensesPage() {
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-sm p-3 m-2">
-            <h2 className="text-lg font-bold mb-2">Confirmer la suppression</h2>
-            <p className="text-xs text-muted-foreground mb-4">
-              Êtes-vous sûr de vouloir supprimer cette dépense ? Cette action est irréversible.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={() => setDeleteConfirmId(null)}>
-                Annuler
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => handleDelete(deleteConfirmId)}>
-                Supprimer
-              </Button>
-            </div>
-          </Card>
-        </div>
+        <Can permission={COMMON_PERMISSIONS.INVENTORY.DELETE_EXPENSES}>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-sm p-3 m-2">
+              <h2 className="text-lg font-bold mb-2">Confirmer la suppression</h2>
+              <p className="text-xs text-muted-foreground mb-4">
+                Êtes-vous sûr de vouloir supprimer cette dépense ? Cette action est irréversible.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => setDeleteConfirmId(null)}>
+                  Annuler
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => handleDelete(deleteConfirmId)}>
+                  Supprimer
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </Can>
       )}
 
       {/* Header */}
@@ -261,15 +262,17 @@ export default function ExpensesPage() {
               <span className="hidden md:inline">Catégories</span>
             </Link>
           </Button>
-          <Button asChild size="sm">
-            <Link href={`/apps/${slug}/inventory/expenses/new`}>
-              <Plus className="mr-1 h-3 w-3" />
-              <span>Nouvelle</span>
-              <kbd className="ml-1 hidden sm:inline-flex h-4 items-center rounded border bg-muted px-1 font-mono text-[10px]">
-                N
-              </kbd>
-            </Link>
-          </Button>
+          <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_EXPENSES}>
+            <Button asChild size="sm">
+              <Link href={`/apps/${slug}/inventory/expenses/new`}>
+                <Plus className="mr-1 h-3 w-3" />
+                <span>Nouvelle</span>
+                <kbd className="ml-1 hidden sm:inline-flex h-4 items-center rounded border bg-muted px-1 font-mono text-[10px]">
+                  N
+                </kbd>
+              </Link>
+            </Button>
+          </Can>
         </div>
       </div>
 
@@ -472,31 +475,37 @@ export default function ExpensesPage() {
                     </td>
                     <td className="p-2 text-right">
                       <span className="font-bold text-red-600">
-                        -{formatCurrency(expense.amount)}
+                        {formatCurrency(expense.amount)}
                       </span>
                     </td>
                     <td className="p-2">
                       <div className="flex items-center justify-center gap-0.5">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/apps/${slug}/inventory/expenses/${expense.id}`}>
-                            <Eye className="h-3 w-3" />
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/apps/${slug}/inventory/expenses/${expense.id}/edit`}>
-                            <Edit className="h-3 w-3" />
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteConfirmId(expense.id);
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3 text-red-500" />
-                        </Button>
+                        <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES}>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/apps/${slug}/inventory/expenses/${expense.id}`}>
+                              <Eye className="h-3 w-3" />
+                            </Link>
+                          </Button>
+                        </Can>
+                        <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_EXPENSES}>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/apps/${slug}/inventory/expenses/${expense.id}/edit`}>
+                              <Edit className="h-3 w-3" />
+                            </Link>
+                          </Button>
+                        </Can>
+                        <Can permission={COMMON_PERMISSIONS.INVENTORY.DELETE_EXPENSES}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirmId(expense.id);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3 text-red-500" />
+                          </Button>
+                        </Can>
                       </div>
                     </td>
                   </tr>
@@ -512,7 +521,7 @@ export default function ExpensesPage() {
         <p>Total: {filteredExpenses.length} dépense(s)</p>
         <p>
           Total: <span className="font-bold text-red-600">
-            -{formatCurrency(filteredExpenses.reduce((acc, e) => acc + e.amount, 0))}
+            {formatCurrency(filteredExpenses.reduce((acc, e) => acc + e.amount, 0))}
           </span>
         </p>
       </div>
@@ -574,7 +583,7 @@ export default function ExpensesPage() {
               </div>
 
               <div className="bg-muted/50 rounded-lg p-2 text-xs text-muted-foreground">
-                <p>📊 Inclus :</p>
+                <p>Inclus :</p>
                 <ul className="mt-0.5 ml-4 list-disc">
                   <li>Liste filtrée</li>
                   <li>Totaux catégorie</li>
@@ -652,6 +661,7 @@ export default function ExpensesPage() {
       {/* PDF Preview Modal */}
       <PDFPreviewWrapper previewState={previewState} onClose={closePreview} />
     </div>
+   </Can>
   );
 }
 

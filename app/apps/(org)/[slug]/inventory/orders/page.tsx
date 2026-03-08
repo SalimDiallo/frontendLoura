@@ -1,30 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card, Input } from "@/components/ui";
-import { getOrders, confirmOrder, receiveOrder, cancelOrder } from "@/lib/services/inventory";
+import { Can } from "@/components/apps/common/protected-route";
+import { ConfirmationDialog } from "@/components/common/confirmation-dialog";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { cancelOrder, confirmOrder, getOrders, receiveOrder } from "@/lib/services/inventory";
 import type { OrderList } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn, formatCurrency } from "@/lib/utils";
+import { getStatusInfo } from "@/lib/utils/BadgeStatus";
 import {
-  Plus,
-  Search,
   AlertTriangle,
-  ShoppingCart,
   Calendar,
   CheckCircle,
-  XCircle,
-  Package,
   Clock,
   Eye,
   Loader2,
+  Package,
+  Plus,
+  Search,
+  ShoppingCart,
   Truck,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency } from "@/lib/utils";
-import { Can } from "@/components/apps/common/protected-route";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { getStatusInfo } from "@/lib/utils/BadgeStatus";
-import { ConfirmationDialog } from "@/components/common/confirmation-dialog";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function OrdersPage() {
   const params = useParams();
@@ -127,9 +127,9 @@ export default function OrdersPage() {
   }
 
   // Find selected order for dialogs
-  const selectedConfirmOrder = orders.find(o => o.id === confirmDialogOrderId);
-  const selectedReceiveOrder = orders.find(o => o.id === receiveDialogOrderId);
-  const selectedCancelOrder = orders.find(o => o.id === cancelDialogOrderId);
+  // const selectedConfirmOrder = orders.find(o => o.id === confirmDialogOrderId);
+  // const selectedReceiveOrder = orders.find(o => o.id === receiveDialogOrderId);
+  // const selectedCancelOrder = orders.find(o => o.id === cancelDialogOrderId);
 
   return (
     <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS} showMessage={true}>
@@ -362,7 +362,7 @@ export default function OrdersPage() {
                                   onOpenChange={open => setCancelDialogOrderId(open ? order.id : null)}
                                   title="Annuler la commande"
                                   description={`Êtes-vous sûr de vouloir annuler la commande « ${order.order_number} » ? Cette action est irréversible.`}
-                                  confirmLabel="Annuler"
+                                  confirmLabel="Confirmer l'annulation"
                                   confirmVariant="destructive"
                                   onConfirm={() => handleCancel(order.id)}
                                   loading={actionLoading === order.id}

@@ -1,43 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card } from "@/components/ui";
+import { Badge, Button, Card } from "@/components/ui";
 import {
-  getOrder,
-  deleteOrder,
-  confirmOrder,
-  receiveOrder,
   cancelOrder,
-  exportOrderPdf,
+  confirmOrder,
+  deleteOrder,
+  getOrder,
+  receiveOrder
 } from "@/lib/services/inventory";
 import type { Order, OrderStatus } from "@/lib/types/inventory";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   ArrowLeft,
-  Edit,
-  Trash2,
   Building,
   Calendar,
-  FileText,
-  FileDown,
-  Package,
   CheckCircle,
-  XCircle,
   Clock,
-  TruckIcon,
-  Loader2,
-  Truck,
   Download,
+  Edit,
   Eye,
+  FileText,
+  Package,
+  Trash2,
+  Truck,
+  TruckIcon,
+  XCircle
 } from "lucide-react";
 import Link from "next/link";
-import { formatCurrency } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 // Permissions & confirmations UI
-import { ConfirmationDialog, DeleteConfirmation } from "@/components/common/confirmation-dialog";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { usePDF } from "@/lib/hooks/usePDF";
+import { ConfirmationDialog, DeleteConfirmation } from "@/components/common/confirmation-dialog";
 import { PDFPreviewWrapper } from "@/components/ui/pdf-preview";
+import { usePDF } from "@/lib/hooks/usePDF";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 const statusConfig: Record<OrderStatus, { label: string; variant: "default" | "outline" | "success" | "warning" | "error" }> = {
   draft: { label: "Brouillon", variant: "outline" },
@@ -136,8 +133,8 @@ export default function OrderDetailPage() {
     if (!order) return;
     preview(
       `/inventory/orders/${orderId}/export-pdf/`,
-      `Commande - ${order.order_number}`,
-      `Commande_${order.order_number}.pdf`
+      `Commande - ${order?.order_number}`,
+      `Commande_${order?.order_number}.pdf`
     );
   };
 
@@ -145,7 +142,7 @@ export default function OrderDetailPage() {
     if (!order) return;
     download(
       `/inventory/orders/${orderId}/export-pdf/`,
-      `Commande_${order.order_number}.pdf`
+      `Commande_${order?.order_number}.pdf`
     );
   };
 
@@ -160,28 +157,20 @@ export default function OrderDetailPage() {
     );
   }
 
-  if (error || !order) {
-    return (
-      <div className="p-4">
-        <Alert variant="error" title="Erreur">
-          {error || "Commande introuvable"}
-        </Alert>
-      </div>
-    );
-  }
 
-  const statusInfo = statusConfig[order.status];
+  const statusInfo = order?.status ? statusConfig[order.status] : statusConfig["draft"];
 
   // Helper to see if the transport info exists (at least company or mode or cost, etc.)
   const hasTransport =
-    !!order.transport_company ||
-    !!order.transport_mode ||
-    !!order.transport_cost ||
-    !!order.tracking_number ||
-    !!order.transport_notes;
+    !!order?.transport_company ||
+    !!order?.transport_mode ||
+    !!order?.transport_cost ||
+    !!order?.tracking_number ||
+    !!order?.transport_notes;
 
   return (
-    <div className="space-y-6 p-6">
+ <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS} showMessage>
+       <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -192,13 +181,13 @@ export default function OrderDetailPage() {
           </Link>
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-xl font-bold">{order.order_number}</h1>
+              <h1 className="text-xl font-bold">{order?.order_number}</h1>
               <Badge variant={statusInfo.variant} size="lg">
                 {statusInfo.label}
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              Commande du {new Date(order.order_date).toLocaleDateString("fr-FR")}
+              Commande du {order?.order_date && formatDate(order?.order_date)}
             </p>
           </div>
         </div>
@@ -206,7 +195,7 @@ export default function OrderDetailPage() {
 
           {/* CONFIRM button */}
           <Can  permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS} >
-            {order.status === "draft" && (
+            {order?.status === "draft" && (
               <Button onClick={handleConfirm} disabled={actionLoading}>
                 <CheckCircle className="mr-2 h-4 w-4" />
                 Confirmer
@@ -216,7 +205,7 @@ export default function OrderDetailPage() {
 
           {/* RECEIVE button */}
           <Can  permission={COMMON_PERMISSIONS.INVENTORY.RECEIVE_ORDERS} >
-            {order.status === "confirmed" && (
+            {order?.status === "confirmed" && (
               <Button onClick={handleReceive} disabled={actionLoading}>
                 <TruckIcon className="mr-2 h-4 w-4" />
                 Marquer comme reçu
@@ -226,7 +215,7 @@ export default function OrderDetailPage() {
 
           {/* CANCEL button with ConfirmationDialog */}
           <Can  permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS} >
-            {(order.status === "draft" || order.status === "pending") && (
+            {(order?.status === "draft" || order?.status === "pending") && (
               <>
                 <Button
                   variant="outline"
@@ -276,7 +265,7 @@ export default function OrderDetailPage() {
               <DeleteConfirmation
                 open={deleteDialogOpen}
                 title="Supprimer la commande"
-                description={`Êtes-vous sûr de vouloir supprimer la commande "${order.order_number}" ? Cette action est irréversible.`}
+                description={`Êtes-vous sûr de vouloir supprimer la commande "${order?.order_number}" ? Cette action est irréversible.`}
                 loading={actionLoading}
                 onConfirm={handleDelete}
                 onOpenChange={() => setDeleteDialogOpen(false)}
@@ -297,10 +286,10 @@ export default function OrderDetailPage() {
             <div>
               <p className="text-muted-foreground text-xs">Fournisseur</p>
               <Link
-                href={`/apps/${slug}/inventory/suppliers/${order.supplier}`}
+                href={`/apps/${slug}/inventory/suppliers/${order?.supplier}`}
                 className="font-medium hover:text-primary"
               >
-                {order.supplier_name || order.supplier}
+                {order?.supplier_name || order?.supplier}
               </Link>
             </div>
             <div>
@@ -308,10 +297,10 @@ export default function OrderDetailPage() {
                 Entrepôt de destination
               </p>
               <Link
-                href={`/apps/${slug}/inventory/warehouses/${order.warehouse}`}
+                href={`/apps/${slug}/inventory/warehouses/${order?.warehouse}`}
                 className="font-medium hover:text-primary"
               >
-                {order.warehouse_name || order.warehouse}
+                {order?.warehouse_name || order?.warehouse}
               </Link>
             </div>
           </div>
@@ -326,47 +315,36 @@ export default function OrderDetailPage() {
             <div>
               <p className="text-muted-foreground text-xs">Date de commande</p>
               <p className="font-medium">
-                {new Date(order.order_date).toLocaleDateString("fr-FR", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+                {order?.order_date && formatDate(order?.order_date)}
               </p>
             </div>
-            {order.expected_delivery_date && (
+            {order?.expected_delivery_date && (
               <div>
                 <p className="text-muted-foreground text-xs">
                   Livraison prévue
                 </p>
                 <p className="font-medium">
-                  {new Date(order.expected_delivery_date).toLocaleDateString(
-                    "fr-FR",
-                    {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    }
-                  )}
+                  {formatDate(order?.expected_delivery_date, {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric"
+                  })}
                 </p>
               </div>
             )}
-            {order.actual_delivery_date && (
+            {order?.actual_delivery_date && (
               <div>
                 <p className="text-muted-foreground text-xs">
                   Livraison réelle
                 </p>
                 <p className="font-medium">
-                  {new Date(order.actual_delivery_date).toLocaleDateString(
-                    "fr-FR",
-                    {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    }
-                  )}
+                  {formatDate(order?.actual_delivery_date, {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric"
+                  })}
                 </p>
               </div>
             )}
@@ -380,60 +358,60 @@ export default function OrderDetailPage() {
               Informations de transport
             </h3>
             <div className="space-y-2 text-sm">
-              {order.transport_company && (
+              {order?.transport_company && (
                 <div>
                   <span className="text-muted-foreground text-xs">
                     Transporteur
                   </span>
-                  <p className="font-medium">{order.transport_company}</p>
+                  <p className="font-medium">{order?.transport_company}</p>
                 </div>
               )}
-              {order.transport_mode && (
+              {order?.transport_mode && (
                 <div>
                   <span className="text-muted-foreground text-xs">
                     Mode de transport
                   </span>
                   <p className="font-medium capitalize">
-                    {order.transport_mode}
+                    {order?.transport_mode}
                   </p>
                 </div>
               )}
-              {typeof order.transport_included !== "undefined" && (
+              {typeof order?.transport_included !== "undefined" && (
                 <div>
                   <span className="text-muted-foreground text-xs">
                     Transport inclus ?
                   </span>
                   <p className="font-medium">
-                    {order.transport_included ? "Oui" : "Non"}
+                    {order?.transport_included ? "Oui" : "Non"}
                   </p>
                 </div>
               )}
-              {!!order.transport_cost &&
-                order.transport_cost !== "0" &&
-                order.transport_cost !== "0.00" && (
+              {!!order?.transport_cost &&
+                order?.transport_cost !== "0" &&
+                order?.transport_cost !== "0.00" && (
                   <div>
                     <span className="text-muted-foreground text-xs">
                       Coût du transport
                     </span>
                     <p className="font-medium">
-                      {formatCurrency(Number(order.transport_cost))}
+                      {formatCurrency(Number(order?.transport_cost))}
                     </p>
                   </div>
                 )}
-              {order.tracking_number && (
+              {order?.tracking_number && (
                 <div>
                   <span className="text-muted-foreground text-xs">
                     Numéro de suivi
                   </span>
-                  <p className="font-medium">{order.tracking_number}</p>
+                  <p className="font-medium">{order?.tracking_number}</p>
                 </div>
               )}
-              {order.transport_notes && (
+              {order?.transport_notes && (
                 <div>
                   <span className="text-muted-foreground text-xs">
                     Note de livraison
                   </span>
-                  <p className="font-medium">{order.transport_notes}</p>
+                  <p className="font-medium">{order?.transport_notes}</p>
                 </div>
               )}
             </div>
@@ -449,11 +427,11 @@ export default function OrderDetailPage() {
             Articles commandés
           </h2>
           <Badge variant="outline">
-            {order.items?.length || 0} article(s)
+            {order?.items?.length || 0} article(s)
           </Badge>
         </div>
 
-        {!order.items || order.items.length === 0 ? (
+        {!order?.items || order?.items.length === 0 ? (
           <div className="text-center py-12">
             <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
             <p className="text-muted-foreground">
@@ -474,7 +452,7 @@ export default function OrderDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {order.items.map((item) => (
+                {order?.items.map((item) => (
                   <tr
                     key={item.id}
                     className="border-b hover:bg-muted/50 transition-colors"
@@ -521,7 +499,7 @@ export default function OrderDetailPage() {
                     Total de la commande
                   </td>
                   <td className="p-4 text-right text-lg">
-                    {formatCurrency(Number(order.total_amount) ?? 0)}
+                    {formatCurrency(Number(order?.total_amount) ?? 0)}
                   </td>
                 </tr>
               </tfoot>
@@ -531,14 +509,14 @@ export default function OrderDetailPage() {
       </Card>
 
       {/* Notes */}
-      {order.notes && (
+      {order?.notes && (
         <Card className="p-6">
           <h3 className="font-semibold mb-3 flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Notes
           </h3>
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-            {order.notes}
+            {order?.notes}
           </p>
         </Card>
       )}
@@ -555,17 +533,17 @@ export default function OrderDetailPage() {
             <div>
               <p className="font-medium">Commande créée</p>
               <p className="text-muted-foreground text-xs">
-                {new Date(order.created_at).toLocaleString("fr-FR")}
+                {order?.created_at && formatDate(order?.created_at)}
               </p>
             </div>
           </div>
-          {order.updated_at !== order.created_at && (
+          {order?.updated_at !== order?.created_at && (
             <div className="flex items-start gap-3">
               <div className="h-2 w-2 rounded-full bg-orange-600 mt-1.5"></div>
               <div>
                 <p className="font-medium">Dernière modification</p>
                 <p className="text-muted-foreground text-xs">
-                  {new Date(order.updated_at).toLocaleString("fr-FR")}
+                {order?.updated_at && formatDate(order?.updated_at)}
                 </p>
               </div>
             </div>
@@ -579,5 +557,6 @@ export default function OrderDetailPage() {
         onClose={closePreview}
       />
     </div>
+ </Can>
   );
 }

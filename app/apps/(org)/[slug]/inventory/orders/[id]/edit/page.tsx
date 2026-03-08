@@ -1,27 +1,29 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Input, Card, Alert, Badge } from "@/components/ui";
-import { getOrder, updateOrder, getSuppliers, getWarehouses, getProducts } from "@/lib/services/inventory";
-import type { OrderUpdate, OrderItemCreate, Supplier, Warehouse, ProductList, Order } from "@/lib/types/inventory";
+import { Can } from "@/components/apps/common";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { getOrder, getProducts, getSuppliers, getWarehouses, updateOrder } from "@/lib/services/inventory";
+import type { Order, OrderItemCreate, OrderUpdate, ProductList, Supplier, Warehouse } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { formatCurrency } from "@/lib/utils";
 import {
+  AlertTriangle,
   ArrowLeft,
-  Trash2,
-  Package,
-  Truck,
   Building2,
   Calendar,
-  Search,
   CheckCircle,
-  Loader2,
   ChevronDown,
   ChevronUp,
+  Loader2,
   Lock,
-  AlertTriangle,
+  Package,
+  Search,
+  Trash2,
+  Truck,
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 export default function EditOrderPage() {
   const params = useParams();
@@ -281,7 +283,8 @@ export default function EditOrderPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS} showMessage>
+        <div className="p-6 max-w-3xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href={`/apps/${slug}/inventory/orders/${orderId}`}>
@@ -592,7 +595,7 @@ export default function EditOrderPage() {
             <Button
               type="submit"
               disabled={saving || items.length === 0}
-              className="flex-1 h-12 bg-foreground hover:bg-blue-700"
+              className="flex-1 h-12 bg-primary hover:bg-blue-700"
             >
               {saving ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -610,5 +613,6 @@ export default function EditOrderPage() {
         </Card>
       </form>
     </div>
+    </Can>
   );
 }

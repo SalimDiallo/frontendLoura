@@ -133,7 +133,7 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   // === ORDERS ===
   { code: COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS, label: "Voir les commandes", category: "Commandes", module: "inventory", depends: [] },
   { code: COMMON_PERMISSIONS.INVENTORY.CREATE_ORDERS, label: "Créer des commandes", category: "Commandes", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS] },
-  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS, label: "Modifier des commandes", category: "Commandes", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS] },
+  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_ORDERS, label: "Confirmer & Modifier des commandes", category: "Commandes", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS] },
   { code: COMMON_PERMISSIONS.INVENTORY.DELETE_ORDERS, label: "Annuler des commandes", category: "Commandes", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS] },
   { code: COMMON_PERMISSIONS.INVENTORY.RECEIVE_ORDERS, label: "Réceptionner des commandes", category: "Commandes", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS] },
 
@@ -141,6 +141,12 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   { code: COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK_COUNTS, label: "Voir les inventaires", category: "Inventaires", module: "inventory", depends: [] },
   { code: COMMON_PERMISSIONS.INVENTORY.CREATE_STOCK_COUNTS, label: "Créer des inventaires", category: "Inventaires", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK_COUNTS] },
   { code: COMMON_PERMISSIONS.INVENTORY.VALIDATE_STOCK_COUNTS, label: "Valider des inventaires", category: "Inventaires", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK_COUNTS] },
+
+  // === EXPENSES ===
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES, label: "Voir les dépenses", category: "Dépenses", module: "inventory", depends: [] },
+  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_EXPENSES, label: "Enregistrer des dépenses", category: "Dépenses", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES] },
+  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_EXPENSES, label: "Modifier des dépenses", category: "Dépenses", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES] },
+  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_EXPENSES, label: "Supprimer des dépenses", category: "Dépenses", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES] },
 
   // === SALES ===
   { code: COMMON_PERMISSIONS.INVENTORY.VIEW_SALES, label: "Voir les ventes", category: "Ventes", module: "inventory", depends: [] },

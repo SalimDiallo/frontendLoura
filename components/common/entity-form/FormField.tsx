@@ -10,7 +10,7 @@ interface FormFieldProps {
   name: string;
   value: string | number | undefined;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  type?: 'text' | 'email' | 'number' | 'tel' | 'url' | 'password';
+  type?: 'text' | 'email' | 'number' | 'tel' | 'url' | 'password' | 'date';
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;

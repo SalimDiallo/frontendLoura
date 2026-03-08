@@ -1,24 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { Can } from "@/components/apps/common";
+import { FormActions, FormField, FormHeader, FormSection, FormSelect } from "@/components/common";
 import { Alert } from "@/components/ui";
 import { QuickSelect } from "@/components/ui/quick-select";
-import { createExpense, getExpenseCategories, createExpenseCategory } from "@/lib/services/inventory";
-import type { ExpenseCreate, ExpenseCategory } from "@/lib/types/inventory";
+import { formatCurrency } from "@/lib";
+import { useEntityForm } from "@/lib/hooks";
+import { createExpense, createExpenseCategory, getExpenseCategories } from "@/lib/services/inventory";
+import type { ExpenseCategory, ExpenseCreate } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import {
   AlertTriangle,
-  Receipt,
   Calendar,
-  Wallet,
-  User,
-  FileText,
-  Tag,
   DollarSign,
+  FileText,
+  Receipt,
+  Tag,
+  User,
+  Wallet,
 } from "lucide-react";
-import { useEntityForm } from "@/lib/hooks";
-import { FormHeader, FormActions, FormSection, FormField, FormSelect } from "@/components/common";
-import { formatCurrency } from "@/lib";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const PAYMENT_METHODS = [
   { value: "cash", label: "Espèces" },
@@ -75,7 +77,8 @@ export default function NewExpensePage() {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_EXPENSES} showMessage>
+      <div className="p-6 max-w-3xl mx-auto">
       <FormHeader
         title="Nouvelle dépense"
         subtitle="Enregistrez une nouvelle dépense"
@@ -108,7 +111,7 @@ export default function NewExpensePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <FormField
-                label="Montant (GNF)"
+                label="Montant"
                 name="amount"
                 type="number"
                 value={form.formData.amount}
@@ -120,7 +123,7 @@ export default function NewExpensePage() {
                 icon={DollarSign}
               />
               <p className="text-sm font-medium text-red-600">
-                -{formatCurrency(form.formData.amount)}
+                {formatCurrency(form.formData.amount)}
               </p>
             </div>
 
@@ -211,7 +214,7 @@ export default function NewExpensePage() {
               <span className="font-semibold">Montant de la dépense</span>
             </div>
             <span className="text-2xl font-bold text-red-600">
-              -{formatCurrency(form.formData.amount)}
+              {formatCurrency(form.formData.amount)}
             </span>
           </div>
         </div>
@@ -223,5 +226,6 @@ export default function NewExpensePage() {
         />
       </form>
     </div>
+    </Can>
   );
 }

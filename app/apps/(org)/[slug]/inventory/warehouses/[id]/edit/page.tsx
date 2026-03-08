@@ -1,13 +1,15 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { Can } from "@/components/apps/common";
+import { FormActions, FormCheckbox, FormField, FormHeader, FormSection } from "@/components/common";
 import { Alert } from "@/components/ui";
+import { useEntityForm } from "@/lib/hooks";
 import { getWarehouse, updateWarehouse } from "@/lib/services/inventory";
 import type { WarehouseUpdate } from "@/lib/types/inventory";
-import { AlertTriangle, Warehouse, MapPin, Building } from "lucide-react";
-import { useEntityForm } from "@/lib/hooks";
-import { FormHeader, FormActions, FormSection, FormField, FormCheckbox } from "@/components/common";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { generateWarehouseCode } from "@/lib/utils/code-generator";
+import { AlertTriangle, Building, MapPin, Warehouse } from "lucide-react";
+import { useParams } from "next/navigation";
 
 export default function EditWarehousePage() {
   const params = useParams();
@@ -27,8 +29,8 @@ export default function EditWarehousePage() {
     onSubmit: (data) => updateWarehouse(warehouseId, data),
     redirectUrl: `/apps/${slug}/inventory/warehouses/${warehouseId}`,
     validate: (data) => {
-      if (!data.name.trim()) return "Le nom de l'entrepôt est requis";
-      if (!data.code.trim()) return "Le code est requis";
+      if (!data.name?.trim()) return "Le nom de l'entrepôt est requis";
+      if (!data?.code?.trim()) return "Le code est requis";
       return null;
     },
   });
@@ -53,7 +55,8 @@ export default function EditWarehousePage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+ <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_WAREHOUSES} showMessage>
+         <div className="p-6 max-w-4xl mx-auto">
       <FormHeader
         title="Modifier l'entrepôt"
         subtitle="Mettez à jour les informations de l'entrepôt"
@@ -158,5 +161,6 @@ export default function EditWarehousePage() {
         />
       </form>
     </div>
+ </Can>
   );
 }
