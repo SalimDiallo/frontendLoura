@@ -1,61 +1,55 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
+import { Can } from "@/components/apps/common";
 import {
-  Button,
-  Alert,
   Badge,
+  Button,
   Card,
   EmptyState
 } from "@/components/ui";
-import { getHRStats, getDepartmentStats } from "@/lib/services/hr";
-import { getLeaveRequests } from "@/lib/services/hr/leave.service";
-import type { HRStats, DepartmentStats, LeaveRequest } from "@/lib/types/hr";
-import {
-  Users,
-  Calendar,
-  Wallet,
-  FileText,
-  Building2,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  UserPlus,
-  ArrowUpRight,
-  CalendarDays,
-  BriefcaseBusiness,
-  TrendingUp,
-  TrendingDown,
-} from "lucide-react";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
+  ChartTooltipContent
 } from "@/components/ui/chart";
+import { getDepartmentStats, getHRStats } from "@/lib/services/hr";
+import { getLeaveRequests } from "@/lib/services/hr/leave.service";
+import type { DepartmentStats, HRStats, LeaveRequest } from "@/lib/types/hr";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn } from "@/lib/utils";
 import {
-  Bar,
-  BarChart,
-  Line,
-  LineChart,
+  AlertTriangle,
+  ArrowUpRight,
+  BriefcaseBusiness,
+  Building2,
+  Calendar,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  FileText,
+  TrendingDown,
+  TrendingUp,
+  UserPlus,
+  Users,
+  Wallet,
+} from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Label,
   Pie,
   PieChart,
-  Cell,
   XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  Label,
+  YAxis
 } from "recharts";
-import { cn } from "@/lib/utils";
-import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 
 export default function HRDashboardPage() {
   const params = useParams();

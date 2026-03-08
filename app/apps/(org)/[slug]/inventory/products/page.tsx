@@ -1,28 +1,27 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button, Alert, Badge, Card, Input } from "@/components/ui";
-import { getProducts, deleteProduct } from "@/lib/services/inventory";
+import { Can } from "@/components/apps/common/protected-route";
+import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { KeyboardHint, ShortcutBadge, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
+import { KeyboardShortcut, commonShortcuts, useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
+import { deleteProduct, getProducts } from "@/lib/services/inventory";
 import type { ProductList } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn, formatCurrency } from "@/lib/utils";
 import {
+  AlertTriangle,
+  Edit,
+  Eye,
+  Keyboard,
   Package,
   Plus,
   Search,
   Trash2,
-  Edit,
-  Eye,
-  AlertTriangle,
-  Keyboard,
 } from "lucide-react";
-import { cn, formatCurrency } from "@/lib/utils";
-import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
-import { Can } from "@/components/apps/common/protected-route";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
-import { useRef as useDialogRef } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function ProductsPage() {
   const params = useParams();
@@ -347,7 +346,7 @@ export default function ProductsPage() {
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
-                          <Can allPermissions={[COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS, COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES]}>
+                          <Can allPermissions={[COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS]}>
                             <Link href={`/apps/${slug}/inventory/products/${product.id}/edit`}>
                               <Button variant="ghost" size="sm" aria-label={`Éditer ${product.name}`}>
                                 <Edit className="h-4 w-4" />

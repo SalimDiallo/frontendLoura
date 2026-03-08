@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { Alert, Button } from "@/components/ui";
-import { createProduct, getCategories } from "@/lib/services/inventory";
-import type { ProductCreate, Category, ProductUnit } from "@/lib/types/inventory";
-import { AlertTriangle, Package, DollarSign, Warehouse, Barcode, Repeat } from "lucide-react";
-import { useEntityForm } from "@/lib/hooks";
-import { FormHeader, FormActions, FormSection, FormField, FormCheckbox, FormSelect } from "@/components/common";
-import { generateSKU } from "@/lib/utils/code-generator";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { FormActions, FormCheckbox, FormField, FormHeader, FormSection, FormSelect } from "@/components/common";
+import { Alert, Button } from "@/components/ui";
 import { formatCurrency } from "@/lib";
+import { useEntityForm } from "@/lib/hooks";
+import { createProduct, getCategories } from "@/lib/services/inventory";
+import type { Category, ProductCreate, ProductUnit } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { generateSKU } from "@/lib/utils/code-generator";
+import { Barcode, DollarSign, Package, Repeat, Warehouse } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const UNIT_OPTIONS = [
   { value: "unit", label: "Unité" },

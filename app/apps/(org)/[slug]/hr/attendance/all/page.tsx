@@ -2,6 +2,7 @@
 
 import { Can } from "@/components/apps/common/protected-route";
 import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { ConfirmationDialog } from "@/components/common/confirmation-dialog";
 import {
   Table,
   TableBody,
@@ -28,7 +29,6 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  Clock,
   Filter,
   RefreshCw,
   Search,
@@ -208,7 +208,10 @@ function AttendanceRow({
         {isPending && canApprovePermission ? (
           <div className="flex gap-1 justify-end">
             <button
-              onClick={onApprove}
+              onClick={(e) => {
+                e.stopPropagation();
+                onApprove();
+              }}
               disabled={isProcessing}
               aria-label="Approuver"
               className="inline-flex items-center justify-center size-7 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-50"
@@ -216,7 +219,10 @@ function AttendanceRow({
               <Check className="size-3.5" />
             </button>
             <button
-              onClick={onRejectOpen}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRejectOpen();
+              }}
               disabled={isProcessing}
               aria-label="Rejeter"
               className="inline-flex items-center justify-center size-7 rounded-md border border-zinc-300 dark:border-zinc-600 text-muted-foreground hover:text-red-600 hover:border-red-300 transition-colors disabled:opacity-50"
@@ -256,6 +262,8 @@ export default function AttendanceApprovalsPage() {
 
   const [showRejectDialog, setShowRejectDialog] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [showApproveDialog, setShowApproveDialog] = useState<string | null>(null);
+  const [showBulkApproveDialog, setShowBulkApproveDialog] = useState(false);
 
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
@@ -365,6 +373,7 @@ export default function AttendanceApprovalsPage() {
         next.delete(id);
         return next;
       });
+      setShowApproveDialog(null);
     } catch (err: any) {
       setError(err.error || err.message || "Erreur lors de l'approbation");
     } finally {
@@ -405,6 +414,7 @@ export default function AttendanceApprovalsPage() {
   const handleBulkApprove = async () => {
     const ids = Array.from(selectedIds);
     await Promise.all(ids.map((id) => handleApprove(id)));
+    setShowBulkApproveDialog(false);
   };
 
   const toggleSelection = (id: string) => {
@@ -445,11 +455,14 @@ export default function AttendanceApprovalsPage() {
     });
   };
 
+  const [showGroupApproveDialog, setShowGroupApproveDialog] = useState<EmployeeGroup | null>(null);
+
   const approveGroupPending = async (group: EmployeeGroup) => {
     const pendingIds = group.attendances
       .filter((att) => att.approval_status === "pending")
       .map((att) => att.id);
     await Promise.all(pendingIds.map((id) => handleApprove(id)));
+    setShowGroupApproveDialog(null);
   };
 
   const hasActiveFilters =
@@ -614,7 +627,7 @@ export default function AttendanceApprovalsPage() {
             </span>
             <div className="flex gap-2">
               <Can permission={COMMON_PERMISSIONS.HR.APPROVE_ATTENDANCE}>
-                <Button onClick={handleBulkApprove} size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Button onClick={() => setShowBulkApproveDialog(true)} size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
                   <Check className="size-3.5" />
                   Approuver tout
                 </Button>
@@ -700,7 +713,7 @@ export default function AttendanceApprovalsPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          approveGroupPending(group);
+                          setShowGroupApproveDialog(group);
                         }}
                         className="ml-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-950 px-2 py-1 rounded-md transition-colors shrink-0"
                       >
@@ -739,7 +752,7 @@ export default function AttendanceApprovalsPage() {
                             attendance={att}
                             isSelected={selectedIds.has(att.id)}
                             onToggle={() => toggleSelection(att.id)}
-                            onApprove={() => handleApprove(att.id)}
+                            onApprove={() => setShowApproveDialog(att.id)}
                             onRejectOpen={() => setShowRejectDialog(att.id)}
                             isProcessing={processingIds.has(att.id)}
                             canApprovePermission={canApprovePermission}
@@ -754,42 +767,86 @@ export default function AttendanceApprovalsPage() {
           </div>
         )}
 
+        {/* Approve dialog */}
+        {showApproveDialog && (
+          <ConfirmationDialog
+            open={!!showApproveDialog}
+            onOpenChange={(open) => {
+              if (!open) setShowApproveDialog(null);
+            }}
+            title="Approuver le pointage"
+            description="Êtes-vous sûr de vouloir approuver ce pointage ?"
+            confirmLabel="Approuver"
+            confirmVariant="default"
+            onConfirm={() => handleApprove(showApproveDialog)}
+            loading={processingIds.has(showApproveDialog)}
+            icon="success"
+          />
+        )}
+
+        {/* Bulk approve dialog */}
+        <ConfirmationDialog
+          open={showBulkApproveDialog}
+          onOpenChange={setShowBulkApproveDialog}
+          title="Approuver plusieurs pointages"
+          description={`Êtes-vous sûr de vouloir approuver ${selectedIds.size} pointage${selectedIds.size > 1 ? 's' : ''} ?`}
+          confirmLabel="Approuver tout"
+          confirmVariant="default"
+          onConfirm={handleBulkApprove}
+          loading={processingIds.size > 0}
+          icon="success"
+        />
+
+        {/* Group approve dialog */}
+        {showGroupApproveDialog && (
+          <ConfirmationDialog
+            open={!!showGroupApproveDialog}
+            onOpenChange={(open) => {
+              if (!open) setShowGroupApproveDialog(null);
+            }}
+            title="Approuver les pointages en attente"
+            description={`Êtes-vous sûr de vouloir approuver les ${showGroupApproveDialog.pendingCount} pointage${showGroupApproveDialog.pendingCount > 1 ? 's' : ''} en attente de ${showGroupApproveDialog.fullName} ?`}
+            confirmLabel="Approuver tout"
+            confirmVariant="default"
+            onConfirm={() => approveGroupPending(showGroupApproveDialog)}
+            loading={processingIds.size > 0}
+            icon="success"
+          />
+        )}
+
         {/* Reject dialog */}
         {showRejectDialog && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-            <Card className="w-full max-w-md p-6 shadow-sm">
-              <h3 className="text-base font-semibold mb-1">Rejeter le pointage</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Vous pouvez indiquer une raison (optionnel).
-              </p>
-              <textarea
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                className="w-full border border-zinc-200 dark:border-zinc-700 rounded-md p-3 min-h-[100px] text-sm bg-background focus:outline-none focus:ring-1 focus:ring-zinc-400 resize-none"
-                placeholder="Raison du rejet…"
-                autoFocus
-              />
-              <div className="flex gap-2 justify-end mt-4">
-                <Button
-                  onClick={() => {
-                    setShowRejectDialog(null);
-                    setRejectionReason("");
-                  }}
-                  variant="outline"
-                  size="sm"
-                >
-                  Annuler
-                </Button>
-                <Button
-                  onClick={() => handleReject(showRejectDialog)}
-                  size="sm"
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  Confirmer le rejet
-                </Button>
+          <ConfirmationDialog
+            open={!!showRejectDialog}
+            onOpenChange={(open) => {
+              if (!open) {
+                setShowRejectDialog(null);
+                setRejectionReason("");
+              }
+            }}
+            title="Rejeter le pointage"
+            description={
+              <div className="space-y-3">
+                <p>Êtes-vous sûr de vouloir rejeter ce pointage ?</p>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">
+                    Raison du rejet (optionnel)
+                  </label>
+                  <textarea
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    className="w-full border border-border rounded-md p-2.5 min-h-[100px] text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                    placeholder="Indiquez la raison du rejet..."
+                  />
+                </div>
               </div>
-            </Card>
-          </div>
+            }
+            confirmLabel="Rejeter"
+            confirmVariant="destructive"
+            onConfirm={() => handleReject(showRejectDialog)}
+            loading={processingIds.has(showRejectDialog)}
+            icon="warning"
+          />
         )}
       </div>
     </Can>

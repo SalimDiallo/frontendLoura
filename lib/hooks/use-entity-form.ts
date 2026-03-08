@@ -128,7 +128,8 @@ export function useEntityForm<T extends Record<string, any>>(
       };
       loadData();
     }
-  }, [fetchData, onError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Met à jour un champ spécifique

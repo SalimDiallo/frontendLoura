@@ -1,29 +1,29 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button, Alert, Badge, Card, Input, Label } from "@/components/ui";
-import { getProduct, getProductStockByWarehouse, getProductMovements, deleteProduct, createMovement, getWarehouses } from "@/lib/services/inventory";
-import type { Product, Stock, Movement, Warehouse, MovementCreate } from "@/lib/types/inventory";
-import {
-  ArrowLeft,
-  Edit,
-  Package,
-  DollarSign,
-  Warehouse as WarehouseIcon,
-  TrendingUp,
-  ArrowUpCircle,
-  ArrowDownCircle,
-  Trash2,
-  HelpCircle,
-} from "lucide-react";
-import { cn, formatCurrency } from "@/lib/utils";
-import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { ShortcutsHelpModal, KeyboardHint } from "@/components/ui/shortcuts-help";
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
+import { Badge, Button, Card } from "@/components/ui";
+import { ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
+import { KeyboardShortcut, commonShortcuts, useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
+import { deleteProduct, getProduct, getProductMovements, getProductStockByWarehouse, getWarehouses } from "@/lib/services/inventory";
+import type { Movement, Product, Stock } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn, formatCurrency } from "@/lib/utils";
+import {
+  ArrowDownCircle,
+  ArrowLeft,
+  ArrowUpCircle,
+  DollarSign,
+  Edit,
+  HelpCircle,
+  Package,
+  Trash2,
+  TrendingUp,
+  Warehouse as WarehouseIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -206,7 +206,7 @@ export default function ProductDetailPage() {
             {product?.is_low_stock && (
               <Badge variant="error">Stock bas</Badge>
             )}
-            <Can allPermissions={[COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS, COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES]}>
+            <Can allPermissions={[COMMON_PERMISSIONS.INVENTORY.UPDATE_PRODUCTS]}>
               <Link href={`/apps/${slug}/inventory/products/${productId}/edit`}>
                 <Button variant="outline">
                   <Edit className="mr-2 h-4 w-4" />

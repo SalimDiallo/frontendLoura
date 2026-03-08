@@ -309,7 +309,7 @@ export default function AttendancePage() {
             <Button variant="outline" size="lg" asChild className="w-full sm:w-auto gap-2 h-11">
               <Link href={`/apps/${slug}/hr/attendance/qr-display`}>
                 <QrCode className="size-4" />
-               Générer QR pour collègues
+                Générer QR pour collègues
               </Link>
             </Button>
           </Can>
