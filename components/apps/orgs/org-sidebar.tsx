@@ -1,39 +1,51 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useParams, useRouter } from "next/navigation";
-import {
-  HiOutlineSquares2X2,
-  HiOutlineCurrencyDollar,
-  HiOutlineBanknotes,
-  HiOutlineReceiptPercent,
-  HiOutlineUsers,
-  HiOutlineCog6Tooth,
-  HiOutlineBriefcase,
-  HiOutlineInbox,
-  HiOutlineIdentification,
-  HiOutlineClock,
-  HiOutlineChevronRight,
-  HiOutlineCube,
-  HiOutlineTag,
-  HiOutlineArrowPath,
-  HiOutlineShoppingCart,
-  HiOutlineTruck,
-  HiOutlineArchiveBox,
-  HiOutlineDocumentText,
-  HiOutlineExclamationTriangle,
-  HiOutlineChartBar,
-} from "react-icons/hi2";
-import { HiOutlineDocumentCurrencyDollar } from "react-icons/hi2";
 import {
   Building2,
   ChevronUp,
+  LayoutDashboard,
   LogOut,
   Settings,
   User,
-  LayoutDashboard,
 } from "lucide-react";
+import Link from "next/link";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import {
+  HiOutlineArchiveBox,
+  HiOutlineArrowPath,
+  HiOutlineBanknotes,
+  HiOutlineBriefcase,
+  HiOutlineChartBar,
+  HiOutlineChevronRight,
+  HiOutlineClock,
+  HiOutlineCog6Tooth,
+  HiOutlineCube,
+  HiOutlineCurrencyDollar,
+  HiOutlineDocumentCurrencyDollar,
+  HiOutlineDocumentText,
+  HiOutlineExclamationTriangle,
+  HiOutlineIdentification,
+  HiOutlineReceiptPercent,
+  HiOutlineShoppingCart,
+  HiOutlineSquares2X2,
+  HiOutlineTag,
+  HiOutlineTruck,
+  HiOutlineUsers
+} from "react-icons/hi2";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -51,26 +63,12 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useState, useEffect } from "react";
+import { usePermissions } from "@/lib/hooks/use-permissions";
 import { authService, CurrentUser } from "@/lib/services/auth/auth.service";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { usePermissions } from "@/lib/hooks/use-permissions";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { useEffect, useState } from "react";
 
 // Types
 interface MenuItem {
@@ -207,7 +205,9 @@ export function OrganisationSideBar() {
         hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK)
           ? { title: "Mouvements Stocks", url: `/apps/${orgSlug}/inventory/movements`, icon: HiOutlineArrowPath }
           : null,
-        { title: "Clients", url: `/apps/${orgSlug}/inventory/customers`, icon: HiOutlineUsers },
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_CUSTOMERS)
+          ? { title: "Clients", url: `/apps/${orgSlug}/inventory/customers`, icon: HiOutlineUsers }
+          : null,
         hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS)
           ? { title: "Fournisseurs", url: `/apps/${orgSlug}/inventory/suppliers`, icon: HiOutlineBriefcase }
           : null,

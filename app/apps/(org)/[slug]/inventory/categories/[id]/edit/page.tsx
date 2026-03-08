@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { getCategory, updateCategory, getCategories } from "@/lib/services/inventory";
-import type { CategoryUpdate, Category } from "@/lib/types/inventory";
-import { FolderTree } from "lucide-react";
-import { Alert, Button } from "@/components/ui";
-import { FormHeader, FormActions, FormSection, FormField, FormCheckbox, FormSelect } from "@/components/common";
-import { useEntityForm } from "@/lib/hooks";
 import { Can } from "@/components/apps/common";
+import { FormActions, FormCheckbox, FormField, FormHeader, FormSection, FormSelect } from "@/components/common";
+import { Alert } from "@/components/ui";
+import { useEntityForm } from "@/lib/hooks";
+import { getCategories, getCategory, updateCategory } from "@/lib/services/inventory";
+import type { Category, CategoryUpdate } from "@/lib/types/inventory";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { FolderTree } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function EditCategoryPage() {
   const params = useParams();
@@ -83,7 +83,7 @@ export default function EditCategoryPage() {
   }
 
   return (
-    <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_CATEGORIES} showMessage>
+    <Can allPermissions={[COMMON_PERMISSIONS.INVENTORY.UPDATE_CATEGORIES, COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES]} showMessage>
       <div className="space-y-6 p-6 max-w-4xl">
         <FormHeader
           title="Modifier la catégorie"

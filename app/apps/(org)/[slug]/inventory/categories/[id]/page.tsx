@@ -1,24 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card } from "@/components/ui";
-import { getCategory, deleteCategory, getProducts } from "@/lib/services/inventory";
+import { Can } from "@/components/apps/common";
+import { Badge, Button, Card } from "@/components/ui";
+import { formatCurrency } from "@/lib";
+import { deleteCategory, getCategory, getProducts } from "@/lib/services/inventory";
 import type { Category, ProductList } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import {
   ArrowLeft,
-  Edit,
-  Trash2,
-  Tag,
-  ChevronRight,
-  Package,
-  TrendingUp,
   Calendar,
+  ChevronRight,
+  Edit,
+  Package,
+  Trash2,
+  TrendingUp
 } from "lucide-react";
 import Link from "next/link";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { Can } from "@/components/apps/common";
-import { formatCurrency } from "@/lib";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function CategoryDetailPage() {
   const params = useParams();
@@ -78,24 +77,9 @@ export default function CategoryDetailPage() {
     );
   }
 
-  if (error || !category) {
-    return (
-      <div className="space-y-6 p-6">
-        <Alert variant="error" title="Erreur">
-          {error || "Catégorie introuvable"}
-        </Alert>
-        <Link href={`/apps/${slug}/inventory/categories`}>
-          <Button variant="outline">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour aux catégories
-          </Button>
-        </Link>
-      </div>
-    );
-  }
 
   return (
-    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES}>
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES} showMessage>
      <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -107,16 +91,16 @@ export default function CategoryDetailPage() {
           </Link>
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-3xl font-bold">{category.name}</h1>
-              <Badge variant={category.is_active ? "default" : "secondary"}>
-                {category.is_active ? "Active" : "Inactive"}
+              <h1 className="text-3xl font-bold">{category?.name}</h1>
+              <Badge variant={category?.is_active ? "default" : "secondary"}>
+                {category?.is_active ? "Active" : "Inactive"}
               </Badge>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <code className="text-sm bg-muted px-2 py-0.5 rounded">
-                {category.code}
+                {category?.code}
               </code>
-              {category.parent_name && (
+              {category?.parent_name && (
                 <>
                   <ChevronRight className="h-4 w-4" />
                   <span className="text-sm">Sous-catégorie de: {category.parent_name}</span>
@@ -152,7 +136,7 @@ export default function CategoryDetailPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Produits</p>
-              <p className="text-2xl font-bold">{category.product_count || 0}</p>
+              <p className="text-2xl font-bold">{category?.product_count || 0}</p>
             </div>
           </div>
         </Card>
@@ -181,7 +165,9 @@ export default function CategoryDetailPage() {
             <div>
               <p className="text-sm text-muted-foreground">Créée le</p>
               <p className="text-lg font-semibold">
-                {new Date(category.created_at).toLocaleDateString('fr-FR')}
+                {category?.created_at
+                  ? new Date(category.created_at).toLocaleDateString('fr-FR')
+                  : "-"}
               </p>
             </div>
           </div>
@@ -189,7 +175,7 @@ export default function CategoryDetailPage() {
       </div>
 
       {/* Description */}
-      {category.description && (
+      {category?.description && (
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-3">Description</h2>
           <p className="text-muted-foreground">{category.description}</p>

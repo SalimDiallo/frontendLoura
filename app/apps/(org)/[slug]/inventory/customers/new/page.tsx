@@ -1,21 +1,23 @@
 "use client";
-import { useParams } from "next/navigation";
+import { Can } from "@/components/apps/common";
+import { FormActions, FormCheckbox, FormField, FormHeader, FormSection } from "@/components/common";
 import { Alert } from "@/components/ui";
+import { useEntityForm } from "@/lib/hooks";
 import { createCustomer } from "@/lib/services/inventory";
 import type { CustomerCreate } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { generateCodeFromName } from "@/lib/utils/code-generator";
 import {
   AlertTriangle,
-  User,
-  Mail,
-  Phone,
-  MapPin,
   Building,
   CreditCard,
   FileText,
+  Mail,
+  MapPin,
+  Phone,
+  User,
 } from "lucide-react";
-import { useEntityForm } from "@/lib/hooks";
-import { FormHeader, FormActions, FormSection, FormField, FormCheckbox } from "@/components/common";
-import { generateCodeFromName } from "@/lib/utils/code-generator";
+import { useParams } from "next/navigation";
 
 export default function NewCustomerPage() {
   const params = useParams();
@@ -54,7 +56,8 @@ export default function NewCustomerPage() {
   });
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+ <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_CUSTOMERS} showMessage>
+           <div className="p-6 max-w-4xl mx-auto">
       <FormHeader
         title="Nouveau client"
         subtitle="Créez un nouveau client dans votre base"
@@ -212,5 +215,6 @@ export default function NewCustomerPage() {
         />
       </form>
     </div>
+ </Can>
   );
 }

@@ -1,29 +1,27 @@
 "use client";
 
-import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Can } from "@/components/apps/common";
+import { FormActions, FormCheckbox, FormField, FormHeader, FormSection } from "@/components/common";
 import { Alert } from "@/components/ui";
+import { useEntityForm } from "@/lib/hooks";
 import { getCustomer, updateCustomer } from "@/lib/services/inventory";
 import type { Customer } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { generateCodeFromName } from "@/lib/utils/code-generator";
 import {
   AlertTriangle,
-  ArrowLeft,
+  Building,
   CreditCard,
   FileText,
-  User,
   Mail,
-  Phone,
   MapPin,
-  Building,
+  Phone,
+  User
 } from "lucide-react";
-import Link from "next/link";
-import { useEntityForm } from "@/lib/hooks";
-import { FormHeader, FormActions, FormSection, FormField, FormCheckbox } from "@/components/common";
-import { generateCodeFromName } from "@/lib/utils/code-generator";
+import { useParams } from "next/navigation";
 
 export default function EditCustomerPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params.slug as string;
   const customerId = params.id as string;
 
@@ -96,7 +94,8 @@ export default function EditCustomerPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+  <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_CUSTOMERS} showMessage>
+        <div className="p-6 max-w-4xl mx-auto">
       <FormHeader
         title="Modification client"
         subtitle="Modifiez les informations du client sélectionné"
@@ -254,5 +253,6 @@ export default function EditCustomerPage() {
         />
       </form>
     </div>
+  </Can>
   );
 }

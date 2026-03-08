@@ -1,36 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card } from "@/components/ui";
-import { getSupplier, deleteSupplier, getSupplierOrders } from "@/lib/services/inventory";
-import type { Supplier, OrderList } from "@/lib/types/inventory";
-import {
-  ArrowLeft,
-  Edit,
-  Trash2,
-  Phone,
-  Mail,
-  MapPin,
-  User,
-  Building,
-  FileText,
-  Calendar,
-  Package,
-  DollarSign,
-  Clock,
-  ShoppingCart,
-  Eye,
-  Code2,
-  Navigation2,
-} from "lucide-react";
-import Link from "next/link";
+import { Can } from "@/components/apps/common";
+import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
+import { Badge, Button, Card } from "@/components/ui";
 import { formatCurrency } from "@/lib";
+import { deleteSupplier, getSupplier, getSupplierOrders } from "@/lib/services/inventory";
+import type { OrderList, Supplier } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { formatDate } from "@/lib/utils";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
-import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import {DeleteConfirmation} from "@/components/common/confirmation-dialog";
+import {
+  ArrowLeft,
+  Building,
+  Calendar,
+  Clock,
+  DollarSign,
+  Edit,
+  Eye,
+  FileText,
+  Mail,
+  MapPin,
+  Navigation2,
+  Package,
+  Phone,
+  ShoppingCart,
+  Trash2,
+  User
+} from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function SupplierDetailPage() {
   const params = useParams();
@@ -106,25 +105,16 @@ export default function SupplierDetailPage() {
     );
   }
 
-  if (error || !supplier) {
-    return (
-      <div className="p-4">
-        <Alert variant="error" title="Erreur">
-          {error || "Fournisseur introuvable"}
-        </Alert>
-      </div>
-    );
-  }
 
   return (
-    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS}>
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS} showMessage>
       <DeleteConfirmation
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
         title="Supprimer le fournisseur"
         description={
           supplier
-            ? `Êtes-vous sûr de vouloir supprimer le fournisseur "${supplier.name}" ?`
+            ? `Êtes-vous sûr de vouloir supprimer le fournisseur "${supplier?.name}" ?`
             : ""
         }
         loading={deleteLoading}
@@ -141,13 +131,13 @@ export default function SupplierDetailPage() {
             </Link>
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-3xl font-bold">{supplier.name}</h1>
-                <Badge variant={supplier.is_active ? "success" : "secondary"}>
-                  {supplier.is_active ? "Actif" : "Inactif"}
+                <h1 className="text-3xl font-bold">{supplier?.name}</h1>
+                <Badge variant={supplier?.is_active ? "success" : "secondary"}>
+                  {supplier?.is_active ? "Actif" : "Inactif"}
                 </Badge>
               </div>
               <p className="text-muted-foreground">
-                Code: <code className="bg-muted px-2 py-1 rounded text-sm">{supplier.code}</code>
+                Code: <code className="bg-muted px-2 py-1 rounded text-sm">{supplier?.code}</code>
               </p>
             </div>
           </div>
@@ -181,7 +171,7 @@ export default function SupplierDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Commandes</p>
-                <p className="text-2xl font-bold">{supplier.order_count || 0}</p>
+                <p className="text-2xl font-bold">{supplier?.order_count || 0}</p>
               </div>
             </div>
           </Card>
@@ -192,7 +182,7 @@ export default function SupplierDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Montant total</p>
-                <p className="text-2xl font-bold">{formatCurrency(supplier.total_orders_amount || 0)}</p>
+                <p className="text-2xl font-bold">{formatCurrency(supplier?.total_orders_amount || 0)}</p>
               </div>
             </div>
           </Card>
@@ -203,7 +193,9 @@ export default function SupplierDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Créé le</p>
-                <p className="text-lg font-semibold">{formatDate(supplier.created_at)}</p>
+                <p className="text-lg font-semibold">
+                  {supplier?.created_at ? formatDate(supplier.created_at) : "-"}
+                </p>
               </div>
             </div>
           </Card>
@@ -214,7 +206,9 @@ export default function SupplierDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Modifié le</p>
-                <p className="text-lg font-semibold">{formatDate(supplier.updated_at)}</p>
+                <p className="text-lg font-semibold">
+                  {supplier?.updated_at ? formatDate(supplier.updated_at) : "-"}
+                </p>
               </div>
             </div>
           </Card>
@@ -228,49 +222,49 @@ export default function SupplierDetailPage() {
               Informations de contact
             </h3>
             <div className="space-y-3 text-sm">
-              {supplier.contact_person && (
+              {supplier?.contact_person && (
                 <div className="flex items-start gap-2">
                   <User className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-muted-foreground text-xs">Personne de contact</p>
-                    <p className="font-medium">{supplier.contact_person}</p>
+                    <p className="font-medium">{supplier?.contact_person}</p>
                   </div>
                 </div>
               )}
-              {supplier.email && (
+              {supplier?.email && (
                 <div className="flex items-start gap-2">
                   <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-muted-foreground text-xs">Email</p>
-                    <a href={`mailto:${supplier.email}`} className="font-medium hover:text-primary">
-                      {supplier.email}
+                    <a href={`mailto:${supplier?.email}`} className="font-medium hover:text-primary">
+                      {supplier?.email}
                     </a>
                   </div>
                 </div>
               )}
-              {supplier.phone && (
+              {supplier?.phone && (
                 <div className="flex items-start gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-muted-foreground text-xs">Téléphone</p>
-                    <a href={`tel:${supplier.phone}`} className="font-medium hover:text-primary">
-                      {supplier.phone}
+                    <a href={`tel:${supplier?.phone}`} className="font-medium hover:text-primary">
+                      {supplier?.phone}
                     </a>
                   </div>
                 </div>
               )}
-              {supplier.website && (
+              {supplier?.website && (
                 <div className="flex items-start gap-2">
                   <Navigation2 className="h-4 w-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-muted-foreground text-xs">Email</p>
-                    <a href={`${supplier.website}`} className="font-medium hover:text-primary">
-                      {supplier.website}
+                    <a href={`${supplier?.website}`} className="font-medium hover:text-primary">
+                      {supplier?.website}
                     </a>
                   </div>
                 </div>
               )}
-              {!supplier.contact_person && !supplier.email && !supplier.phone && !supplier.website && (
+              {!supplier?.contact_person && !supplier?.email && !supplier?.phone && !supplier?.website && (
                 <p className="text-muted-foreground italic">Aucune information de contact</p>
               )}
             </div>
@@ -282,18 +276,18 @@ export default function SupplierDetailPage() {
               Adresse
             </h3>
             <div className="text-sm text-muted-foreground space-y-1">
-              {supplier.address && <p>{supplier.address}</p>}
-              {supplier.postal_code && <p>{supplier.postal_code}</p>}
-              {supplier.city && <p>{supplier.city}</p>}
-              {supplier.country && <p>{supplier.country}</p>}
-              {!supplier.address && !supplier.postal_code && !supplier.city && !supplier.country && (
+              {supplier?.address && <p>{supplier?.address}</p>}
+              {supplier?.postal_code && <p>{supplier?.postal_code}</p>}
+              {supplier?.city && <p>{supplier?.city}</p>}
+              {supplier?.country && <p>{supplier?.country}</p>}
+              {!supplier?.address && !supplier?.postal_code && !supplier?.city && !supplier?.country && (
                 <p className="italic">Aucune adresse renseignée</p>
               )}
               {/* Google Maps iframe if address or city/country is present */}
               {(
-                supplier.address ||
-                supplier.city ||
-                supplier.country
+                supplier?.address ||
+                supplier?.city ||
+                supplier?.country
               ) && (
                 <div className="mt-2 rounded-md overflow-hidden border bg-muted">
                   <iframe
@@ -305,10 +299,10 @@ export default function SupplierDetailPage() {
                     style={{ border: 0 }}
                     src={`https://www.google.com/maps?q=${encodeURIComponent(
                       [
-                        supplier.address,
-                        supplier.city,
-                        supplier.postal_code,
-                        supplier.country,
+                        supplier?.address,
+                        supplier?.city,
+                        supplier?.postal_code,
+                        supplier?.country,
                       ]
                         .filter(Boolean)
                         .join(", ")
@@ -330,10 +324,10 @@ export default function SupplierDetailPage() {
               Informations fiscales
             </h3>
             <div className="space-y-2 text-sm">
-              {supplier.tax_id ? (
+              {supplier?.tax_id ? (
                 <div>
                   <p className="text-muted-foreground text-xs">Numéro fiscal</p>
-                  <p className="font-medium">{supplier.tax_id}</p>
+                  <p className="font-medium">{supplier?.tax_id}</p>
                 </div>
               ) : (
                 <p className="text-muted-foreground italic">Aucun numéro fiscal</p>
@@ -347,8 +341,8 @@ export default function SupplierDetailPage() {
               Conditions de paiement
             </h3>
             <div className="space-y-2 text-sm">
-              {supplier.payment_terms ? (
-                <p className="text-muted-foreground">{supplier.payment_terms}</p>
+              {supplier?.payment_terms ? (
+                <p className="text-muted-foreground">{supplier?.payment_terms}</p>
               ) : (
                 <p className="text-muted-foreground italic">Aucune condition de paiement</p>
               )}
@@ -357,10 +351,10 @@ export default function SupplierDetailPage() {
         </div>
 
         {/* Notes */}
-        {supplier.notes && (
+        {supplier?.notes && (
           <Card className="p-6">
             <h3 className="font-semibold mb-3">Notes</h3>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{supplier.notes}</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{supplier?.notes}</p>
           </Card>
         )}
 

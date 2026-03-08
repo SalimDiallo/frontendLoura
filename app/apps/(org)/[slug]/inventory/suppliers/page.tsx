@@ -1,29 +1,29 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card, Input } from "@/components/ui";
-import { getSuppliers, deleteSupplier } from "@/lib/services/inventory";
+import { Can } from "@/components/apps/common/protected-route";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { KeyboardHint, ShortcutBadge, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
+import { KeyboardShortcut, commonShortcuts, useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
+import { deleteSupplier, getSuppliers } from "@/lib/services/inventory";
 import type { Supplier } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn, formatCurrency } from "@/lib/utils";
 import {
+  AlertTriangle,
+  Edit,
+  Eye,
+  Keyboard,
+  Mail,
+  MapPin,
+  Phone,
   Plus,
   Search,
   Trash2,
-  Edit,
-  Eye,
-  AlertTriangle,
   Truck,
-  Phone,
-  Mail,
-  MapPin,
-  Keyboard,
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency } from "@/lib/utils";
-import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
-import { Can } from "@/components/apps/common/protected-route";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // Importer DeleteConfirmation du composant de confirmation générique
 import { DeleteConfirmation } from "@/components/common/confirmation-dialog";

@@ -39,12 +39,20 @@ export const INVENTORY_PERMISSIONS = {
   // UPDATE_MOVEMENTS: 'inventory.update_movements',
   // DELETE_MOVEMENTS: 'inventory.delete_movements',
 
+
+  // === CUSTOMERS ===
+  VIEW_CUSTOMERS: 'inventory.view_customers',
+  CREATE_CUSTOMERS: 'inventory.create_customers',
+  UPDATE_CUSTOMERS: 'inventory.update_customers',
+  DELETE_CUSTOMERS: 'inventory.delete_customers',
+
   // === ORDERS ===
   VIEW_ORDERS: 'inventory.view_orders',
   CREATE_ORDERS: 'inventory.create_orders',
   UPDATE_ORDERS: 'inventory.update_orders',
   DELETE_ORDERS: 'inventory.delete_orders',
   RECEIVE_ORDERS: 'inventory.receive_orders',
+
 
   // === STOCK COUNTS ===
   VIEW_STOCK_COUNTS: 'inventory.view_stock_counts',
@@ -56,12 +64,6 @@ export const INVENTORY_PERMISSIONS = {
   CREATE_SALES: 'inventory.create_sales',
   UPDATE_SALES: 'inventory.update_sales',
   DELETE_SALES: 'inventory.delete_sales',
-
-  // === CUSTOMERS ===
-  VIEW_CUSTOMERS: 'inventory.view_customers',
-  CREATE_CUSTOMERS: 'inventory.create_customers',
-  UPDATE_CUSTOMERS: 'inventory.update_customers',
-  DELETE_CUSTOMERS: 'inventory.delete_customers',
 
   // === PAYMENTS ===
   VIEW_PAYMENTS: 'inventory.view_payments',
