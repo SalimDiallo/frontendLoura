@@ -148,6 +148,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
       clients: "Clients",
       suppliers: "Fournisseurs",
       settings: "Paramètres",
+      notifications: "Notifications",
     };
 
     return titles[lastSegment] || lastSegment?.charAt(0).toUpperCase() + lastSegment?.slice(1) || "Dashboard";

@@ -728,6 +728,16 @@ export enum ApprovalStatus {
   REJECTED = 'rejected',
 }
 
+export interface Break {
+  id: string;
+  start_time: string; // ISO datetime
+  end_time?: string; // ISO datetime
+  notes?: string;
+  duration_minutes: number;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface Attendance {
   id: string;
   employee?: string;
@@ -743,9 +753,11 @@ export interface Attendance {
   check_out?: string; // ISO datetime
   check_out_location?: string;
   check_out_notes?: string;
-  break_start?: string; // ISO datetime
-  break_end?: string; // ISO datetime
+  break_start?: string; // ISO datetime (legacy)
+  break_end?: string; // ISO datetime (legacy)
   is_on_break: boolean;
+  breaks: Break[]; // Multiple breaks per day
+  total_break_minutes: number; // Total break time across all breaks
   total_hours?: number;
   break_duration?: number;
   status: AttendanceStatus;

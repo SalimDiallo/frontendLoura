@@ -24,31 +24,31 @@ export function EmployeesPagination({
   loading: boolean;
 }) {
   return (
-    <Card className="p-2 border-0 shadow-sm">
+    <Card className="p-4 border shadow-sm">
       <div className="flex items-center justify-between">
-        <div className="text-xs text-muted-foreground">
+        <div className="text-sm text-muted-foreground">
           Page {currentPage} sur {Math.ceil(totalCount / 20)} • {totalCount} employés
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="h-7 px-2"
+            className="h-9 px-3"
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={!hasPrevious || loading}
           >
-            <HiOutlineChevronLeft className="size-3 mr-1" />
-            <span className="text-xs">Précédent</span>
+            <HiOutlineChevronLeft className="size-4 mr-1.5" />
+            <span className="text-sm">Précédent</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="h-7 px-2"
+            className="h-9 px-3"
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={!hasNext || loading}
           >
-            <span className="text-xs">Suivant</span>
-            <HiOutlineChevronRight className="size-3 ml-1" />
+            <span className="text-sm">Suivant</span>
+            <HiOutlineChevronRight className="size-4 ml-1.5" />
           </Button>
         </div>
       </div>

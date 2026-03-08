@@ -23,68 +23,68 @@ export function EmployeesStatsCards({
   formatCurrency: (val: any) => string;
 }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
       <Card
         className={cn(
-          "p-2 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-primary/20",
-          !filters.status && "ring-2 ring-primary/30"
+          "p-4 border shadow-sm cursor-pointer transition-all hover:border-primary",
+          !filters.status && "border-primary"
         )}
         onClick={() => handleFilterChange("status", "")}
       >
-        <div className="text-[11px] text-muted-foreground">Total</div>
-        <div className="text-lg font-bold mt-0.5">{stats.total}</div>
+        <div className="text-xs text-muted-foreground font-medium">Total</div>
+        <div className="text-2xl font-semibold mt-2">{stats.total}</div>
       </Card>
       <Card
         className={cn(
-          "p-2 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-green-500/20",
-          filters.status === "active" && "ring-2 ring-green-500/50"
+          "p-4 border shadow-sm cursor-pointer transition-all hover:border-green-500",
+          filters.status === "active" && "border-green-500"
         )}
         onClick={() => handleFilterChange("status", filters.status === "active" ? "" : "active")}
       >
-        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-          <HiOutlineCheckCircle className="size-2.5 text-green-500" />
+        <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+          <HiOutlineCheckCircle className="size-3.5 text-green-600" />
           Actifs
         </div>
-        <div className="text-lg font-bold mt-0.5 text-green-600 dark:text-green-400">
+        <div className="text-2xl font-semibold mt-2 text-green-600">
           {stats.active}
         </div>
       </Card>
       <Card
         className={cn(
-          "p-2 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-foreground/20",
-          filters.status === "on_leave" && "ring-2 ring-foreground/50"
+          "p-4 border shadow-sm cursor-pointer transition-all hover:border-blue-500",
+          filters.status === "on_leave" && "border-blue-500"
         )}
         onClick={() => handleFilterChange("status", filters.status === "on_leave" ? "" : "on_leave")}
       >
-        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-          <LuCalendarOff className="size-2.5 text-foreground" />
+        <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+          <LuCalendarOff className="size-3.5 text-blue-600" />
           En congé
         </div>
-        <div className="text-lg font-bold mt-0.5 text-foreground dark:text-blue-400">
+        <div className="text-2xl font-semibold mt-2 text-blue-600">
           {stats.onLeave}
         </div>
       </Card>
       <Card
         className={cn(
-          "p-2 border-0 shadow-sm cursor-pointer transition-all hover:ring-2 hover:ring-orange-500/20",
-          (filters.status === "suspended" || filters.status === "terminated") && "ring-2 ring-orange-500/50"
+          "p-4 border shadow-sm cursor-pointer transition-all hover:border-orange-500",
+          (filters.status === "suspended" || filters.status === "terminated") && "border-orange-500"
         )}
         onClick={() => handleFilterChange("status", filters.status === "suspended" ? "" : "suspended")}
       >
-        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-          <LuPause className="size-2.5 text-orange-500" />
+        <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+          <LuPause className="size-3.5 text-orange-600" />
           Inactifs
         </div>
-        <div className="text-lg font-bold mt-0.5 text-orange-600 dark:text-orange-400">
+        <div className="text-2xl font-semibold mt-2 text-orange-600">
           {stats.inactive}
         </div>
       </Card>
-      <Card className="p-2 border-0 shadow-sm">
-        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-          <HiOutlineBanknotes className="size-2.5 text-emerald-500" />
+      <Card className="p-4 border shadow-sm">
+        <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+          <HiOutlineBanknotes className="size-3.5 text-emerald-600" />
           Masse Salariale
         </div>
-        <div className="text-base font-bold mt-0.5 text-emerald-600 dark:text-emerald-400 truncate" title={formatCurrency(stats.totalSalary)}>
+        <div className="text-xl font-semibold mt-2 text-emerald-600 truncate" title={formatCurrency(stats.totalSalary)}>
           {formatCurrency(stats.totalSalary)}
         </div>
       </Card>

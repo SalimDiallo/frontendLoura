@@ -457,6 +457,7 @@ export const API_ENDPOINTS = {
     // Actions
     MARK_AS_READ: (id: string) => `/notifications/notifications/${id}/mark-as-read/`,
     MARK_ALL_AS_READ: '/notifications/notifications/mark-all-as-read/',
+    BATCH_DELETE: '/notifications/notifications/batch-delete/',
     UNREAD_COUNT: '/notifications/notifications/unread-count/',
     STATS: '/notifications/notifications/stats/',
 

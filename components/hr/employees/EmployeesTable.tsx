@@ -52,14 +52,14 @@ export function EmployeesTable({
   return (
     <Table>
       <TableHeader>
-        <TableRow className="h-8">
-          <TableHead className="text-xs py-1">Employé</TableHead>
-          <TableHead className="hidden md:table-cell text-xs py-1">Matricule</TableHead>
-          <TableHead className="hidden lg:table-cell text-xs py-1">Département</TableHead>
-          <TableHead className="hidden lg:table-cell text-xs py-1">Poste</TableHead>
-          <TableHead className="hidden xl:table-cell text-xs py-1">Paiement</TableHead>
-          <TableHead className="text-xs py-1">Statut</TableHead>
-          <TableHead className="text-right text-xs py-1">Actions</TableHead>
+        <TableRow className="h-11">
+          <TableHead className="text-sm font-medium py-3">Employé</TableHead>
+          <TableHead className="hidden md:table-cell text-sm font-medium py-3">Matricule</TableHead>
+          <TableHead className="hidden lg:table-cell text-sm font-medium py-3">Département</TableHead>
+          <TableHead className="hidden lg:table-cell text-sm font-medium py-3">Poste</TableHead>
+          <TableHead className="hidden xl:table-cell text-sm font-medium py-3">Paiement</TableHead>
+          <TableHead className="text-sm font-medium py-3">Statut</TableHead>
+          <TableHead className="text-right text-sm font-medium py-3">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -71,9 +71,9 @@ export function EmployeesTable({
               className={cn(
                 "transition-colors",
                 !isCurrentUser && "cursor-pointer",
-                selectedIndex === index && "bg-primary/10 ring-1 ring-primary",
-                isCurrentUser && "bg-accent/50 border-l-2 border-l-primary",
-                "h-10"
+                selectedIndex === index && "bg-primary/5",
+                isCurrentUser && "bg-accent/30",
+                "h-16"
               )}
               onClick={() => !isCurrentUser && setSelectedIndex(index)}
               onDoubleClick={() =>
@@ -84,11 +84,11 @@ export function EmployeesTable({
               role="row"
               aria-selected={selectedIndex === index}
             >
-              <TableCell className="py-1 align-middle">
-                <div className="flex items-center gap-2">
+              <TableCell className="py-3 align-middle">
+                <div className="flex items-center gap-3">
                   <div
                     className={cn(
-                      "flex size-7 items-center justify-center rounded-full font-semibold text-xs shrink-0",
+                      "flex size-10 items-center justify-center rounded-full font-semibold text-sm shrink-0",
                       isCurrentUser
                         ? "bg-primary text-primary-foreground"
                         : "bg-primary/10 text-primary"
@@ -105,68 +105,68 @@ export function EmployeesTable({
                       : "?"}
                   </div>
                   <div className="min-w-0">
-                    <div className="font-medium truncate flex items-center gap-1.5 text-sm">
+                    <div className="font-medium truncate flex items-center gap-2 text-base">
                       {employee.full_name || "Sans nom"}
                       {isCurrentUser && (
-                        <span className="text-[10px] font-normal text-primary bg-primary/10 px-1 py-0.5 rounded-full">
+                        <span className="text-xs font-normal text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                           Vous
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
-                      <HiOutlineEnvelope className="size-2.5 shrink-0" />
+                    <div className="text-sm text-muted-foreground flex items-center gap-1.5 truncate mt-0.5">
+                      <HiOutlineEnvelope className="size-3.5 shrink-0" />
                       <span className="truncate">{employee.email}</span>
                     </div>
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="hidden md:table-cell py-1">
-                <div className="flex items-center gap-1 text-xs">
-                  <HiOutlineIdentification className="size-3 text-muted-foreground" />
+              <TableCell className="hidden md:table-cell py-3">
+                <div className="flex items-center gap-1.5 text-sm">
+                  <HiOutlineIdentification className="size-4 text-muted-foreground" />
                   {employee.employee_id || "-"}
                 </div>
               </TableCell>
-              <TableCell className="hidden lg:table-cell py-1">
-                <span className="text-xs">{employee.department_name || "-"}</span>
+              <TableCell className="hidden lg:table-cell py-3">
+                <span className="text-sm">{employee.department_name || "-"}</span>
               </TableCell>
-              <TableCell className="hidden lg:table-cell py-1">
-                <span className="text-xs text-muted-foreground">
+              <TableCell className="hidden lg:table-cell py-3">
+                <span className="text-sm text-muted-foreground">
                   {employee.position_title || "-"}
                 </span>
               </TableCell>
-              <TableCell className="hidden xl:table-cell py-1">
+              <TableCell className="hidden xl:table-cell py-3">
                 {employee.base_salary ? (
-                  <div className="text-xs">
-                    <div className="font-medium text-green-600 dark:text-green-400">
+                  <div className="text-sm">
+                    <div className="font-medium text-green-600">
                       {formatCurrency(employee.base_salary)}
                     </div>
-                    <div className="text-[10px] text-muted-foreground">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       {employee.salary_period_display || employee.salary_period}
                     </div>
                   </div>
                 ) : (
-                  <span className="text-xs text-muted-foreground">-</span>
+                  <span className="text-sm text-muted-foreground">-</span>
                 )}
               </TableCell>
-              <TableCell className="py-1">
-                <Badge variant={employee.is_active ? "success" : "error"}>
+              <TableCell className="py-3">
+                <Badge variant={employee.is_active ? "success" : "error"} className="text-sm px-2.5 py-1">
                   {employee.is_active ? "Actif" : "Inactif"}
                 </Badge>
               </TableCell>
-              <TableCell className="text-right py-1">
+              <TableCell className="text-right py-3">
                 <TooltipProvider delayDuration={300}>
-                  <div className="flex items-center justify-end gap-0.5">
+                  <div className="flex items-center justify-end gap-1">
                     {isCurrentUser ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="size-7"
+                            className="size-9"
                             asChild
                           >
                             <Link href={`/apps/${slug}/dashboard/profile`}>
-                              <HiOutlineUserCircle className="size-3 text-primary" />
+                              <HiOutlineUserCircle className="size-4 text-primary" />
                             </Link>
                           </Button>
                         </TooltipTrigger>
@@ -180,13 +180,13 @@ export function EmployeesTable({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="size-7"
+                                className="size-9"
                                 asChild
                               >
                                 <Link
                                   href={`/apps/${slug}/hr/employees/${employee.id}`}
                                 >
-                                  <HiOutlineEye className="size-3" />
+                                  <HiOutlineEye className="size-4" />
                                 </Link>
                               </Button>
                             </TooltipTrigger>
@@ -199,13 +199,13 @@ export function EmployeesTable({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="size-7"
+                                className="size-9"
                                 asChild
                               >
                                 <Link
                                   href={`/apps/${slug}/hr/employees/${employee.id}/edit`}
                                 >
-                                  <HiOutlinePencil className="size-3" />
+                                  <HiOutlinePencil className="size-4" />
                                 </Link>
                               </Button>
                             </TooltipTrigger>
@@ -218,16 +218,16 @@ export function EmployeesTable({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="size-7"
+                                className="size-9"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleToggleStatus(employee.id, employee.is_active);
                                 }}
                               >
                                 {employee.is_active ? (
-                                  <HiOutlineXCircle className="size-3 text-orange-500" />
+                                  <HiOutlineXCircle className="size-4 text-orange-500" />
                                 ) : (
-                                  <HiOutlineCheckCircle className="size-3 text-green-500" />
+                                  <HiOutlineCheckCircle className="size-4 text-green-500" />
                                 )}
                               </Button>
                             </TooltipTrigger>
@@ -242,14 +242,14 @@ export function EmployeesTable({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="size-7 text-destructive hover:text-destructive"
+                                className="size-9 text-destructive hover:text-destructive"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDelete(employee.id);
                                 }}
                                 disabled={deleting === employee.id}
                               >
-                                <HiOutlineTrash className="size-3" />
+                                <HiOutlineTrash className="size-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Supprimer</TooltipContent>

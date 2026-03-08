@@ -1,28 +1,26 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Alert, Button, Card } from '@/components/ui';
+import { qrCheckIn } from '@/lib/services/hr';
+import { cn } from '@/lib/utils';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import jsQR from 'jsqr';
-import { Card, Alert, Button, Badge } from '@/components/ui';
-import { qrCheckIn } from '@/lib/services/hr';
 import {
-  Camera,
-  ImagePlus,
-  RefreshCw,
   ArrowLeft,
+  Camera,
   CheckCircle2,
-  XCircle,
+  ImagePlus,
+  Loader2,
   LogIn,
   LogOut,
-  Loader2,
-  Sun,
   Moon,
-  User,
-  Users,
+  RefreshCw,
+  Sun,
+  XCircle
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 
 type ScanState = 'idle' | 'scanning' | 'processing' | 'select_employee' | 'success' | 'error' | 'info';
 
@@ -118,6 +116,10 @@ export default function QRScanPage() {
     }
   };
 
+  // *** ERREUR GESTION SELON APIs HR - INSTRUCTIONS ***
+  // Les erreurs peuvent arriver sous ces formats:
+  // {"session_token": "Mohamed Bah, vous devez d'abord pointer votre arrivée. Ce QR code est uniquement pour le départ."}
+
   const performCheckIn = async (sessionToken: string, employeeId?: string) => {
     try {
       setScanState('processing');
@@ -131,6 +133,8 @@ export default function QRScanPage() {
         orgSlug
       );
 
+
+
       // Success!
       setResult({
         action: response.action,
@@ -143,28 +147,46 @@ export default function QRScanPage() {
       setTimeout(() => {
         router.push(`/apps/${orgSlug}/hr/attendance`);
       }, 4000);
+      return response;
 
     } catch (err: any) {
-      console.log('Check-in error:', err);
-
       // Extract error message
       let errorMessage = 'Erreur lors du pointage';
-      if (err.session_token) {
-        errorMessage = Array.isArray(err.session_token) ? err.session_token[0] : err.session_token;
-      } else if (err.employee_id) {
-        errorMessage = Array.isArray(err.employee_id) ? err.employee_id[0] : err.employee_id;
-      } else if (err.error) {
+
+         if (
+        typeof err === 'object' &&
+        err !== null &&
+        (typeof err.session_token !== 'undefined')
+      ) {
+        // Peut être ["..."] ou string
+        if (Array.isArray(err.session_token)) {
+          errorMessage = err.session_token[0];
+        } else if (typeof err.session_token === 'string') {
+          errorMessage = err.session_token;
+        }
+      } else if (typeof err === 'object' && err !== null && typeof err.employee_id !== 'undefined') {
+        if (Array.isArray(err.employee_id)) {
+          errorMessage = err.employee_id[0];
+        } else if (typeof err.employee_id === 'string') {
+          errorMessage = err.employee_id;
+        }
+      } else if (typeof err === 'object' && err !== null && typeof err.error !== 'undefined') {
         errorMessage = err.error;
-      } else if (err.message) {
+      } else if (typeof err === 'object' && err !== null && typeof err.message !== 'undefined') {
         errorMessage = err.message;
-      } else if (err.detail) {
+      } else if (typeof err === 'object' && err !== null && typeof err.detail !== 'undefined') {
         errorMessage = err.detail;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
       }
 
       // Check if it's an "already checked" informational message
+      // Support messages personnalisés "vous avez déjà pointé" "vous devez d'abord pointer"
       const isAlreadyCheckedMessage =
-        errorMessage.includes('vous avez déjà pointé') ||
-        errorMessage.includes('vous devez d\'abord pointer');
+        (typeof errorMessage === 'string') && (
+          errorMessage.includes('vous avez déjà pointé') ||
+          errorMessage.includes('vous devez d\'abord pointer')
+        );
 
       if (isAlreadyCheckedMessage) {
         // Display as informational message, not error
@@ -403,33 +425,27 @@ export default function QRScanPage() {
   // Info Screen (Already checked in/out)
   if (scanState === 'info') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-blue-50 to-cyan-100 dark:from-gray-900 dark:to-blue-950/30">
-        <Card className="max-w-md w-full p-8 text-center border-0 shadow-xl">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+        <Card className="max-w-md w-full p-8 text-center border shadow-md">
           {/* Info Icon */}
-          <div className="size-24 rounded-full bg-blue-100 dark:bg-blue-900/50 mx-auto mb-6 flex items-center justify-center">
-            <CheckCircle2 className="size-12 text-foreground dark:text-blue-400" />
+          <div className="size-16 rounded-full bg-muted mx-auto mb-6 flex items-center justify-center">
+            <CheckCircle2 className="size-8 text-muted-foreground" />
           </div>
 
           {/* Message */}
-          <h1 className="text-3xl font-bold mb-4">
-            Déjà pointé
+          <h1 className="text-2xl font-semibold mb-4">
+            Information
           </h1>
 
-          <p className="text-lg text-muted-foreground mb-8">
+          <p className="text-base text-muted-foreground mb-8">
             {error}
           </p>
 
-          {/* Action Badge */}
-          <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-lg font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 mb-6">
-            <CheckCircle2 className="size-5" />
-            Aucune action nécessaire
-          </div>
-
           {/* Return Button */}
-          <div className="mt-8">
+          <div className="mt-6">
             <Button size="lg" onClick={() => router.push(`/apps/${orgSlug}/hr/attendance`)} className="gap-2">
               <ArrowLeft className="size-5" />
-              Retour aux pointages
+              Retour
             </Button>
           </div>
         </Card>
@@ -442,58 +458,38 @@ export default function QRScanPage() {
     const isCheckOut = result.action === 'check_out';
 
     return (
-      <div className={cn(
-        "min-h-screen flex items-center justify-center p-4",
-        "bg-linear-to-br",
-        isCheckOut
-          ? "from-amber-50 to-orange-100 dark:from-gray-900 dark:to-amber-950/30"
-          : "from-emerald-50 to-green-100 dark:from-gray-900 dark:to-green-950/30"
-      )}>
-        <Card className="max-w-md w-full p-8 text-center border-0 shadow-xl">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+        <Card className="max-w-md w-full p-8 text-center border shadow-md">
           {/* Success Icon */}
-          <div className={cn(
-            "size-24 rounded-full mx-auto mb-6 flex items-center justify-center",
-            isCheckOut
-              ? "bg-amber-100 dark:bg-amber-900/50"
-              : "bg-green-100 dark:bg-green-900/50"
-          )}>
-            {isCheckOut ? (
-              <Moon className="size-12 text-amber-600 dark:text-amber-400" />
-            ) : (
-              <Sun className="size-12 text-green-600 dark:text-green-400" />
-            )}
+          <div className="size-16 rounded-full bg-primary/10 mx-auto mb-6 flex items-center justify-center">
+            <CheckCircle2 className="size-8 text-primary" />
           </div>
 
           {/* Message */}
-          <h1 className="text-3xl font-bold mb-2">
-            {isCheckOut ? 'Bonne soirée !' : 'Bienvenue !'}
+          <h1 className="text-2xl font-semibold mb-2">
+            Pointage enregistré
           </h1>
-          
+
           {result.employeeName && (
-            <p className="text-xl text-muted-foreground mb-4">
+            <p className="text-lg text-foreground mb-4 font-medium">
               {result.employeeName}
             </p>
           )}
 
-          <p className="text-muted-foreground mb-6">
+          <p className="text-base text-muted-foreground mb-6">
             {result.message}
           </p>
 
           {/* Action Badge */}
-          <div className={cn(
-            "inline-flex items-center gap-2 px-6 py-3 rounded-full text-lg font-semibold",
-            isCheckOut
-              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300"
-              : "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-          )}>
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-medium bg-muted">
             {isCheckOut ? (
               <>
-                <LogOut className="size-5" />
+                <LogOut className="size-4" />
                 Départ enregistré
               </>
             ) : (
               <>
-                <LogIn className="size-5" />
+                <LogIn className="size-4" />
                 Arrivée enregistrée
               </>
             )}
@@ -510,13 +506,13 @@ export default function QRScanPage() {
   // Processing Screen
   if (scanState === 'processing') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <Card className="max-w-md w-full p-8 text-center border-0 shadow-xl">
-          <div className="size-20 rounded-full bg-primary/10 mx-auto mb-6 flex items-center justify-center">
-            <Loader2 className="size-10 text-primary animate-spin" />
+      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+        <Card className="max-w-md w-full p-8 text-center border shadow-md">
+          <div className="size-16 rounded-full bg-primary/10 mx-auto mb-6 flex items-center justify-center">
+            <Loader2 className="size-8 text-primary animate-spin" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">Validation en cours...</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-xl font-semibold mb-2">Validation en cours</h2>
+          <p className="text-sm text-muted-foreground">
             Veuillez patienter
           </p>
         </Card>
@@ -526,7 +522,7 @@ export default function QRScanPage() {
 
   // Main Scan Screen
   return (
-    <div className="min-h-screen p-4 bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen p-6 bg-background">
       <div className="max-w-lg mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
@@ -536,8 +532,8 @@ export default function QRScanPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Scanner QR</h1>
-            <p className="text-sm text-muted-foreground">Pointez vers le QR code</p>
+            <h1 className="text-2xl font-semibold">Scanner QR Code</h1>
+            <p className="text-sm text-muted-foreground">Scannez le code pour pointer</p>
           </div>
         </div>
 
@@ -552,24 +548,24 @@ export default function QRScanPage() {
         )}
 
         {/* Scanner Card */}
-        <Card className="p-4 border-0 shadow-lg mb-4 overflow-hidden">
+        <Card className="p-6 border shadow-md mb-6 overflow-hidden">
           {/* Scanner Container - Always render for HTML5QrCode */}
           <div
             className={cn(
-              "relative rounded-xl overflow-hidden bg-black",
+              "relative rounded-lg overflow-hidden bg-black",
               scanState === 'scanning' ? 'aspect-square' : 'hidden'
             )}
           >
             <div id="qr-reader-element" className="w-full h-full" />
-            
+
             {/* Scanning Overlay */}
             <div className="absolute inset-0 pointer-events-none">
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="size-72 border-2 border-white/50 rounded-2xl relative">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg" />
+                <div className="size-72 border-2 border-white/40 rounded-lg relative">
+                  <div className="absolute top-0 left-0 w-6 h-6 border-t-3 border-l-3 border-white" />
+                  <div className="absolute top-0 right-0 w-6 h-6 border-t-3 border-r-3 border-white" />
+                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-3 border-l-3 border-white" />
+                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-3 border-r-3 border-white" />
                 </div>
               </div>
             </div>
@@ -579,30 +575,30 @@ export default function QRScanPage() {
           {(scanState === 'idle' || scanState === 'error') && (
             <div className="py-12">
               <div id="qr-reader-element" className="hidden" />
-              
+
               <div className="text-center">
-                <div className="size-20 rounded-full bg-primary/10 mx-auto mb-6 flex items-center justify-center">
-                  <Camera className="size-10 text-primary" />
+                <div className="size-16 rounded-full bg-muted mx-auto mb-6 flex items-center justify-center">
+                  <Camera className="size-8 text-muted-foreground" />
                 </div>
-                
-                <h2 className="text-xl font-bold mb-2">Prêt à scanner</h2>
-                <p className="text-muted-foreground mb-6 max-w-xs mx-auto">
-                  Scannez le QR code affiché par votre administrateur
+
+                <h2 className="text-lg font-semibold mb-2">Scanner un QR Code</h2>
+                <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto">
+                  Utilisez votre caméra ou importez une image
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button size="lg" onClick={startCameraScanner} className="gap-2">
-                    <Camera className="size-5" />
+                  <Button size="lg" onClick={startCameraScanner} className="gap-2 h-11">
+                    <Camera className="size-4" />
                     Ouvrir la caméra
                   </Button>
-                  
+
                   <Button
                     size="lg"
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
-                    className="gap-2"
+                    className="gap-2 h-11"
                   >
-                    <ImagePlus className="size-5" />
+                    <ImagePlus className="size-4" />
                     Importer image
                   </Button>
                 </div>
@@ -623,14 +619,14 @@ export default function QRScanPage() {
         {/* Scanning Controls */}
         {scanState === 'scanning' && (
           <div className="flex justify-center gap-3">
-            <Button variant="outline" onClick={handleReset} className="gap-2">
+            <Button variant="outline" onClick={handleReset} className="gap-2 h-10">
               <XCircle className="size-4" />
               Annuler
             </Button>
             <Button
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              className="gap-2"
+              className="gap-2 h-10"
             >
               <ImagePlus className="size-4" />
               Importer
@@ -641,7 +637,7 @@ export default function QRScanPage() {
         {/* Error Controls */}
         {scanState === 'error' && (
           <div className="flex justify-center">
-            <Button onClick={handleReset} className="gap-2">
+            <Button onClick={handleReset} className="gap-2 h-10">
               <RefreshCw className="size-4" />
               Réessayer
             </Button>
@@ -649,27 +645,26 @@ export default function QRScanPage() {
         )}
 
         {/* Instructions */}
-        <Card className="p-4 mt-6 border-0 shadow-sm bg-white/50 dark:bg-gray-800/50">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            <CheckCircle2 className="size-5 text-primary" />
-            Comment ça marche
+        <Card className="p-5 mt-6 border shadow-sm bg-muted/30">
+          <h3 className="font-medium mb-4 text-base">
+            Instructions
           </h3>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <span className="text-primary font-bold">1.</span>
-              Demandez à votre admin d'afficher le QR code
+          <ul className="space-y-3 text-sm text-muted-foreground">
+            <li className="flex items-start gap-3">
+              <span className="text-foreground font-medium shrink-0">1.</span>
+              <span>Demandez à votre administrateur d'afficher le QR code de pointage</span>
             </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary font-bold">2.</span>
-              Scannez avec la caméra ou importez une image
+            <li className="flex items-start gap-3">
+              <span className="text-foreground font-medium shrink-0">2.</span>
+              <span>Scannez le code avec votre caméra ou importez une capture d'écran</span>
             </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary font-bold">3.</span>
-              Si c'est un QR groupe : sélectionnez votre nom
+            <li className="flex items-start gap-3">
+              <span className="text-foreground font-medium shrink-0">3.</span>
+              <span>Si plusieurs employés : sélectionnez votre nom dans la liste</span>
             </li>
-            <li className="flex items-start gap-2">
-              <span className="text-primary font-bold">4.</span>
-              Pointage automatique : ☀️ Arrivée ou 🌙 Départ
+            <li className="flex items-start gap-3">
+              <span className="text-foreground font-medium shrink-0">4.</span>
+              <span>Le système enregistrera automatiquement votre arrivée ou départ</span>
             </li>
           </ul>
         </Card>

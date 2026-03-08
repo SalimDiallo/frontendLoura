@@ -29,7 +29,8 @@ export function QRScanFAB() {
       try {
         const attendance = await getTodayAttendance(orgSlug);
         // Si l'utilisateur a déjà pointé son départ (check_out), masquer le FAB
-        if (attendance?.check_out) {
+        // Backend returns { data: null } when no attendance for today
+        if (attendance && !('data' in attendance && attendance.data === null) && attendance?.check_out) {
           setHasCheckedOut(true);
         }
       } catch (error) {

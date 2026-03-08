@@ -28,19 +28,19 @@ export function EmployeesSearchAndFilters({
   handleResetFilters: () => void;
 }) {
   return (
-    <Card className="p-2 border-0 shadow-sm">
-      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center mb-2">
+    <Card className="p-4 border shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-3">
         <div className="relative flex-1 w-full">
-          <HiOutlineMagnifyingGlass className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
             ref={searchInputRef}
             placeholder="Rechercher par nom, email ou matricule..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 pr-12 text-sm h-8"
+            className="pl-10 pr-14 text-sm h-10"
             aria-label="Rechercher des employés"
           />
-          <kbd className="absolute right-2 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1 font-mono text-[11px] text-muted-foreground">
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-6 items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs text-muted-foreground">
             ⌘K
           </kbd>
         </div>

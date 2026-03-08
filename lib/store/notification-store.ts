@@ -5,6 +5,7 @@
  *   - liste en mémoire
  *   - nombre de non lues (badge)
  *   - chargement / erreur
+ *   - état de connexion SSE
  *
  * Pas de persistence localStorage : les notifs sont toujours refetchées
  * depuis le backend à chaque montage.
@@ -37,6 +38,9 @@ export interface NotificationState {
   // Filtres actifs
   filters: NotificationFilters;
 
+  // Connexion temps réel
+  sseConnected: boolean;
+
   // --- Actions (mutateurs) ----------------------------------------------
   setNotifications: (notifications: Notification[], total: number, hasNext: boolean) => void;
   setUnreadCount: (count: number) => void;
@@ -45,6 +49,7 @@ export interface NotificationState {
   setPreferences: (prefs: NotificationPreference | null) => void;
   setFilters: (filters: NotificationFilters) => void;
   setCurrentPage: (page: number) => void;
+  setSSEConnected: (connected: boolean) => void;
 
   /** Marque une notification comme lue dans l'état local (optimistic update). */
   markAsReadLocally: (id: string) => void;
@@ -54,6 +59,9 @@ export interface NotificationState {
 
   /** Retire une notification de la liste locale. */
   removeNotificationLocally: (id: string) => void;
+
+  /** Retire un lot de notifications de la liste locale. */
+  removeBatchLocally: (ids: string[]) => void;
 
   /** Ajoute une nouvelle notification en tête de liste (SSE). Ne duplique pas. */
   addNotificationLocally: (notification: Notification) => void;
@@ -76,6 +84,7 @@ const initialState = {
   currentPage: 1,
   hasNext: false,
   filters: {} as NotificationFilters,
+  sseConnected: false,
 };
 
 // ---------------------------------------------------------------------------
@@ -101,6 +110,8 @@ export const useNotificationStore = create<NotificationState>((set) => ({
 
   setCurrentPage: (currentPage) => set({ currentPage }),
 
+  setSSEConnected: (sseConnected) => set({ sseConnected }),
+
   // --- Optimistic updates -----------------------------------------------
   markAsReadLocally: (id) =>
     set((state) => ({
@@ -125,14 +136,29 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       const removed = state.notifications.find((n) => n.id === id);
       return {
         notifications: state.notifications.filter((n) => n.id !== id),
-        totalCount: state.totalCount - 1,
-        unreadCount: removed && !removed.is_read ? state.unreadCount - 1 : state.unreadCount,
+        totalCount: Math.max(0, state.totalCount - 1),
+        unreadCount: removed && !removed.is_read
+          ? Math.max(0, state.unreadCount - 1)
+          : state.unreadCount,
+      };
+    }),
+
+  removeBatchLocally: (ids) =>
+    set((state) => {
+      const idSet = new Set(ids);
+      const removedUnread = state.notifications.filter(
+        (n) => idSet.has(n.id) && !n.is_read
+      ).length;
+      return {
+        notifications: state.notifications.filter((n) => !idSet.has(n.id)),
+        totalCount: Math.max(0, state.totalCount - ids.length),
+        unreadCount: Math.max(0, state.unreadCount - removedUnread),
       };
     }),
 
   addNotificationLocally: (notification) =>
     set((state) => {
-      // Ne pas dupliquer si déjà dans la liste
+      // Ne pas dupliquer
       if (state.notifications.find((n) => n.id === notification.id)) return state;
       return {
         notifications: [notification, ...state.notifications],
@@ -159,6 +185,7 @@ export const notificationSelectors = {
   getHasNext: (state: NotificationState) => state.hasNext,
   getCurrentPage: (state: NotificationState) => state.currentPage,
   getFilters: (state: NotificationState) => state.filters,
+  getSSEConnected: (state: NotificationState) => state.sseConnected,
 
   /** Non lues uniquement (filtre côté client pour une utilisation rapide) */
   getUnreadNotifications: (state: NotificationState) =>

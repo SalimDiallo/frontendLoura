@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { useNotificationStore } from '@/lib/store/notification-store';
 import {
@@ -18,6 +18,7 @@ import {
   markAsRead as apiMarkAsRead,
   markAllAsRead as apiMarkAllAsRead,
   deleteNotification as apiDeleteNotification,
+  batchDeleteNotifications as apiBatchDelete,
   getNotificationStats,
   getPreferences,
   updatePreferences,
@@ -39,6 +40,7 @@ export function useNotifications(autoFetch = false) {
   const currentPage = useNotificationStore((s) => s.currentPage);
   const filters = useNotificationStore((s) => s.filters);
   const preferences = useNotificationStore((s) => s.preferences);
+  const sseConnected = useNotificationStore((s) => s.sseConnected);
 
   const setNotifications = useNotificationStore((s) => s.setNotifications);
   const setUnreadCount = useNotificationStore((s) => s.setUnreadCount);
@@ -50,20 +52,30 @@ export function useNotifications(autoFetch = false) {
   const markAsReadLocally = useNotificationStore((s) => s.markAsReadLocally);
   const markAllAsReadLocally = useNotificationStore((s) => s.markAllAsReadLocally);
   const removeNotificationLocally = useNotificationStore((s) => s.removeNotificationLocally);
+  const removeBatchLocally = useNotificationStore((s) => s.removeBatchLocally);
+
+  // Refs to break circular deps for callbacks
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const currentPageRef = useRef(currentPage);
+  currentPageRef.current = currentPage;
 
   // --- Fetch notifications --------------------------------------------------
-  const fetchNotifications = useCallback(async (page = currentPage, f = filters) => {
+  const fetchNotifications = useCallback(async (page?: number, f?: NotificationFilters) => {
+    const resolvedPage = page ?? currentPageRef.current;
+    const resolvedFilters = f ?? filtersRef.current;
+
     setLoading(true);
     setError(null);
     try {
-      const response = await getNotifications({ ...f, page, page_size: 20 });
+      const response = await getNotifications({ ...resolvedFilters, page: resolvedPage, page_size: 20 });
       setNotifications(response.results, response.count, !!response.next);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement des notifications');
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filters, setLoading, setError, setNotifications]);
+  }, [setLoading, setError, setNotifications]);
 
   // --- Fetch unread count ---------------------------------------------------
   const refreshUnreadCount = useCallback(async () => {
@@ -71,7 +83,7 @@ export function useNotifications(autoFetch = false) {
       const res = await fetchUnreadCount();
       setUnreadCount(res.unread_count);
     } catch {
-      // Silencieux : le badge ne bloque pas l'UX
+      // Silencieux
     }
   }, [setUnreadCount]);
 
@@ -80,12 +92,11 @@ export function useNotifications(autoFetch = false) {
     markAsReadLocally(id); // optimistic update
     try {
       await apiMarkAsRead(id);
-      setUnreadCount(Math.max(0, unreadCount - 1));
-    } catch (err) {
-      // En cas d'erreur, on refetch pour resynchroniser
+    } catch {
+      // Resync en cas d'erreur
       await fetchNotifications();
     }
-  }, [markAsReadLocally, setUnreadCount, fetchNotifications, unreadCount]);
+  }, [markAsReadLocally, fetchNotifications]);
 
   // --- Marquer tout comme lu -------------------------------------------------
   const markAllAsRead = useCallback(async () => {
@@ -108,28 +119,40 @@ export function useNotifications(autoFetch = false) {
     }
   }, [removeNotificationLocally, fetchNotifications]);
 
+  // --- Supprimer un lot de notifications -------------------------------------
+  const batchDelete = useCallback(async (ids: string[]) => {
+    removeBatchLocally(ids); // optimistic update
+    try {
+      await apiBatchDelete(ids);
+    } catch {
+      await fetchNotifications();
+    }
+  }, [removeBatchLocally, fetchNotifications]);
+
   // --- Changer les filtres ---------------------------------------------------
   const applyFilters = useCallback((newFilters: NotificationFilters) => {
-    setFilters(newFilters);          // met à jour le store + reset page à 1
-    fetchNotifications(1, newFilters); // refetch immédiatement avec les nouveaux filtres
+    setFilters(newFilters);           // met à jour le store + reset page à 1
+    fetchNotifications(1, newFilters); // refetch immédiatement
   }, [setFilters, fetchNotifications]);
 
   // --- Pagination ------------------------------------------------------------
   const goToNextPage = useCallback(() => {
-    if (hasNext) {
-      const next = currentPage + 1;
+    const store = useNotificationStore.getState();
+    if (store.hasNext) {
+      const next = store.currentPage + 1;
       setCurrentPage(next);
       fetchNotifications(next);
     }
-  }, [hasNext, currentPage, setCurrentPage, fetchNotifications]);
+  }, [setCurrentPage, fetchNotifications]);
 
   const goToPreviousPage = useCallback(() => {
-    if (currentPage > 1) {
-      const prev = currentPage - 1;
+    const store = useNotificationStore.getState();
+    if (store.currentPage > 1) {
+      const prev = store.currentPage - 1;
       setCurrentPage(prev);
       fetchNotifications(prev);
     }
-  }, [currentPage, setCurrentPage, fetchNotifications]);
+  }, [setCurrentPage, fetchNotifications]);
 
   // --- Stats -----------------------------------------------------------------
   const fetchStats = useCallback(async () => {
@@ -165,11 +188,11 @@ export function useNotifications(autoFetch = false) {
   // --- Auto-fetch si demandé -------------------------------------------------
   useEffect(() => {
     if (autoFetch) {
-      fetchNotifications(1, filters);
+      fetchNotifications(1);
       refreshUnreadCount();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoFetch, filters]);
+  }, [autoFetch]);
 
   // --- Exposition ------------------------------------------------------------
   return {
@@ -183,6 +206,7 @@ export function useNotifications(autoFetch = false) {
     currentPage,
     filters,
     preferences,
+    sseConnected,
 
     // Actions
     fetchNotifications,
@@ -190,6 +214,7 @@ export function useNotifications(autoFetch = false) {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    batchDelete,
     applyFilters,
     goToNextPage,
     goToPreviousPage,

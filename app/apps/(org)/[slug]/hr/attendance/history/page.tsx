@@ -10,6 +10,7 @@ import {
   HiOutlineCalendar,
   HiOutlineCheckCircle,
   HiOutlineArrowUpTray,
+  HiOutlineXCircle,
 } from "react-icons/hi2";
 import {
   Table,
@@ -19,6 +20,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   StatCard,
   PageHeader,
@@ -207,9 +214,45 @@ function AttendanceCalendar({ attendances }: { attendances: Attendance[] }) {
                       >
                         {label}
                       </span>
-                      {!att.is_approved && (
+                      {att.breaks && att.breaks.length > 0 && (
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="block text-left truncate rounded-md px-1.5 py-0.5 text-[10px] font-normal leading-tight bg-muted/50 text-muted-foreground cursor-help">
+                                {att.breaks.length} pause{att.breaks.length > 1 ? 's' : ''} • {Math.round(att.total_break_minutes)}min
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <div className="space-y-1.5">
+                                <div className="text-xs font-medium mb-2">Détail des pauses</div>
+                                {att.breaks.map((breakItem, idx) => (
+                                  <div key={breakItem.id} className="text-xs flex items-center gap-2 py-1 border-b border-border/30 last:border-0">
+                                    <span className="font-medium text-muted-foreground">Pause {idx + 1}:</span>
+                                    <span>{formatTime(breakItem.start_time)}</span>
+                                    {breakItem.end_time && (
+                                      <>
+                                        <span className="text-muted-foreground">→</span>
+                                        <span>{formatTime(breakItem.end_time)}</span>
+                                      </>
+                                    )}
+                                    <span className="text-muted-foreground ml-auto">
+                                      ({breakItem.duration_minutes} min)
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      {!att.is_approved && att.approval_status !== "rejected" && (
                         <span className="block text-left truncate rounded-md px-1.5 py-0.5 text-[10px] font-normal leading-tight bg-muted/60 text-muted-foreground">
                           En attente
+                        </span>
+                      )}
+                      {att.approval_status === "rejected" && (
+                        <span className="block text-left truncate rounded-md px-1.5 py-0.5 text-[10px] font-normal leading-tight bg-red-100 text-red-700">
+                          Rejeté
                         </span>
                       )}
                     </div>
@@ -467,6 +510,7 @@ function AttendanceHistoryContent() {
                       <TableHead className="font-medium px-3 py-2.5 text-xs text-muted-foreground">Date</TableHead>
                       <TableHead className="font-medium px-2 py-2.5 text-xs text-muted-foreground">Arrivée</TableHead>
                       <TableHead className="font-medium px-2 py-2.5 text-xs text-muted-foreground">Départ</TableHead>
+                      <TableHead className="font-medium px-2 py-2.5 text-center text-xs text-muted-foreground">Pauses</TableHead>
                       <TableHead className="font-medium px-2 py-2.5 text-center text-xs text-muted-foreground">Durée</TableHead>
                       <TableHead className="font-medium px-2 py-2.5 text-center text-xs text-muted-foreground">Heures sup.</TableHead>
                       <TableHead className="font-medium px-2 py-2.5 text-xs text-muted-foreground">Statut</TableHead>
@@ -487,6 +531,46 @@ function AttendanceHistoryContent() {
                           <TableCell className="px-2 py-2.5 text-muted-foreground whitespace-nowrap text-xs">
                             {formatTime(attendance.check_out)}
                           </TableCell>
+                          <TableCell className="px-2 py-2.5 text-center text-xs">
+                            {attendance.breaks && attendance.breaks.length > 0 ? (
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex flex-col gap-0.5 cursor-help">
+                                      <span className="text-muted-foreground font-medium">
+                                        {attendance.breaks.length} pause{attendance.breaks.length > 1 ? 's' : ''}
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground/70">
+                                        {Math.round(attendance.total_break_minutes)} min
+                                      </span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <div className="space-y-1.5">
+                                      <div className="text-xs font-medium mb-2">Détail des pauses</div>
+                                      {attendance.breaks.map((breakItem, idx) => (
+                                        <div key={breakItem.id} className="text-xs flex items-center gap-2 py-1 border-b border-border/30 last:border-0">
+                                          <span className="font-medium text-muted-foreground">Pause {idx + 1}:</span>
+                                          <span>{formatTime(breakItem.start_time)}</span>
+                                          {breakItem.end_time && (
+                                            <>
+                                              <span className="text-muted-foreground">→</span>
+                                              <span>{formatTime(breakItem.end_time)}</span>
+                                            </>
+                                          )}
+                                          <span className="text-muted-foreground ml-auto">
+                                            ({breakItem.duration_minutes} min)
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <span className="text-muted-foreground/30">—</span>
+                            )}
+                          </TableCell>
                           <TableCell className="px-2 py-2.5 text-center font-medium text-xs">
                             {formatDuration(attendance.total_hours)}
                           </TableCell>
@@ -503,7 +587,12 @@ function AttendanceHistoryContent() {
                             {getStatusBadgeNode(attendance.status)}
                           </TableCell>
                           <TableCell className="px-3 py-2.5 text-right text-xs">
-                            {attendance.is_approved ? (
+                            {attendance.approval_status === "rejected" ? (
+                              <span className="inline-flex items-center gap-1 text-red-600 text-[10px] font-medium">
+                                <HiOutlineXCircle className="size-3" />
+                                Rejeté
+                              </span>
+                            ) : attendance.is_approved ? (
                               <span className="inline-flex items-center gap-1 text-emerald-600 text-[10px] font-medium">
                                 <HiOutlineCheckCircle className="size-3" />
                                 Approuvé

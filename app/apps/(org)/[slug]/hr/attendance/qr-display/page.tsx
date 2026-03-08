@@ -1,32 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import { QRCodeSVG } from 'qrcode.react';
-import { Card, Button, Input, Alert, Badge } from '@/components/ui';
-import { createQRSession, getEmployees } from '@/lib/services/hr';
-import type { QRCodeSession, EmployeeListItem, QRCodeSessionEmployee } from '@/lib/types/hr';
-import {
-  QrCode,
-  User,
-  Users,
-  Search,
-  RefreshCw,
-  ArrowLeft,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  Sun,
-  Moon,
-  LogIn,
-  LogOut,
-  Zap,
-  X,
-} from 'lucide-react';
 import { Can } from '@/components/apps/common/protected-route';
-import { cn } from '@/lib/utils';
+import { Alert, Badge, Button, Card, Input } from '@/components/ui';
+import { createQRSession, getEmployees } from '@/lib/services/hr';
+import type { EmployeeListItem, QRCodeSession } from '@/lib/types/hr';
 import { COMMON_PERMISSIONS } from '@/lib/types/permissions';
+import { cn } from '@/lib/utils';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Check,
+  Clock,
+  Moon,
+  QrCode,
+  RefreshCw,
+  Search,
+  Sun,
+  Users,
+  X,
+  Zap,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { QRCodeSVG } from 'qrcode.react';
+import { useEffect, useState } from 'react';
 
 type AttendanceMode = 'auto' | 'check_in' | 'check_out';
 
@@ -56,7 +53,6 @@ function QRDisplayContent() {
   const [expirationMinutes, setExpirationMinutes] = useState(10);
   const [mode, setMode] = useState<AttendanceMode>('auto');
 
-  // Load employees
   useEffect(() => {
     loadEmployees();
   }, [orgSlug]);
@@ -73,7 +69,6 @@ function QRDisplayContent() {
     }
   };
 
-  // Timer countdown
   useEffect(() => {
     if (!session) return;
 
@@ -97,20 +92,19 @@ function QRDisplayContent() {
   const toggleEmployee = (employee: EmployeeListItem) => {
     setSelectedEmployees(prev => {
       const exists = prev.find(e => e.id === employee.id);
-      if (exists) {
-        return prev.filter(e => e.id !== employee.id);
-      }
+      if (exists) return prev.filter(e => e.id !== employee.id);
       return [...prev, employee];
     });
   };
 
-  const selectAll = () => {
-    setSelectedEmployees(filteredEmployees);
-  };
+  const filteredEmployees = employees.filter(emp =>
+    emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    emp.employee_id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const clearSelection = () => {
-    setSelectedEmployees([]);
-  };
+  const selectAll = () => setSelectedEmployees(filteredEmployees);
+  const clearSelection = () => setSelectedEmployees([]);
 
   const handleGenerateQR = async () => {
     if (selectedEmployees.length === 0) {
@@ -121,12 +115,11 @@ function QRDisplayContent() {
     try {
       setLoading(true);
       setError(null);
-      
-      // Send all selected employee IDs
       const newSession = await createQRSession(
         {
           employee_ids: selectedEmployees.map(e => e.id),
           expires_in_minutes: expirationMinutes,
+          mode: mode,
         },
         orgSlug
       );
@@ -151,81 +144,71 @@ function QRDisplayContent() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.employee_id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const modeConfig = {
     auto: {
       label: 'Auto',
       icon: Zap,
       description: 'Détection automatique arrivée/départ',
-      color: 'text-primary',
-      bg: 'bg-primary/10',
     },
     check_in: {
       label: 'Arrivée',
       icon: Sun,
       description: 'Pointage d\'arrivée uniquement',
-      color: 'text-green-600',
-      bg: 'bg-green-100 dark:bg-green-900/30',
     },
     check_out: {
       label: 'Départ',
       icon: Moon,
       description: 'Pointage de départ uniquement',
-      color: 'text-amber-600',
-      bg: 'bg-amber-100 dark:bg-amber-900/30',
     },
   };
 
-  // Loading State
+  // Loading
   if (loadingEmployees) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="size-16 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto" />
-          <p className="text-muted-foreground">Chargement des employés...</p>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="size-10 rounded-full border-2 border-zinc-300 border-t-zinc-800 dark:border-zinc-600 dark:border-t-zinc-200 animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Chargement des employés...</p>
         </div>
       </div>
     );
   }
 
-  // QR Code Display State
+  // QR Display
   if (session) {
     const isLowTime = timeRemaining < 60;
     const isExpired = timeRemaining === 0;
-    const ModeIcon = modeConfig[session.mode || 'auto'].icon;
+    const sessionMode = session.mode || 'auto';
+    const ModeIcon = modeConfig[sessionMode].icon;
 
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <Card className="max-w-2xl w-full p-8 border-0 shadow-2xl">
-          {/* Header with employees */}
-          <div className="text-center mb-6 pb-6 border-b">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <div className={cn("p-2 rounded-lg", modeConfig[session.mode || 'auto'].bg)}>
-                <ModeIcon className={cn("size-6", modeConfig[session.mode || 'auto'].color)} />
-              </div>
-              <Badge variant="outline" className="text-sm">
-                {modeConfig[session.mode || 'auto'].label}
-              </Badge>
+      <div className="max-w-lg mx-auto pb-10 space-y-6">
+        {/* Back button */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={handleReset}>
+            <ArrowLeft className="size-4 mr-1.5" />
+            Nouveau QR
+          </Button>
+        </div>
+
+        <Card className="p-6 sm:p-8 shadow-sm">
+          {/* Mode & Employees header */}
+          <div className="text-center mb-6 pb-5 border-b">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 text-sm font-medium mb-3">
+              <ModeIcon className="size-4" />
+              {modeConfig[sessionMode].label}
             </div>
-            
-            <h2 className="text-xl font-bold mb-2">
-              QR Code pour {session.employee_count} employé{session.employee_count > 1 ? 's' : ''}
+            <h2 className="text-lg font-semibold">
+              QR Code — {session.employee_count} employé{session.employee_count > 1 ? 's' : ''}
             </h2>
-            
-            {/* Employee list */}
-            <div className="flex flex-wrap justify-center gap-2 mt-3">
+            <div className="flex flex-wrap justify-center gap-1.5 mt-3">
               {session.all_employees.slice(0, 5).map((emp) => (
-                <Badge key={emp.id} variant="outline" className="text-xs">
+                <Badge key={emp.id} variant="outline" className="text-xs font-normal">
                   {emp.full_name}
                 </Badge>
               ))}
               {session.all_employees.length > 5 && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs font-normal">
                   +{session.all_employees.length - 5} autres
                 </Badge>
               )}
@@ -235,12 +218,12 @@ function QRDisplayContent() {
           {/* QR Code */}
           <div className="flex justify-center mb-6">
             <div className={cn(
-              "bg-white p-6 rounded-2xl shadow-lg transition-all",
-              isExpired && "opacity-50 grayscale"
+              "bg-white p-5 rounded-xl border transition-opacity",
+              isExpired && "opacity-30 grayscale"
             )}>
               <QRCodeSVG
                 value={session.qr_code_data}
-                size={300}
+                size={260}
                 level="H"
                 includeMargin={true}
               />
@@ -248,84 +231,77 @@ function QRDisplayContent() {
           </div>
 
           {/* Timer */}
-          <div className="text-center mb-6">
-            <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="text-center mb-5">
+            <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider flex items-center justify-center gap-1.5">
               <Clock className={cn(
-                "size-5",
+                "size-3.5",
                 isExpired ? "text-red-500" : isLowTime ? "text-amber-500" : "text-muted-foreground"
               )} />
-              <span className="text-sm text-muted-foreground">Temps restant</span>
-            </div>
-            <div className={cn(
-              "text-5xl font-mono font-bold",
-              isExpired ? "text-red-500" : isLowTime ? "text-amber-500" : "text-primary"
+              Temps restant
+            </p>
+            <p className={cn(
+              "text-3xl font-mono font-semibold tabular-nums",
+              isExpired ? "text-red-500" : isLowTime ? "text-amber-500" : ""
             )}>
               {isExpired ? "Expiré" : formatTime(timeRemaining)}
-            </div>
-            
-            {/* Progress Bar */}
-            <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden max-w-sm mx-auto">
+            </p>
+
+            {/* Progress */}
+            <div className="mt-3 h-1.5 bg-muted rounded-full overflow-hidden max-w-xs mx-auto">
               <div
                 className={cn(
-                  "h-full rounded-full transition-all",
-                  isExpired ? "bg-red-500" : isLowTime ? "bg-amber-500" : "bg-primary"
+                  "h-full rounded-full transition-all duration-1000",
+                  isExpired ? "bg-red-400" : isLowTime ? "bg-amber-400" : "bg-zinc-800 dark:bg-zinc-200"
                 )}
-                style={{
-                  width: `${(timeRemaining / (expirationMinutes * 60)) * 100}%`
-                }}
+                style={{ width: `${(timeRemaining / (expirationMinutes * 60)) * 100}%` }}
               />
             </div>
           </div>
 
           {/* Warning */}
           {isLowTime && !isExpired && (
-            <Alert variant="warning" className="mb-6">
+            <Alert variant="warning" className="mb-5 text-sm">
               <AlertTriangle className="size-4" />
-              Le code expire bientôt !
+              Le code expire bientôt
             </Alert>
           )}
 
-          {/* Instructions based on mode */}
-          <div className="border-t pt-6 mb-6">
-            <div className={cn(
-              "p-4 rounded-xl text-center mb-4",
-              modeConfig[session.mode || 'auto'].bg
-            )}>
-              {session.mode === 'check_in' && (
-                <p className="font-medium flex items-center justify-center gap-2">
-                  <Sun className="size-5" />
-                  Ce QR code enregistre uniquement les ARRIVÉES
-                </p>
-              )}
-              {session.mode === 'check_out' && (
-                <p className="font-medium flex items-center justify-center gap-2">
-                  <Moon className="size-5" />
-                  Ce QR code enregistre uniquement les DÉPARTS
-                </p>
-              )}
-              {session.mode === 'auto' && (
-                <p className="font-medium flex items-center justify-center gap-2">
-                  <Zap className="size-5" />
-                  Détection automatique : Arrivée le matin, Départ le soir
-                </p>
-              )}
-            </div>
-            
-            {session.employee_count > 1 && (
-              <p className="text-sm text-muted-foreground text-center">
-                Chaque employé devra sélectionner son nom après avoir scanné le QR code
+          {/* Mode instruction */}
+          <div className="p-3 rounded-lg bg-muted/40 text-center text-sm mb-5">
+            {sessionMode === 'check_in' && (
+              <p className="flex items-center justify-center gap-2 text-muted-foreground">
+                <Sun className="size-4" />
+                Ce QR code enregistre uniquement les <strong className="text-foreground">arrivées</strong>
+              </p>
+            )}
+            {sessionMode === 'check_out' && (
+              <p className="flex items-center justify-center gap-2 text-muted-foreground">
+                <Moon className="size-4" />
+                Ce QR code enregistre uniquement les <strong className="text-foreground">départs</strong>
+              </p>
+            )}
+            {sessionMode === 'auto' && (
+              <p className="flex items-center justify-center gap-2 text-muted-foreground">
+                <Zap className="size-4" />
+                Détection automatique arrivée / départ
               </p>
             )}
           </div>
 
+          {session.employee_count > 1 && (
+            <p className="text-xs text-muted-foreground text-center mb-5">
+              Chaque employé sélectionnera son nom après le scan
+            </p>
+          )}
+
           {/* Actions */}
-          <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={handleReset}>
-              <ArrowLeft className="size-4 mr-2" />
-              Nouveau QR
+          <div className="flex gap-2 justify-center border-t pt-5">
+            <Button variant="outline" size="sm" onClick={handleReset}>
+              <ArrowLeft className="size-4 mr-1.5" />
+              Nouveau
             </Button>
-            <Button onClick={handleGenerateQR} disabled={loading}>
-              <RefreshCw className={cn("size-4 mr-2", loading && "animate-spin")} />
+            <Button size="sm" onClick={() => handleGenerateQR()} disabled={loading}>
+              <RefreshCw className={cn("size-4 mr-1.5", loading && "animate-spin")} />
               Régénérer
             </Button>
           </div>
@@ -334,210 +310,207 @@ function QRDisplayContent() {
     );
   }
 
-  // Employee Selection State
+  // Employee Selection
   return (
-    <div className="min-h-screen p-4 bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href={`/apps/${orgSlug}/hr/attendance`}>
-              <ArrowLeft className="size-5" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <QrCode className="size-6 text-primary" />
-              Générer un QR de Pointage
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Sélectionnez un ou plusieurs employés
-            </p>
-          </div>
+    <div className="max-w-4xl mx-auto pb-10 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href={`/apps/${orgSlug}/hr/attendance`}>
+            <ArrowLeft className="size-5" />
+          </Link>
+        </Button>
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
+            <QrCode className="size-5" />
+            Générer un QR de pointage
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Sélectionnez les employés concernés
+          </p>
         </div>
+      </div>
 
-        {error && (
-          <Alert variant="error" className="mb-4">
-            {error}
-          </Alert>
-        )}
+      {error && (
+        <Alert variant="error" className="text-sm">
+          {error}
+        </Alert>
+      )}
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Employee Selection Panel */}
-          <div className="lg:col-span-2">
-            <Card className="p-6 border-0 shadow-lg">
-              {/* Search & Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Rechercher..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={selectAll}>
-                    <Users className="size-4 mr-1" />
-                    Tous
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={clearSelection}>
-                    <X className="size-4 mr-1" />
-                    Aucun
-                  </Button>
-                </div>
+      <div className="grid lg:grid-cols-3 gap-5">
+        {/* Employee list */}
+        <div className="lg:col-span-2">
+          <Card className="p-5 shadow-sm">
+            {/* Search & bulk actions */}
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Rechercher un employé..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9"
+                />
               </div>
-
-              {/* Selection indicator */}
-              {selectedEmployees.length > 0 && (
-                <div className="mb-4 p-3 rounded-lg bg-primary/10 flex items-center justify-between">
-                  <span className="text-sm font-medium">
-                    {selectedEmployees.length} employé{selectedEmployees.length > 1 ? 's' : ''} sélectionné{selectedEmployees.length > 1 ? 's' : ''}
-                  </span>
-                  <Button variant="ghost" size="sm" onClick={clearSelection}>
-                    Effacer
-                  </Button>
-                </div>
-              )}
-
-              {/* Employee Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto">
-                {filteredEmployees.length === 0 ? (
-                  <div className="col-span-2 text-center py-12 text-muted-foreground">
-                    {searchQuery ? 'Aucun employé trouvé' : 'Aucun employé actif'}
-                  </div>
-                ) : (
-                  filteredEmployees.map((employee) => {
-                    const isSelected = selectedEmployees.some(e => e.id === employee.id);
-                    return (
-                      <button
-                        key={employee.id}
-                        onClick={() => toggleEmployee(employee)}
-                        className={cn(
-                          "p-3 rounded-lg border-2 text-left transition-all flex items-center gap-3",
-                          isSelected
-                            ? "border-primary bg-primary/5"
-                            : "border-transparent bg-muted/30 hover:bg-muted/60"
-                        )}
-                      >
-                        <div className={cn(
-                          "size-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0",
-                          isSelected
-                            ? "bg-primary text-white"
-                            : "bg-muted text-muted-foreground"
-                        )}>
-                          {isSelected ? (
-                            <CheckCircle2 className="size-5" />
-                          ) : (
-                            employee.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{employee.full_name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{employee.email}</p>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
+              <div className="flex gap-1.5">
+                <Button variant="outline" size="sm" onClick={selectAll}>
+                  <Users className="size-3.5 mr-1" />
+                  Tous
+                </Button>
+                <Button variant="outline" size="sm" onClick={clearSelection}>
+                  <X className="size-3.5 mr-1" />
+                  Aucun
+                </Button>
               </div>
-            </Card>
-          </div>
+            </div>
 
-          {/* Settings Panel */}
-          <div className="space-y-4">
-            {/* Mode Selection */}
-            <Card className="p-4 border-0 shadow-lg">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Zap className="size-5 text-primary" />
-                Mode de pointage
-              </h3>
-              <div className="space-y-2">
-                {(Object.keys(modeConfig) as AttendanceMode[]).map((m) => {
-                  const config = modeConfig[m];
-                  const Icon = config.icon;
+            {/* Selection count */}
+            {selectedEmployees.length > 0 && (
+              <div className="mb-3 py-2 px-3 rounded-md bg-muted/50 flex items-center justify-between text-sm">
+                <span className="font-medium">
+                  {selectedEmployees.length} sélectionné{selectedEmployees.length > 1 ? 's' : ''}
+                </span>
+                <button
+                  onClick={clearSelection}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Effacer
+                </button>
+              </div>
+            )}
+
+            {/* Employee grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[420px] overflow-y-auto pr-1">
+              {filteredEmployees.length === 0 ? (
+                <div className="col-span-2 text-center py-12 text-sm text-muted-foreground">
+                  {searchQuery ? 'Aucun employé trouvé' : 'Aucun employé actif'}
+                </div>
+              ) : (
+                filteredEmployees.map((employee) => {
+                  const isSelected = selectedEmployees.some(e => e.id === employee.id);
                   return (
                     <button
-                      key={m}
-                      onClick={() => setMode(m)}
+                      key={employee.id}
+                      onClick={() => toggleEmployee(employee)}
                       className={cn(
-                        "w-full p-3 rounded-lg border-2 text-left transition-all flex items-center gap-3",
-                        mode === m
-                          ? "border-primary bg-primary/5"
-                          : "border-transparent bg-muted/30 hover:bg-muted/60"
+                        "p-2.5 rounded-lg border text-left transition-all flex items-center gap-2.5",
+                        isSelected
+                          ? "border-zinc-400 dark:border-zinc-500 bg-muted/60"
+                          : "border-transparent hover:bg-muted/40"
                       )}
                     >
-                      <div className={cn("p-2 rounded-lg", config.bg)}>
-                        <Icon className={cn("size-5", config.color)} />
+                      <div className={cn(
+                        "size-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-colors",
+                        isSelected
+                          ? "bg-zinc-800 text-white dark:bg-zinc-200 dark:text-zinc-900"
+                          : "bg-muted text-muted-foreground"
+                      )}>
+                        {isSelected ? (
+                          <Check className="size-4" />
+                        ) : (
+                          employee.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)
+                        )}
                       </div>
-                      <div>
-                        <p className="font-medium text-sm">{config.label}</p>
-                        <p className="text-xs text-muted-foreground">{config.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{employee.full_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{employee.email}</p>
                       </div>
                     </button>
                   );
-                })}
-              </div>
-            </Card>
-
-            {/* Expiration Time */}
-            <Card className="p-4 border-0 shadow-lg">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Clock className="size-5 text-primary" />
-                Durée de validité
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {[5, 10, 15, 30].map((mins) => (
-                  <Button
-                    key={mins}
-                    variant={expirationMinutes === mins ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setExpirationMinutes(mins)}
-                    className="w-full"
-                  >
-                    {mins} min
-                  </Button>
-                ))}
-              </div>
-            </Card>
-
-            {/* Generate Button */}
-            <Button
-              size="lg"
-              onClick={handleGenerateQR}
-              disabled={selectedEmployees.length === 0 || loading}
-              className="w-full gap-2 h-14"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="size-5 animate-spin" />
-                  Génération...
-                </>
-              ) : (
-                <>
-                  <QrCode className="size-5" />
-                  Générer le QR
-                  {selectedEmployees.length > 0 && (
-                    <Badge variant="outline" className="ml-2">
-                      {selectedEmployees.length}
-                    </Badge>
-                  )}
-                </>
+                })
               )}
-            </Button>
+            </div>
+          </Card>
+        </div>
 
-            {/* Info */}
-            <Card className="p-4 border-0 shadow-sm bg-muted/30">
-              <h4 className="font-medium text-sm mb-2">💡 Comment ça marche</h4>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                <li>• Sélectionnez un ou plusieurs employés</li>
-                <li>• Choisissez le mode (arrivée, départ ou auto)</li>
-                <li>• Affichez le QR code pour que les employés le scannent</li>
-                <li>• Si plusieurs employés : ils choisiront leur nom</li>
-              </ul>
-            </Card>
+        {/* Settings panel */}
+        <div className="space-y-4">
+          {/* Mode */}
+          <Card className="p-4 shadow-sm">
+            <h3 className="text-sm font-medium mb-3 uppercase tracking-wider text-muted-foreground">
+              Mode
+            </h3>
+            <div className="space-y-1.5">
+              {(Object.keys(modeConfig) as AttendanceMode[]).map((m) => {
+                const config = modeConfig[m];
+                const Icon = config.icon;
+                return (
+                  <button
+                    key={m}
+                    onClick={() => setMode(m)}
+                    className={cn(
+                      "w-full p-2.5 rounded-lg border text-left transition-all flex items-center gap-2.5",
+                      mode === m
+                        ? "border-zinc-400 dark:border-zinc-500 bg-muted/60"
+                        : "border-transparent hover:bg-muted/40"
+                    )}
+                  >
+                    <Icon className="size-4 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">{config.label}</p>
+                      <p className="text-xs text-muted-foreground">{config.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* Duration */}
+          <Card className="p-4 shadow-sm">
+            <h3 className="text-sm font-medium mb-3 uppercase tracking-wider text-muted-foreground">
+              Durée de validité
+            </h3>
+            <div className="grid grid-cols-3 gap-1.5">
+              {[5, 10, 15, 30, 60].map((mins) => (
+                <Button
+                  key={mins}
+                  variant={expirationMinutes === mins ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setExpirationMinutes(mins)}
+                  className="text-xs"
+                >
+                  {mins >= 60 ? `${mins / 60}h` : `${mins}m`}
+                </Button>
+              ))}
+            </div>
+          </Card>
+
+          {/* Generate */}
+          <Button
+            size="lg"
+            onClick={handleGenerateQR}
+            disabled={selectedEmployees.length === 0 || loading}
+            className="w-full gap-2 h-12"
+          >
+            {loading ? (
+              <>
+                <RefreshCw className="size-4 animate-spin" />
+                Génération...
+              </>
+            ) : (
+              <>
+                <QrCode className="size-4" />
+                Générer le QR
+                {selectedEmployees.length > 0 && (
+                  <Badge variant="outline" className="ml-1 bg-white/20 border-white/30 text-xs">
+                    {selectedEmployees.length}
+                  </Badge>
+                )}
+              </>
+            )}
+          </Button>
+
+          {/* Info */}
+          <div className="p-3 rounded-lg bg-muted/30 border border-dashed">
+            <p className="text-xs font-medium mb-1.5 text-muted-foreground">Comment ça marche</p>
+            <ul className="text-xs text-muted-foreground space-y-0.5 leading-relaxed">
+              <li>• Sélectionnez un ou plusieurs employés</li>
+              <li>• Choisissez le mode de pointage</li>
+              <li>• Affichez le QR pour que les employés le scannent</li>
+              <li>• Si plusieurs : ils choisiront leur nom</li>
+            </ul>
           </div>
         </div>
       </div>

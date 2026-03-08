@@ -388,7 +388,7 @@ export default function EmployeesPage() {
 
   return (
     <Can permission={COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES} showMessage={true}>
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Shortcuts Modal */}
         <ShortcutsHelpModal
           isOpen={showShortcuts}
@@ -417,7 +417,7 @@ export default function EmployeesPage() {
         />
 
         {/* Employees Table or Empty State */}
-        <Card className="border-0 shadow-sm overflow-hidden">
+        <Card className="border shadow-sm overflow-hidden">
           {filteredEmployees.length === 0 ? (
             <EmployeesEmptyState
               hasActiveFilters={hasActiveFilters}

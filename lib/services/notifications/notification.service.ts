@@ -87,6 +87,14 @@ export async function markAllAsRead(): Promise<MarkAllAsReadResponse> {
 }
 
 // ---------------------------------------------------------------------------
+// Suppression par lot
+// ---------------------------------------------------------------------------
+
+export async function batchDeleteNotifications(ids: string[]): Promise<{ message: string; count: number }> {
+  return apiClient.post<{ message: string; count: number }>(API_ENDPOINTS.NOTIFICATIONS.BATCH_DELETE, { ids });
+}
+
+// ---------------------------------------------------------------------------
 // Nombre de non lues
 // ---------------------------------------------------------------------------
 

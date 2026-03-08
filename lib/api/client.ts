@@ -184,9 +184,10 @@ class ApiClient {
   }
 
   /**
-   * Rafraîchissement du token
+   * Rafraîchissement du token — accessible publiquement pour les modules
+   * qui ne passent pas par `apiClient.request()` (ex: SSE EventSource).
    */
-  private async refreshToken(): Promise<boolean> {
+  async refreshToken(): Promise<boolean> {
     const refreshToken = tokenManager.getRefreshToken();
     if (!refreshToken) return false;
 

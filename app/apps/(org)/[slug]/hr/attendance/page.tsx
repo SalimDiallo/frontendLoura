@@ -1,39 +1,36 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { format, differenceInSeconds, differenceInMinutes } from "date-fns";
+import { Can } from "@/components/apps/common/protected-route";
+import { Alert, Badge, Button, Card } from "@/components/ui";
+import { KeyboardHint, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
+import { KeyboardShortcut, useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
+import { checkIn, checkOut, endBreak, getTodayAttendance, startBreak } from "@/lib/services/hr";
+import type { Attendance, Break as BreakType } from "@/lib/types/hr";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn } from "@/lib/utils";
+import { differenceInMinutes, differenceInSeconds, format } from "date-fns";
 import { fr } from "date-fns/locale";
-import Link from "next/link";
 import {
-  Clock,
-  LogIn,
-  LogOut,
-  QrCode,
+  AlertCircle,
   Calendar,
   CheckCircle2,
-  XCircle,
+  Clock,
   Coffee,
+  HelpCircle,
+  History,
+  ListChecks,
+  LogIn,
+  LogOut,
+  Pause,
   Play,
-  Square,
+  QrCode,
   Timer,
   TrendingUp,
   Users,
-  History,
-  AlertCircle,
-  Zap,
-  ListChecks,
 } from "lucide-react";
-import { Alert, Button, Card, Badge } from "@/components/ui";
-import { getTodayAttendance, checkIn, checkOut, startBreak, endBreak } from "@/lib/services/hr";
-import type { Attendance } from "@/lib/types/hr";
-import { Can } from "@/components/apps/common/protected-route";
-import { cn } from "@/lib/utils";
-import { useKeyboardShortcuts, KeyboardShortcut } from "@/lib/hooks/use-keyboard-shortcuts";
-import { ShortcutsHelpModal, KeyboardHint } from "@/components/ui/shortcuts-help";
-import { HelpCircle } from "lucide-react";
-import { useHasPermission } from "@/lib/hooks";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 type AttendanceState = "not_started" | "checked_in" | "on_break" | "checked_out";
 
@@ -50,8 +47,6 @@ export default function AttendancePage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const router = useRouter();
 
-  const canManualCheckin  = useHasPermission(COMMON_PERMISSIONS.HR.MANUAL_CHECKIN);
-
   useEffect(() => {
     loadTodayAttendance();
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -63,7 +58,11 @@ export default function AttendancePage() {
       setLoading(true);
       setError(null);
       const data = await getTodayAttendance(slug);
-      setAttendance(data);
+      if (data && !('data' in data && data.data === null)) {
+        setAttendance(data);
+      } else {
+        setAttendance(null);
+      }
     } catch (err: any) {
       if (err.status !== 404) {
         setError(err.message || "Erreur lors du chargement");
@@ -77,7 +76,7 @@ export default function AttendancePage() {
   const state: AttendanceState = useMemo(() => {
     if (!attendance?.check_in) return "not_started";
     if (attendance.check_out) return "checked_out";
-    if (attendance.break_start && !attendance.break_end) return "on_break";
+    if (attendance.is_on_break) return "on_break";
     return "checked_in";
   }, [attendance]);
 
@@ -98,13 +97,18 @@ export default function AttendancePage() {
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  // Calculate break duration
-  const breakDuration = useMemo(() => {
-    if (!attendance?.break_start) return 0;
-    const start = new Date(attendance.break_start);
-    const end = attendance.break_end ? new Date(attendance.break_end) : currentTime;
-    return differenceInMinutes(end, start);
+  // Active break duration in minutes (live)
+  const activeBreakDuration = useMemo(() => {
+    if (!attendance?.breaks) return 0;
+    const activeBreak = attendance.breaks.find(b => b.is_active);
+    if (!activeBreak) return 0;
+    return differenceInMinutes(currentTime, new Date(activeBreak.start_time));
   }, [attendance, currentTime]);
+
+  // Total breaks count
+  const breaksCount = attendance?.breaks?.length ?? 0;
+  const completedBreaks = attendance?.breaks?.filter(b => !b.is_active) ?? [];
+  const totalBreakMinutes = attendance?.total_break_minutes ?? 0;
 
   // Handle actions
   const handleAction = async (action: string) => {
@@ -112,16 +116,16 @@ export default function AttendancePage() {
       setActionLoading(action);
       setError(null);
       setSuccess(null);
-      
+
       let data;
       switch (action) {
         case "check_in":
           data = await checkIn({ location: "Bureau" }, slug);
-          setSuccess("Arrivée enregistrée !");
+          setSuccess("Arrivée enregistrée");
           break;
         case "check_out":
           data = await checkOut({ location: "Bureau" }, slug);
-          setSuccess("Départ enregistré !");
+          setSuccess("Départ enregistré");
           break;
         case "start_break":
           data = await startBreak(slug);
@@ -133,8 +137,6 @@ export default function AttendancePage() {
           break;
       }
       if (data) setAttendance(data);
-      
-      // Clear success after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err.error || err.message || "Erreur lors de l'action");
@@ -143,54 +145,44 @@ export default function AttendancePage() {
     }
   };
 
-  // Status colors and info
   const stateConfig = {
     not_started: {
-      color: "bg-slate-500",
-      textColor: "text-slate-600",
       label: "Non pointé",
       description: "Vous n'avez pas encore pointé aujourd'hui",
+      dot: "bg-zinc-400",
+      badge: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
     },
     checked_in: {
-      color: "bg-green-500",
-      textColor: "text-green-600",
       label: "En service",
       description: "Vous êtes actuellement en service",
+      dot: "bg-emerald-500",
+      badge: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400",
     },
     on_break: {
-      color: "bg-amber-500",
-      textColor: "text-amber-600",
       label: "En pause",
       description: "Vous êtes actuellement en pause",
+      dot: "bg-amber-500",
+      badge: "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400",
     },
     checked_out: {
-      color: "bg-foreground",
-      textColor: "dark:text-black text-white",
       label: "Journée terminée",
       description: "Vous avez terminé votre journée",
+      dot: "bg-zinc-900 dark:bg-zinc-100",
+      badge: "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100",
     },
   };
 
-  // Raccourcis clavier
+  // Keyboard shortcuts
   const shortcuts: KeyboardShortcut[] = useMemo(() => [
-    // Actions de pointage
-    { key: "i", action: () => {
-      if (state === "not_started") handleAction("check_in");
-    }, description: "Pointer l'arrivée" },
-    { key: "o", action: () => {
-      if (state === "checked_in") handleAction("check_out");
-    }, description: "Pointer le départ" },
+    { key: "i", action: () => { if (state === "not_started") handleAction("check_in"); }, description: "Pointer l'arrivée" },
+    { key: "o", action: () => { if (state === "checked_in") handleAction("check_out"); }, description: "Pointer le départ" },
     { key: "b", action: () => {
       if (state === "checked_in") handleAction("start_break");
       else if (state === "on_break") handleAction("end_break");
     }, description: "Démarrer/Terminer la pause" },
-
-    // Navigation
     { key: "q", action: () => router.push(`/apps/${slug}/hr/attendance/qr-scan`), description: "Scanner le QR Code" },
     { key: "h", action: () => router.push(`/apps/${slug}/hr/attendance/history`), description: "Historique" },
     { key: "a", action: () => router.push(`/apps/${slug}/hr/attendance/approvals`), description: "Approbations" },
-
-    // Aide
     { key: "?", action: () => setShowShortcuts(true), description: "Afficher l'aide" },
     { key: "Escape", action: () => setShowShortcuts(false), description: "Fermer" },
   ], [state, slug, router]);
@@ -199,18 +191,18 @@ export default function AttendancePage() {
 
   if (loading) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="size-16 rounded-full border-4 border-primary border-t-transparent animate-spin mx-auto" />
-          <p className="text-muted-foreground">Chargement...</p>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="size-10 rounded-full border-2 border-zinc-300 border-t-zinc-800 dark:border-zinc-600 dark:border-t-zinc-200 animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Chargement...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Modal des raccourcis */}
+    <div className="space-y-6 max-w-2xl mx-auto pb-10">
+      {/* Shortcuts Modal */}
       <ShortcutsHelpModal
         isOpen={showShortcuts}
         onClose={() => setShowShortcuts(false)}
@@ -219,35 +211,34 @@ export default function AttendancePage() {
       />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Pointage</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl font-semibold tracking-tight">Pointage</h1>
+          <p className="text-sm text-muted-foreground capitalize">
             {format(currentTime, "EEEE d MMMM yyyy", { locale: fr })}
           </p>
         </div>
         <div className="flex gap-2">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setShowShortcuts(true)}
-            aria-label="Afficher les raccourcis clavier"
-            title="Raccourcis clavier (?)"
+            aria-label="Raccourcis clavier"
+            className="text-muted-foreground"
           >
             <HelpCircle className="size-4" />
           </Button>
           <Button variant="outline" size="sm" asChild>
             <Link href={`/apps/${slug}/hr/attendance/history`}>
-              <History className="size-4 mr-2" />
-              Mon historique
-              <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted/50 px-1 font-mono text-xs">H</kbd>
+              <History className="size-4 mr-1.5" />
+              Historique
             </Link>
           </Button>
           <Can permission={COMMON_PERMISSIONS.HR.VIEW_ALL_ATTENDANCE}>
             <Button variant="outline" size="sm" asChild>
               <Link href={`/apps/${slug}/hr/attendance/all`}>
-                <ListChecks className="size-4 mr-2" />
-                Liste des pointages des autres
+                <ListChecks className="size-4 mr-1.5" />
+                Tous
               </Link>
             </Button>
           </Can>
@@ -256,286 +247,250 @@ export default function AttendancePage() {
 
       {/* Alerts */}
       {error && (
-        <Alert variant="error" className="animate-in slide-in-from-top">
+        <Alert variant="error" className="text-sm">
           <AlertCircle className="size-4" />
           {error}
         </Alert>
       )}
       {success && (
-        <Alert variant="success" className="animate-in slide-in-from-top">
+        <Alert variant="success" className="text-sm">
           <CheckCircle2 className="size-4" />
           {success}
         </Alert>
       )}
 
-      {/* Main Clock Card */}
-      <Card className="p-8 border-0 shadow-lg overflow-hidden relative">
-        {/* Background Gradient */}
-        <div className={cn(
-          "absolute inset-0 opacity-5",
-          state === "checked_in" && "bg-linear-to-br from-green-500 to-emerald-600",
-          state === "on_break" && "bg-linear-to-br from-amber-500 to-orange-600",
-          state === "checked_out" && "bg-linear-to-br from-foreground to-indigo-600",
-          state === "not_started" && "bg-linear-to-br from-slate-500 to-slate-600"
-        )} />
-        
-        <div className="relative">
-          {/* Status Badge */}
-          <div className="flex items-center justify-center mb-6">
-            <div className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-full",
-              stateConfig[state].color,
-              "text-white dark:text-black font-medium "
-            )}>
-              <span className="relative flex size-2 items-center">
-                {(state === "checked_in" || state === "on_break") && (
-                  <span className="absolute inline-flex h-full w-full rounded-full animate-ping bg-black dark:bg-white opacity-75" />
-                )}
-                <span
-                  className={cn(
-                    "relative inline-flex rounded-full size-2",
-                    (state === "checked_in" || state === "on_break")
-                      ? "bg-black dark:bg-white"
-                      : state === "checked_out"
-                      ? "bg-secondary"
-                      : "bg-slate-500 dark:bg-slate-300"
-                  )}
-                />
-              </span>
-              {stateConfig[state].label}
-            </div>
+      {/* Main Card */}
+      <Card className="p-6 sm:p-8 shadow-sm">
+        {/* Status */}
+        <div className="flex items-center justify-center mb-6">
+          <div className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium", stateConfig[state].badge)}>
+            <span className="relative flex size-2">
+              {(state === "checked_in" || state === "on_break") && (
+                <span className={cn("absolute inline-flex h-full w-full rounded-full animate-ping opacity-50", stateConfig[state].dot)} />
+              )}
+              <span className={cn("relative inline-flex rounded-full size-2", stateConfig[state].dot)} />
+            </span>
+            {stateConfig[state].label}
           </div>
+        </div>
 
-          {/* Big Clock */}
-          <div className="text-center mb-8">
-            <div className="text-6xl sm:text-7xl font-bold font-mono tracking-tight">
-              {format(currentTime, "HH:mm")}
-            </div>
-            <div className="text-2xl font-mono text-muted-foreground">
-              :{format(currentTime, "ss")}
-            </div>
+        {/* Clock */}
+        <div className="text-center mb-6">
+          <div className="text-5xl sm:text-6xl font-semibold font-mono tracking-tight tabular-nums">
+            {format(currentTime, "HH:mm")}
           </div>
-
-          {/* Elapsed Time (if working) */}
-          {state !== "not_started" && (
-            <div className="text-center mb-8">
-              <p className="text-sm text-muted-foreground mb-1">
-                {state === "checked_out" ? "Temps travaillé" : "Temps écoulé"}
-              </p>
-              <p className={cn(
-                "text-3xl font-mono font-bold text-secondary",
-                // stateConfig[state].textColor
-              )}>
-                {formatElapsedTime(elapsedTime)}
-              </p>
-            </div>
-          )}
-
-          {/* QR Code Section */}
-          <div className="mb-8">
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Button size="lg" asChild className="w-full sm:w-auto gap-2 h-14 text-lg">
-                <Link href={`/apps/${slug}/hr/attendance/qr-scan`}>
-                  <QrCode className="size-6" />
-                  Scanner le QR Code
-                  <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-white/20 px-1.5 font-mono text-xs">Q</kbd>
-                </Link>
-              </Button>
-              <Can permission={COMMON_PERMISSIONS.HR.CREATE_QR_SESSION}>
-                <Button variant="outline" size="lg" asChild className="w-full sm:w-auto gap-2 h-14">
-                  <Link href={`/apps/${slug}/hr/attendance/qr-display`}>
-                    <QrCode className="size-5" />
-                    Afficher QR
-                  </Link>
-                </Button>
-              </Can>
-            </div>
+          <div className="text-lg font-mono text-muted-foreground tabular-nums">
+            :{format(currentTime, "ss")}
           </div>
+        </div>
 
-          
-          {!canManualCheckin && (
-                  <>
-                  {state === "checked_in" && (
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="gap-2 h-12"
-                      onClick={() => handleAction("start_break")}
-                      disabled={actionLoading === "start_break"}
-                    >
-                      {actionLoading === "start_break" ? (
-                        <div className="size-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Coffee className="size-5" />
-                      )}
-                      Commencer une pause
-                      <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-xs">B</kbd>
-                    </Button>
-                    )}
-                  {state === "on_break" && (
-                  <Button
-                    size="lg"
-                    className="gap-2 bg-amber-600 hover:bg-amber-700 h-12"
-                    onClick={() => handleAction("end_break")}
-                    disabled={actionLoading === "end_break"}
-                  >
-                    {actionLoading === "end_break" ? (
-                      <div className="size-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Play className="size-5" />
-                    )}
-                    Terminer la pause ({breakDuration} min)
-                    <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-white/20 px-1.5 font-mono text-xs">B</kbd>
-                  </Button>
-                )}
-                  </>
-                )}
+        {/* Elapsed time */}
+        {state !== "not_started" && (
+          <div className="text-center mb-6">
+            <p className="text-xs text-muted-foreground mb-0.5 uppercase tracking-wider">
+              {state === "checked_out" ? "Temps travaillé" : "Temps écoulé"}
+            </p>
+            <p className="text-2xl font-mono font-semibold tabular-nums">
+              {formatElapsedTime(elapsedTime)}
+            </p>
+          </div>
+        )}
 
-          <Can permission={COMMON_PERMISSIONS.HR.MANUAL_CHECKIN}>
-            <div className="border-t pt-6">
-              <p className="text-xs text-muted-foreground text-center mb-4">
-                Pointage manuel (Admin uniquement)
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                {/* Check In Button */}
-                {state === "not_started" && (
-                  <Button
-                    size="lg"
-                    className="gap-2 bg-green-600 hover:bg-green-700 h-12"
-                    onClick={() => handleAction("check_in")}
-                    disabled={actionLoading === "check_in"}
-                  >
-                    {actionLoading === "check_in" ? (
-                      <div className="size-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <LogIn className="size-5" />
-                    )}
-                    Pointer l'arrivée
-                    <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-white/20 px-1.5 font-mono text-xs">I</kbd>
-                  </Button>
-                )}
-
-                {/* Working State Buttons */}
-                {state === "checked_in" && (
-                  <>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="gap-2 h-12"
-                      onClick={() => handleAction("start_break")}
-                      disabled={actionLoading === "start_break"}
-                    >
-                      {actionLoading === "start_break" ? (
-                        <div className="size-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Coffee className="size-5" />
-                      )}
-                      Commencer une pause
-                      <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-xs">B</kbd>
-                    </Button>
-                    <Button
-                      size="lg"
-                      className="gap-2 bg-foreground hover:bg-blue-700 h-12"
-                      onClick={() => handleAction("check_out")}
-                      disabled={actionLoading === "check_out"}
-                    >
-                      {actionLoading === "check_out" ? (
-                        <div className="size-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <LogOut className="size-5" />
-                      )}
-                      Pointer le départ
-                      <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-white/20 px-1.5 font-mono text-xs">O</kbd>
-                    </Button>
-                  </>
-                )}
-
-                {/* On Break Buttons */}
-                {state === "on_break" && (
-                  <Button
-                    size="lg"
-                    className="gap-2 bg-amber-600 hover:bg-amber-700 h-12"
-                    onClick={() => handleAction("end_break")}
-                    disabled={actionLoading === "end_break"}
-                  >
-                    {actionLoading === "end_break" ? (
-                      <div className="size-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Play className="size-5" />
-                    )}
-                    Terminer la pause ({breakDuration} min)
-                    <kbd className="ml-2 hidden lg:inline-flex h-5 items-center rounded border bg-white/20 px-1.5 font-mono text-xs">B</kbd>
-                  </Button>
-                )}
-              </div>
-            </div>
+        {/* QR Code Action */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-6">
+          <Button size="lg" asChild className="w-full sm:w-auto gap-2 h-11">
+            <Link href={`/apps/${slug}/hr/attendance/qr-scan`}>
+              <QrCode className="size-5" />
+              Scanner le QR Code
+              <kbd className="ml-1 hidden lg:inline-flex h-5 items-center rounded border bg-white/20 px-1 font-mono text-[10px]">Q</kbd>
+            </Link>
+          </Button>
+          <Can permission={COMMON_PERMISSIONS.HR.CREATE_QR_SESSION}>
+            <Button variant="outline" size="lg" asChild className="w-full sm:w-auto gap-2 h-11">
+              <Link href={`/apps/${slug}/hr/attendance/qr-display`}>
+                <QrCode className="size-4" />
+               Générer QR pour collègues
+              </Link>
+            </Button>
           </Can>
+        </div>
+
+        {/* Manual actions */}
+        <div className="border-t pt-5">
+          <p className="text-xs text-muted-foreground text-center mb-3 uppercase tracking-wider">
+            Pointage manuel
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <Can permission={COMMON_PERMISSIONS.HR.MANUAL_CHECKIN}>
+              {state === "not_started" && (
+                <Button
+                  size="default"
+                  className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={() => handleAction("check_in")}
+                  disabled={actionLoading === "check_in"}
+                >
+                  {actionLoading === "check_in" ? (
+                    <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <LogIn className="size-4" />
+                  )}
+                  Pointer l'arrivée
+                  <kbd className="ml-1 hidden lg:inline-flex h-5 items-center rounded border bg-white/20 px-1 font-mono text-[10px]">I</kbd>
+                </Button>
+              )}
+            </Can>
+
+            {state === "checked_in" && (
+              <>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => handleAction("start_break")}
+                  disabled={actionLoading === "start_break"}
+                >
+                  {actionLoading === "start_break" ? (
+                    <div className="size-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Coffee className="size-4" />
+                  )}
+                  Pause
+                  <kbd className="ml-1 hidden lg:inline-flex h-5 items-center rounded border bg-muted px-1 font-mono text-[10px]">B</kbd>
+                </Button>
+                <Can permission={COMMON_PERMISSIONS.HR.MANUAL_CHECKIN}>
+                  <Button
+                    className="gap-2"
+                    onClick={() => handleAction("check_out")}
+                    disabled={actionLoading === "check_out"}
+                  >
+                    {actionLoading === "check_out" ? (
+                      <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <LogOut className="size-4" />
+                    )}
+                    Pointer le départ
+                    <kbd className="ml-1 hidden lg:inline-flex h-5 items-center rounded border bg-white/20 px-1 font-mono text-[10px]">O</kbd>
+                  </Button>
+                </Can>
+              </>
+            )}
+
+            {state === "on_break" && (
+              <Button
+                className="gap-2 bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={() => handleAction("end_break")}
+                disabled={actionLoading === "end_break"}
+              >
+                {actionLoading === "end_break" ? (
+                  <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Play className="size-4" />
+                )}
+                Reprendre ({activeBreakDuration} min)
+                <kbd className="ml-1 hidden lg:inline-flex h-5 items-center rounded border bg-white/20 px-1 font-mono text-[10px]">B</kbd>
+              </Button>
+            )}
+          </div>
         </div>
       </Card>
 
-      {/* Today's Summary */}
+      {/* Summary */}
       {attendance && (
-        <Card className="p-6 border-0 shadow-sm">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <Timer className="size-5 text-primary" />
-            Résumé de la journée
+        <Card className="p-5 shadow-sm">
+          <h3 className="text-sm font-medium mb-4 flex items-center gap-2 text-muted-foreground uppercase tracking-wider">
+            <Timer className="size-4" />
+            Résumé
           </h3>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {/* Check-in Time */}
-            <div className="p-4 rounded-xl bg-muted/50 text-center">
-              <LogIn className="size-5 text-green-500 mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground mb-1">Arrivée</p>
-              <p className="text-lg font-bold">
-                {attendance.check_in 
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3 rounded-lg bg-muted/40 text-center">
+              <LogIn className="size-4 text-emerald-500 mx-auto mb-1.5" />
+              <p className="text-[11px] text-muted-foreground mb-0.5">Arrivée</p>
+              <p className="text-base font-semibold tabular-nums">
+                {attendance.check_in
                   ? format(new Date(attendance.check_in), "HH:mm")
                   : "--:--"
                 }
               </p>
             </div>
 
-            {/* Check-out Time */}
-            <div className="p-4 rounded-xl bg-muted/50 text-center">
-              <LogOut className="size-5 text-foreground mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground mb-1">Départ</p>
-              <p className="text-lg font-bold">
-                {attendance.check_out 
+            <div className="p-3 rounded-lg bg-muted/40 text-center">
+              <LogOut className="size-4 text-zinc-500 mx-auto mb-1.5" />
+              <p className="text-[11px] text-muted-foreground mb-0.5">Départ</p>
+              <p className="text-base font-semibold tabular-nums">
+                {attendance.check_out
                   ? format(new Date(attendance.check_out), "HH:mm")
                   : "--:--"
                 }
               </p>
             </div>
 
-            {/* Total Hours */}
-            <div className="p-4 rounded-xl bg-muted/50 text-center">
-              <Clock className="size-5 text-primary mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground mb-1">Travaillé</p>
-              <p className="text-lg font-bold">
-                {attendance.total_hours 
-                  ? `${Math.floor(attendance.total_hours)}h ${Math.round((attendance.total_hours % 1) * 60)}m`
+            <div className="p-3 rounded-lg bg-muted/40 text-center">
+              <Clock className="size-4 text-blue-500 mx-auto mb-1.5" />
+              <p className="text-[11px] text-muted-foreground mb-0.5">Travaillé</p>
+              <p className="text-base font-semibold tabular-nums">
+                {attendance.total_hours
+                  ? `${Math.floor(attendance.total_hours)}h${Math.round((attendance.total_hours % 1) * 60).toString().padStart(2, '0')}`
                   : "--"
                 }
               </p>
             </div>
 
-            {/* Break Duration */}
-            <div className="p-4 rounded-xl bg-muted/50 text-center">
-              <Coffee className="size-5 text-amber-500 mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground mb-1">Pause</p>
-              <p className="text-lg font-bold">
-                {attendance.break_duration 
-                  ? `${Math.round(attendance.break_duration * 60)}m`
-                  : "0m"
-                }
+            <div className="p-3 rounded-lg bg-muted/40 text-center">
+              <Coffee className="size-4 text-amber-500 mx-auto mb-1.5" />
+              <p className="text-[11px] text-muted-foreground mb-0.5">Pauses ({breaksCount})</p>
+              <p className="text-base font-semibold tabular-nums">
+                {totalBreakMinutes > 0 ? `${totalBreakMinutes}m` : "0m"}
               </p>
             </div>
           </div>
 
+          {/* Breaks detail list */}
+          {breaksCount > 0 && (
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wider font-medium">
+                Détail des pauses
+              </p>
+              <div className="space-y-1.5">
+                {attendance.breaks.map((brk: BreakType, idx: number) => (
+                  <div
+                    key={brk.id}
+                    className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/30 text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Pause className="size-3.5 text-amber-500" />
+                      <span className="text-muted-foreground">Pause {idx + 1}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="tabular-nums text-muted-foreground">
+                        {format(new Date(brk.start_time), "HH:mm")}
+                        {" → "}
+                        {brk.end_time
+                          ? format(new Date(brk.end_time), "HH:mm")
+                          : <span className="text-amber-600 font-medium">en cours</span>
+                        }
+                      </span>
+                      {brk.duration_minutes > 0 && (
+                        <Badge variant="outline" className="text-xs tabular-nums">
+                          {brk.duration_minutes}m
+                        </Badge>
+                      )}
+                      {brk.is_active && (
+                        <Badge className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
+                          {activeBreakDuration}m
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Status & Approval */}
-          <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">Statut:</span>
-              <Badge variant="outline" className="capitalize">
+          <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Statut :</span>
+              <Badge variant="outline" className="capitalize text-xs">
                 {attendance.status === 'present' && '✓ Présent'}
                 {attendance.status === 'absent' && 'Absent'}
                 {attendance.status === 'late' && '⏰ En retard'}
@@ -543,14 +498,15 @@ export default function AttendancePage() {
                 {attendance.status === 'on_leave' && '🏖 En congé'}
               </Badge>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">Approbation:</span>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Approbation :</span>
               <Badge
                 variant={
                   attendance.approval_status === 'approved' ? 'success' :
                   attendance.approval_status === 'rejected' ? 'error' :
                   'warning'
                 }
+                className="text-xs"
               >
                 {attendance.approval_status === 'approved' && '✓ Approuvé'}
                 {attendance.approval_status === 'rejected' && '✗ Rejeté'}
@@ -559,18 +515,18 @@ export default function AttendancePage() {
             </div>
           </div>
 
-          {/* Rejection Reason */}
+          {/* Rejection reason */}
           {attendance.approval_status === 'rejected' && attendance.rejection_reason && (
-            <div className="mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-sm">
-              <strong>Raison du rejet:</strong> {attendance.rejection_reason}
+            <div className="mt-3 p-2.5 rounded-md bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs">
+              <strong>Raison :</strong> {attendance.rejection_reason}
             </div>
           )}
 
           {/* Overtime */}
           {attendance.is_overtime && attendance.overtime_hours > 0 && (
-            <div className="mt-4 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 flex items-center gap-2">
-              <TrendingUp className="size-5 text-purple-600" />
-              <span className="text-purple-600 dark:text-purple-400 font-medium">
+            <div className="mt-3 p-2.5 rounded-md bg-purple-50 dark:bg-purple-950/20 flex items-center gap-2 text-xs">
+              <TrendingUp className="size-4 text-purple-600" />
+              <span className="text-purple-700 dark:text-purple-400 font-medium">
                 +{attendance.overtime_hours.toFixed(1)}h supplémentaires
               </span>
             </div>
@@ -578,45 +534,36 @@ export default function AttendancePage() {
         </Card>
       )}
 
-      {/* Quick Links - Enhanced */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+      {/* Quick Links */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Link
           href={`/apps/${slug}/hr/attendance/history`}
-          className="relative group p-5 rounded-2xl border border-primary/20 bg-linear-to-br from-primary/5 to-primary/10 hover:from-primary/10 hover:to-primary/30 transition-all shadow ring-1 ring-primary/5 flex items-center gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          className="group p-4 rounded-xl border hover:border-zinc-300 dark:hover:border-zinc-600 bg-card transition-colors flex items-center gap-3"
         >
-          <div className="size-12 min-w-12 rounded-xl bg-primary/20 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-            <Calendar className="size-6 text-primary shrink-0" />
+          <div className="size-10 rounded-lg bg-muted flex items-center justify-center group-hover:bg-muted/80 transition-colors">
+            <Calendar className="size-5 text-muted-foreground" />
           </div>
           <div>
-            <p className="font-semibold text-primary text-base">Historique</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Voir mes pointages</p>
-          </div>
-          {/* Decorative arrow */}
-          <div className="absolute end-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary"><path d="M5 9h8m0 0-3-3m3 3-3 3"/></svg>
+            <p className="text-sm font-medium">Historique</p>
+            <p className="text-xs text-muted-foreground">Voir mes pointages</p>
           </div>
         </Link>
         <Can permission={COMMON_PERMISSIONS.HR.VIEW_ALL_ATTENDANCE}>
           <Link
             href={`/apps/${slug}/hr/attendance/all`}
-            className="relative group p-5 rounded-2xl border border-foreground/10 bg-linear-to-br from-foreground/5 to-foreground/10 hover:from-foreground/10 hover:to-foreground/30 transition-all shadow ring-1 ring-foreground/5 flex items-center gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2"
+            className="group p-4 rounded-xl border hover:border-zinc-300 dark:hover:border-zinc-600 bg-card transition-colors flex items-center gap-3"
           >
-            <div className="size-12 min-w-12 rounded-xl bg-foreground/20 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
-              <Users className="size-6 text-foreground shrink-0" />
+            <div className="size-10 rounded-lg bg-muted flex items-center justify-center group-hover:bg-muted/80 transition-colors">
+              <Users className="size-5 text-muted-foreground" />
             </div>
             <div>
-              <p className="font-semibold text-foreground text-base">Tous les pointages</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Voir les pointages des autres</p>
-            </div>
-            {/* Decorative arrow */}
-            <div className="absolute end-5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" className="text-foreground"><path d="M5 9h8m0 0-3-3m3 3-3 3"/></svg>
+              <p className="text-sm font-medium">Tous les pointages</p>
+              <p className="text-xs text-muted-foreground">Voir les pointages des employés</p>
             </div>
           </Link>
         </Can>
       </div>
 
-      {/* Hint */}
       <KeyboardHint />
     </div>
   );

@@ -21,14 +21,14 @@ export function EmployeesEmptyState({
   slug: string;
 }) {
   return (
-    <div className="p-6 text-center">
-      <div className="flex flex-col items-center gap-2">
-        <div className="flex size-10 items-center justify-center rounded-full bg-muted">
-          <HiOutlineUserCircle className="size-5 text-muted-foreground" />
+    <div className="p-12 text-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex size-16 items-center justify-center rounded-full bg-muted">
+          <HiOutlineUserCircle className="size-8 text-muted-foreground" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold">Aucun employé trouvé</h3>
-          <p className="text-xs text-muted-foreground mt-1">
+          <h3 className="text-base font-semibold">Aucun employé trouvé</h3>
+          <p className="text-sm text-muted-foreground mt-2">
             {searchQuery || hasActiveFilters
               ? "Aucun résultat pour ces critères"
               : "Commencez par ajouter votre premier employé"}
@@ -36,9 +36,9 @@ export function EmployeesEmptyState({
         </div>
         {!(searchQuery || hasActiveFilters) && (
           <Can permission={COMMON_PERMISSIONS.HR.CREATE_EMPLOYEES}>
-            <Button asChild size="sm" className="h-7 px-2">
+            <Button asChild size="sm" className="h-9 px-3">
               <Link href={`/apps/${slug}/hr/employees/create`}>
-                <HiOutlinePlusCircle className="size-3 mr-1" />
+                <HiOutlinePlusCircle className="size-4 mr-1.5" />
                 Ajouter un employé
               </Link>
             </Button>

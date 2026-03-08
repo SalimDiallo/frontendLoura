@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Bell,
   Check,
@@ -11,7 +11,11 @@ import {
   Info,
   User2,
   Settings,
+  ChevronRight,
+  Inbox,
 } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 
 import {
   Sheet,
@@ -26,26 +30,49 @@ import { useNotifications } from "@/lib/hooks/use-notifications";
 import type { Notification, NotificationType } from "@/lib/types/notifications";
 
 // ---------------------------------------------------------------------------
-// Icône selon le type
+// Config
+// ---------------------------------------------------------------------------
+const typeConfig: Record<
+  NotificationType,
+  { icon: typeof Bell; color: string; label: string }
+> = {
+  alert: {
+    icon: AlertTriangle,
+    color: "text-amber-600 dark:text-amber-500",
+    label: "Alerte",
+  },
+  system: {
+    icon: Info,
+    color: "text-blue-600 dark:text-blue-500",
+    label: "Système",
+  },
+  user: {
+    icon: User2,
+    color: "text-violet-600 dark:text-violet-500",
+    label: "Utilisateur",
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Notification Icon
 // ---------------------------------------------------------------------------
 function NotificationIcon({ type }: { type: NotificationType }) {
-  const iconClass = "size-4 text-muted-foreground";
-  const map = {
-    alert: <AlertTriangle className={cn(iconClass, "text-amber-600 dark:text-amber-500")} />,
-    system: <Info className={cn(iconClass, "text-blue-600 dark:text-blue-500")} />,
-    user: <User2 className={cn(iconClass, "text-violet-600 dark:text-violet-500")} />,
-  };
-  return <>{map[type]}</>;
+  const config = typeConfig[type] || typeConfig.system;
+  const Icon = config.icon;
+  return (
+    <div className="flex size-8 items-center justify-center rounded-lg bg-muted/60 shrink-0">
+      <Icon className={cn("size-4", config.color)} />
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
-// Badge priorité — petit point discret
+// Priority dot — minimal
 // ---------------------------------------------------------------------------
 function PriorityDot({ priority }: { priority: Notification["priority"] }) {
   if (priority === "low") return null;
-  
   const colors = {
-    low: "bg-muted-foreground/40",
+    low: "",
     medium: "bg-amber-500",
     high: "bg-orange-500",
     critical: "bg-rose-500",
@@ -54,43 +81,51 @@ function PriorityDot({ priority }: { priority: Notification["priority"] }) {
 }
 
 // ---------------------------------------------------------------------------
-// Une ligne de notification
+// Notification item
 // ---------------------------------------------------------------------------
 function NotificationItem({
   notification,
   onRead,
   onDelete,
+  index,
 }: {
   notification: Notification;
   onRead: (id: string) => void;
   onDelete: (id: string) => void;
+  index: number;
 }) {
   const timeAgo = formatTimeAgo(notification.created_at);
   const isUnread = !notification.is_read;
+  const [isExiting, setIsExiting] = useState(false);
+
+  const handleDelete = useCallback(() => {
+    setIsExiting(true);
+    setTimeout(() => onDelete(notification.id), 200);
+  }, [onDelete, notification.id]);
 
   return (
     <div
       className={cn(
         "group relative flex gap-3 px-4 py-3",
         "border-b border-border/30 last:border-b-0",
-        "transition-colors duration-150",
+        "transition-all duration-200",
+        isExiting && "opacity-0 -translate-x-8 max-h-0 py-0 overflow-hidden",
         isUnread ? "bg-muted/30" : "bg-transparent",
-        "hover:bg-muted/40",
+        "hover:bg-muted/40"
       )}
     >
-      {/* Indicateur non lu — barre latérale fine */}
+      {/* Unread indicator */}
       {isUnread && (
         <span className="absolute inset-y-0 left-0 w-0.5 bg-primary" />
       )}
 
-      {/* Icône type */}
-      <div className="mt-0.5 flex shrink-0 size-8 items-center justify-center rounded-lg bg-muted/60">
+      {/* Icon */}
+      <div className="mt-0.5">
         <NotificationIcon type={notification.notification_type} />
       </div>
 
-      {/* Contenu */}
+      {/* Content */}
       <div className="flex-1 min-w-0">
-        {/* Titre + priorité */}
         <div className="flex items-center gap-1.5">
           <p
             className={cn(
@@ -103,19 +138,17 @@ function NotificationItem({
           <PriorityDot priority={notification.priority} />
         </div>
 
-        {/* Message */}
         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
           {notification.message}
         </p>
 
-        {/* Meta : expéditeur + temps */}
         <div className="flex items-center gap-1.5 mt-1">
           {notification.sender_name && (
             <>
               <span className="text-[11px] text-muted-foreground/70">
                 {notification.sender_name}
               </span>
-              <span className="text-muted-foreground/40">·</span>
+              <span className="text-muted-foreground/30">·</span>
             </>
           )}
           <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
@@ -125,12 +158,12 @@ function NotificationItem({
         </div>
       </div>
 
-      {/* Actions au hover */}
+      {/* Actions on hover */}
       <div
         className={cn(
           "flex shrink-0 items-start gap-0.5 pt-0.5",
           "opacity-0 group-hover:opacity-100",
-          "transition-opacity duration-100",
+          "transition-opacity duration-100"
         )}
       >
         {isUnread && (
@@ -143,7 +176,7 @@ function NotificationItem({
           </button>
         )}
         <button
-          onClick={() => onDelete(notification.id)}
+          onClick={handleDelete}
           className="p-1 rounded text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
           title="Supprimer"
         >
@@ -164,6 +197,9 @@ export function NotificationPanel({
   open: boolean;
   onClose: () => void;
 }) {
+  const params = useParams();
+  const slug = params.slug as string;
+
   const {
     notifications,
     unreadCount,
@@ -177,9 +213,10 @@ export function NotificationPanel({
     fetchPreferences,
     savePreferences,
     preferences,
+    hasNext,
+    goToNextPage,
   } = useNotifications();
 
-  // Fetch à chaque ouverture
   useEffect(() => {
     if (open) {
       fetchNotifications(1, {});
@@ -187,7 +224,7 @@ export function NotificationPanel({
     }
   }, [open, fetchNotifications, fetchPreferences]);
 
-  // --- Filtres rapides ---
+  // Quick filters
   const currentFilters = useNotificationStore((s) => s.filters);
   const activeFilter =
     currentFilters.is_read !== undefined
@@ -205,13 +242,22 @@ export function NotificationPanel({
     [applyFilters]
   );
 
-  // --- Préférences panel ---
   const [showPrefs, setShowPrefs] = useState(false);
+
+  // Infinite scroll
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current || !hasNext || isLoading) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    if (scrollHeight - scrollTop - clientHeight < 100) {
+      goToNextPage();
+    }
+  }, [hasNext, isLoading, goToNextPage]);
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full sm:max-w-[400px] p-0 flex flex-col">
-        
+
         {/* Header */}
         <SheetHeader className="px-4 pt-4 pb-3 border-b border-border/40">
           <div className="flex items-center justify-between pr-6">
@@ -231,14 +277,13 @@ export function NotificationPanel({
               </div>
             </div>
 
-            {/* Bouton préférences */}
             <button
               onClick={() => setShowPrefs((v) => !v)}
               className={cn(
                 "p-1.5 rounded-lg transition-colors",
                 showPrefs
                   ? "bg-muted text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               )}
               title="Préférences"
             >
@@ -247,11 +292,11 @@ export function NotificationPanel({
           </div>
         </SheetHeader>
 
-        {/* Préférences (dépliable) */}
+        {/* Preferences (collapsible) */}
         <div
           className={cn(
             "overflow-hidden transition-all duration-200",
-            showPrefs ? "max-h-40" : "max-h-0",
+            showPrefs ? "max-h-40" : "max-h-0"
           )}
         >
           {preferences && (
@@ -259,7 +304,7 @@ export function NotificationPanel({
           )}
         </div>
 
-        {/* Filtres rapides */}
+        {/* Quick filters */}
         <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/40 bg-muted/20">
           <div className="flex gap-1">
             {(["all", "unread", "read"] as const).map((f) => (
@@ -270,7 +315,7 @@ export function NotificationPanel({
                   "px-2.5 py-1 rounded text-xs font-medium transition-colors",
                   activeFilter === f
                     ? "bg-foreground text-background"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60",
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                 )}
               >
                 {f === "all" ? "Tout" : f === "unread" ? "Non lues" : "Lues"}
@@ -278,7 +323,6 @@ export function NotificationPanel({
             ))}
           </div>
 
-          {/* Tout marquer comme lu */}
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
@@ -290,41 +334,67 @@ export function NotificationPanel({
           )}
         </div>
 
-        {/* Liste des notifications */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
+        {/* List */}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto"
+          onScroll={handleScroll}
+        >
+          {isLoading && notifications.length === 0 ? (
             <LoadingSkeleton />
           ) : notifications.length === 0 ? (
             <EmptyState activeFilter={activeFilter} />
           ) : (
             <div>
-              {notifications.map((n) => (
+              {notifications.map((n, i) => (
                 <NotificationItem
                   key={n.id}
                   notification={n}
                   onRead={markAsRead}
                   onDelete={deleteNotification}
+                  index={i}
                 />
               ))}
+              {isLoading && (
+                <div className="flex justify-center py-4">
+                  <div className="size-4 border-2 border-muted-foreground/20 border-t-muted-foreground rounded-full animate-spin" />
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        {totalCount > 0 && (
-          <div className="border-t border-border/40 px-4 py-2.5">
-            <p className="text-center text-[11px] text-muted-foreground">
+        <div className="border-t border-border/40 px-4 py-2.5">
+          <Link
+            href={`/apps/${slug}/notifications`}
+            onClick={onClose}
+            className={cn(
+              "flex items-center justify-center gap-2 w-full",
+              "px-3 py-2 rounded-lg",
+              "text-xs font-medium",
+              "text-muted-foreground hover:text-foreground",
+              "hover:bg-muted/40",
+              "transition-colors",
+              "group"
+            )}
+          >
+            Voir toutes les notifications
+            <ChevronRight className="size-3.5 text-muted-foreground/40 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+          {totalCount > 0 && (
+            <p className="text-center text-[11px] text-muted-foreground/50 mt-1.5">
               {totalCount} notification{totalCount > 1 ? "s" : ""}
             </p>
-          </div>
-        )}
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Bloc préférences
+// Preferences block
 // ---------------------------------------------------------------------------
 function PreferencesBlock({
   preferences,
@@ -399,7 +469,7 @@ function EmptyState({ activeFilter }: { activeFilter: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 px-6">
       <div className="flex size-12 items-center justify-center rounded-xl bg-muted/60">
-        <Bell className="size-5 text-muted-foreground" />
+        <Inbox className="size-5 text-muted-foreground" />
       </div>
       <div className="text-center">
         <p className="text-sm font-medium text-foreground">{title}</p>
@@ -410,7 +480,7 @@ function EmptyState({ activeFilter }: { activeFilter: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Util : temps écoulé
+// Util
 // ---------------------------------------------------------------------------
 function formatTimeAgo(dateStr: string): string {
   const now = Date.now();
