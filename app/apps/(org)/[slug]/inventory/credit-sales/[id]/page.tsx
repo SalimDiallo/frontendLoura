@@ -1,46 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Can } from "@/components/apps/common";
 import {
-  Button,
-  Alert,
   Badge,
+  Button,
   Card,
-  Input,
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Input
 } from "@/components/ui";
-import { getCreditSale, addCreditPayment, getCreditSaleStatementUrl, getCreditSaleInvoiceUrl } from "@/lib/services/inventory";
+import { addCreditPayment, getCreditSale, getCreditSaleInvoiceUrl, getCreditSaleStatementUrl } from "@/lib/services/inventory";
 import type { CreditSale } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import {
-  ArrowLeft,
-  AlertTriangle,
-  CreditCard,
-  Calendar,
-  User,
-  Phone,
-  Clock,
-  CheckCircle,
   AlertCircle,
+  AlertTriangle,
+  ArrowLeft,
   Banknote,
-  History,
-  Receipt,
+  Calendar,
+  CheckCircle,
+  Clock,
+  CreditCard,
   Download,
   FileText,
-  MoreVertical,
+  History,
   Loader2,
+  MoreVertical,
+  Phone,
+  Receipt,
+  User,
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency, formatDate, getDaysColor } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function CreditSaleDetailPage() {
   const params = useParams();
@@ -136,29 +137,15 @@ export default function CreditSaleDetailPage() {
     );
   }
 
-  if (error || !creditSale) {
-    return (
-      <div className="p-6">
-        <Alert variant="error">
-          <AlertTriangle className="h-4 w-4" />
-          <div>
-            <h3 className="font-semibold">Erreur</h3>
-            <p className="text-sm">{error || "Créance non trouvée"}</p>
-          </div>
-        </Alert>
-        <Button className="mt-4" asChild>
-          <Link href={`/apps/${slug}/inventory/credit-sales`}>Retour à la liste</Link>
-        </Button>
-      </div>
-    );
-  }
+  
 
-  const progress = creditSale.total_amount > 0 
-    ? ((Number(creditSale.paid_amount) || 0) / Number(creditSale.total_amount)) * 100 
+  const progress = (creditSale ? creditSale?.total_amount : 0) > 0 
+    ? ((Number(creditSale?.paid_amount) || 0) / Number(creditSale?.total_amount)) * 100 
     : 0;
 
   return (
-    <div className="p-6 space-y-6">
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_SALES}  showMessage>
+        <div className="p-6 space-y-6">
       {/* Payment Dialog */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
         <DialogContent className="sm:max-w-md">
@@ -176,7 +163,7 @@ export default function CreditSaleDetailPage() {
               <Input
                 type="number"
                 min="0"
-                max={Number(creditSale.remaining_amount) || 0}
+                max={Number(creditSale?.remaining_amount) || 0}
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
                 placeholder="0.00"
@@ -184,7 +171,7 @@ export default function CreditSaleDetailPage() {
               />
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Banknote className="h-3 w-3" />
-                Reste à payer: {formatCurrency(Number(creditSale.remaining_amount) || 0)}
+                Reste à payer: {formatCurrency(Number(creditSale?.remaining_amount) || 0)}
               </p>
             </div>
             <div className="space-y-2">
@@ -240,14 +227,16 @@ export default function CreditSaleDetailPage() {
           </Button>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold">Créance #{creditSale.sale_number}</h1>
+              <h1 className="text-2xl font-bold">Créance #{creditSale?.sale_number}</h1>
               <div className="flex items-center gap-1.5">
-                {getStatusIcon(creditSale.status)}
-                <Badge variant={getStatusVariant(creditSale.status)}>
-                  {creditSale.status_display || creditSale.status}
-                </Badge>
+                {creditSale && getStatusIcon(creditSale?.status)}
+               {
+                creditSale &&  <Badge variant={getStatusVariant(creditSale?.status)}>
+                {creditSale?.status_display || creditSale?.status}
+              </Badge>
+               }
               </div>
-              {creditSale.is_overdue && (
+              {creditSale?.is_overdue && (
                 <Badge variant="error" className="animate-pulse">
                   <AlertTriangle className="h-3 w-3 mr-1" />
                   En retard
@@ -256,19 +245,21 @@ export default function CreditSaleDetailPage() {
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               <User className="h-3.5 w-3.5 inline mr-1" />
-              {creditSale.customer_name || "Inconnu"}
+              {creditSale?.customer_name || "Inconnu"}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {creditSale.status !== "paid" && (
-            <Button
+          {creditSale?.status !== "paid" && (
+            <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_SALES}>
+              <Button
               onClick={() => setShowPaymentModal(true)}
               className="shadow-md hover:shadow-lg transition-shadow"
             >
               <CreditCard className="mr-2 h-4 w-4" />
               Ajouter paiement
             </Button>
+            </Can>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -292,7 +283,7 @@ export default function CreditSaleDetailPage() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href={`/apps/${slug}/inventory/sales/${creditSale.sale}`} className="cursor-pointer">
+                <Link href={`/apps/${slug}/inventory/sales/${creditSale?.sale}`} className="cursor-pointer">
                   <Receipt className="mr-2 h-4 w-4" />
                   Voir la vente associée
                 </Link>
@@ -340,12 +331,12 @@ export default function CreditSaleDetailPage() {
           <div className="flex items-center gap-1.5">
             <CheckCircle className="h-3.5 w-3.5 text-green-600" />
             <span className="font-medium text-muted-foreground">Payé:</span>
-            <span className="font-bold text-green-600">{formatCurrency(Number(creditSale.paid_amount) || 0)}</span>
+            <span className="font-bold text-green-600">{formatCurrency(Number(creditSale?.paid_amount) || 0)}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Banknote className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="font-medium text-muted-foreground">Total:</span>
-            <span className="font-bold">{formatCurrency(Number(creditSale.total_amount) || 0)}</span>
+            <span className="font-bold">{formatCurrency(Number(creditSale?.total_amount) || 0)}</span>
           </div>
         </div>
       </Card>
@@ -359,7 +350,7 @@ export default function CreditSaleDetailPage() {
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Montant total</p>
-              <p className="text-xl font-bold mt-0.5">{formatCurrency(Number(creditSale.total_amount) || 0)}</p>
+              <p className="text-xl font-bold mt-0.5">{formatCurrency(Number(creditSale?.total_amount) || 0)}</p>
             </div>
           </div>
         </Card>
@@ -371,7 +362,7 @@ export default function CreditSaleDetailPage() {
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Payé</p>
               <p className="text-xl font-bold text-green-600 dark:text-green-500 mt-0.5">
-                {formatCurrency(Number(creditSale.paid_amount) || 0)}
+                {formatCurrency(Number(creditSale?.paid_amount) || 0)}
               </p>
             </div>
           </div>
@@ -384,7 +375,7 @@ export default function CreditSaleDetailPage() {
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Reste à payer</p>
               <p className="text-xl font-bold text-orange-600 dark:text-orange-500 mt-0.5">
-                {formatCurrency(Number(creditSale.remaining_amount) || 0)}
+                {formatCurrency(Number(creditSale?.remaining_amount) || 0)}
               </p>
             </div>
           </div>
@@ -393,45 +384,45 @@ export default function CreditSaleDetailPage() {
           <div className="flex items-center gap-3">
             <div className={cn(
               "p-3 rounded-xl shadow-sm",
-              !creditSale.due_date
+              !creditSale?.due_date
                 ? "bg-linear-to-br from-gray-100 to-gray-200 dark:from-gray-900/50 dark:to-gray-900/30"
-                : creditSale.is_overdue
+                : creditSale?.is_overdue
                   ? "bg-linear-to-br from-red-100 to-red-200 dark:from-red-900/50 dark:to-red-900/30"
                   : "bg-linear-to-br from-purple-100 to-purple-200 dark:from-purple-900/50 dark:to-purple-900/30"
             )}>
               <Calendar className={cn(
                 "h-5 w-5",
-                !creditSale.due_date
+                !creditSale?.due_date
                   ? "text-gray-700 dark:text-gray-400"
-                  : creditSale.is_overdue
+                  : creditSale?.is_overdue
                     ? "text-red-700 dark:text-red-400"
                     : "text-purple-700 dark:text-purple-400"
               )} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Échéance</p>
-              {creditSale.due_date ? (
+              {creditSale?.due_date ? (
                 <>
                   <p className={cn(
                     "text-lg font-bold mt-0.5 truncate",
-                    creditSale.is_overdue && "text-red-600 dark:text-red-500"
+                    creditSale?.is_overdue && "text-red-600 dark:text-red-500"
                   )}>
-                    {formatDate(creditSale.due_date)}
+                    {formatDate(creditSale?.due_date)}
                   </p>
-                  {creditSale.days_until_due !== undefined && creditSale.days_until_due !== null && (
+                  {creditSale?.days_until_due !== undefined && creditSale?.days_until_due !== null && (
                     <div className={cn("text-xs font-semibold mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full",
-                      creditSale.days_until_due < 0
+                      creditSale?.days_until_due < 0
                         ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                        : creditSale.days_until_due === 0
+                        : creditSale?.days_until_due === 0
                           ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
                           : "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                     )}>
-                      {creditSale.days_until_due < 0 ? (
+                      {creditSale?.days_until_due < 0 ? (
                         <>
                           <AlertTriangle className="h-3 w-3" />
-                          -{Math.abs(creditSale.days_until_due)}j
+                          -{Math.abs(creditSale?.days_until_due)}j
                         </>
-                      ) : creditSale.days_until_due === 0 ? (
+                      ) : creditSale?.days_until_due === 0 ? (
                         <>
                           <Clock className="h-3 w-3" />
                           Aujourd'hui
@@ -439,7 +430,7 @@ export default function CreditSaleDetailPage() {
                       ) : (
                         <>
                           <Clock className="h-3 w-3" />
-                          +{creditSale.days_until_due}j
+                          +{creditSale?.days_until_due}j
                         </>
                       )}
                     </div>
@@ -467,15 +458,15 @@ export default function CreditSaleDetailPage() {
           <dl className="space-y-4">
             <div className="pb-3 border-b border-border/50">
               <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Nom</dt>
-              <dd className="font-semibold text-base">{creditSale.customer_name || "Non renseigné"}</dd>
+              <dd className="font-semibold text-base">{creditSale?.customer_name || "Non renseigné"}</dd>
             </div>
-            {creditSale.customer_phone && (
+            {creditSale?.customer_phone && (
               <div className="pb-3 border-b border-border/50">
                 <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Téléphone</dt>
                 <dd className="font-semibold flex items-center gap-2">
                   <Phone className="h-4 w-4 text-primary" />
-                  <a href={`tel:${creditSale.customer_phone}`} className="hover:text-primary transition-colors">
-                    {creditSale.customer_phone}
+                  <a href={`tel:${creditSale?.customer_phone}`} className="hover:text-primary transition-colors">
+                    {creditSale?.customer_phone}
                   </a>
                 </dd>
               </div>
@@ -484,7 +475,7 @@ export default function CreditSaleDetailPage() {
               <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Délai de grâce</dt>
               <dd className="font-semibold flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                {creditSale.grace_period_days || 0} jours
+                {creditSale?.grace_period_days || 0} jours
               </dd>
             </div>
             <div>
@@ -493,9 +484,9 @@ export default function CreditSaleDetailPage() {
                 <AlertCircle className="h-4 w-4 text-muted-foreground" />
                 <span className={cn(
                   "px-2 py-0.5 rounded-full text-sm",
-                  (creditSale.reminder_count || 0) > 0 ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400" : "bg-muted"
+                  (creditSale?.reminder_count || 0) > 0 ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400" : "bg-muted"
                 )}>
-                  {creditSale.reminder_count || 0}
+                  {creditSale?.reminder_count || 0}
                 </span>
               </dd>
             </div>
@@ -512,10 +503,10 @@ export default function CreditSaleDetailPage() {
               Historique des paiements
             </h3>
             <Badge variant="default" className="font-mono">
-              {creditSale.payments?.length || 0}
+              {creditSale?.payments?.length || 0}
             </Badge>
           </div>
-          {!creditSale.payments || creditSale.payments.length === 0 ? (
+          {!creditSale?.payments || creditSale?.payments.length === 0 ? (
             <div className="text-center py-12">
               <div className="inline-flex p-4 rounded-2xl bg-muted/50 mb-4">
                 <CreditCard className="h-12 w-12 text-muted-foreground/40" />
@@ -525,7 +516,7 @@ export default function CreditSaleDetailPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {creditSale.payments.map((payment) => (
+              {creditSale?.payments.map((payment) => (
                 <div
                   key={payment.id}
                   className="group flex items-center justify-between p-4 bg-linear-to-r from-muted/30 to-muted/50 hover:from-muted/50 hover:to-muted/70 rounded-xl transition-all duration-200 hover:shadow-md border border-transparent hover:border-border/50"
@@ -556,7 +547,7 @@ export default function CreditSaleDetailPage() {
       </div>
 
       {/* Notes */}
-      {creditSale.notes && (
+      {creditSale?.notes && (
         <Card className="p-5 hover:shadow-lg transition-shadow duration-300">
           <h3 className="font-semibold mb-3 flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-primary/10">
@@ -565,10 +556,11 @@ export default function CreditSaleDetailPage() {
             Notes
           </h3>
           <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{creditSale.notes}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{creditSale?.notes}</p>
           </div>
         </Card>
       )}
     </div>
+    </Can>
   );
 }

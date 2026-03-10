@@ -179,10 +179,12 @@ export default function SaleDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {sale?.payment_status !== "paid" && sale?.payment_status !== "cancelled" && (
-            <Button onClick={() => setShowPaymentModal(true)} size={"sm"}>
+            <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_SALES}>
+              <Button onClick={() => setShowPaymentModal(true)} size={"sm"}>
               <CreditCard className="mr-2 h-4 w-4" />
               Ajouter paiement
             </Button>
+            </Can>
           )}
           <Button variant="outline" asChild size={"sm"}>
             <Link href={`/apps/${slug}/inventory/documents/delivery-notes/new?sale=${saleId}`}>

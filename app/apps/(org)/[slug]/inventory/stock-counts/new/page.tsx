@@ -1,28 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Button, Alert, Card, Input, Badge } from "@/components/ui";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { createStockCount, getWarehouses, generateStockCountItems, getCategories } from "@/lib/services/inventory";
-import type { Warehouse, Category } from "@/lib/types/inventory";
+import { Can } from "@/components/apps/common";
+import { Alert, Button, Card, Input, QuickSelect } from "@/components/ui";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { createStockCount, generateStockCountItems, getCategories, getWarehouses } from "@/lib/services/inventory";
 import type { GenerateItemsOptions } from "@/lib/services/inventory/stock-count.service";
+import type { Category, Warehouse } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowLeft,
-  Save,
   Loader2,
-  Clipboard,
-  Calendar,
-  Archive,
-  Zap,
-  Info,
-  CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
 const stockCountSchema = z.object({
   warehouse_id: z.string().min(1, "L'entrepôt est requis"),
@@ -116,84 +110,104 @@ export default function NewStockCountPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96" role="status" aria-label="Chargement">
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center" role="status" aria-label="Chargement">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" aria-hidden="true"></div>
-          <p className="mt-4 text-muted-foreground">Chargement...</p>
+          <p className="mt-4 text-sm text-muted-foreground">Chargement des données...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild aria-label="Retour à la liste">
-          <Link href={`/apps/${slug}/inventory/stock-counts`}>
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Clipboard className="h-8 w-8" aria-hidden="true" />
-            Nouvel inventaire
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Créez un nouvel inventaire physique avec génération automatique des articles
-          </p>
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_STOCK_COUNTS} showMessage>
+        <div className="min-h-screen bg-muted/30">
+      <div className="max-w-5xl mx-auto p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" asChild aria-label="Retour à la liste">
+            <Link href={`/apps/${slug}/inventory/stock-counts`}>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-xl font-semibold">
+              Nouvel inventaire
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Créez un nouvel inventaire physique
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Error */}
-      {error && (
-        <Alert variant="error" role="alert">
-          {error}
-        </Alert>
-      )}
+        {/* Error */}
+        {error && (
+          <Alert variant="error" role="alert">
+            {error}
+          </Alert>
+        )}
 
-      {/* Form */}
-      <Card className="p-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Warehouse */}
-            <FormField
-              control={form.control}
-              name="warehouse_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Archive className="h-4 w-4" aria-hidden="true" />
-                    Entrepôt *
-                  </FormLabel>
-                  <FormControl>
-                    <select
-                      {...field}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                      aria-required="true"
-                    >
-                      <option value="">Sélectionner un entrepôt</option>
-                      {warehouses.map((warehouse) => (
-                        <option key={warehouse.id} value={warehouse.id}>
-                          {warehouse.name} ({warehouse.code}) - {warehouse.product_count || 0} produits
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                  <FormMessage />
-                  {selectedWarehouse && (
-                    <div className="flex gap-2 mt-2">
-                      <Badge variant="outline">
-                        {selectedWarehouse.product_count || 0} produits
-                      </Badge>
-                      {selectedWarehouse.city && (
-                        <Badge variant="outline">{selectedWarehouse.city}</Badge>
-                      )}
-                    </div>
-                  )}
-                </FormItem>
-              )}
-            />
+        {/* Form */}
+        <Card className="p-6 bg-background">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Warehouse */}
+              <FormField
+                control={form.control}
+                name="warehouse_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Entrepôt *</FormLabel>
+                    <FormControl>
+                      <div>
+                        <QuickSelect
+                          label="Entrepôt"
+                          items={warehouses.map((w) => ({
+                            id: w.id,
+                            name: w.name,
+                            subtitle: w.code ? `Code: ${w.code}` : undefined,
+                          }))}
+                          selectedId={field.value}
+                          onSelect={field.onChange}
+                          placeholder="Sélectionner un entrepôt"
+                          accentColor="primary"
+                          required
+                          canCreate={false}
+                          disabled={field.disabled}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                    {selectedWarehouse ? (
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        {selectedWarehouse.product_count || 0} produits disponibles
+                        {selectedWarehouse.city && ` • ${selectedWarehouse.city}`}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        Sélectionnez l'entrepôt à inventorier
+                      </p>
+                    )}
+                  </FormItem>
+                )}
+              />
+
+              {/* Count Date */}
+              <FormField
+                control={form.control}
+                name="count_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date de l'inventaire *</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} aria-required="true" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Count Number */}
             <FormField
@@ -201,31 +215,13 @@ export default function NewStockCountPage() {
               name="count_number"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Clipboard className="h-4 w-4" aria-hidden="true" />
-                    Numéro d'inventaire *
-                  </FormLabel>
+                  <FormLabel>Numéro d'inventaire *</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="INV-YYYYMMDD-XXX" aria-required="true" />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Count Date */}
-            <FormField
-              control={form.control}
-              name="count_date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" aria-hidden="true" />
-                    Date de l'inventaire *
-                  </FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} aria-required="true" />
-                  </FormControl>
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Ce numéro a été généré automatiquement
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -237,171 +233,165 @@ export default function NewStockCountPage() {
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel>Notes et observations</FormLabel>
                   <FormControl>
                     <textarea
                       {...field}
-                      rows={3}
-                      placeholder="Notes ou observations..."
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      rows={4}
+                      placeholder="Ajoutez des notes ou observations (optionnel)..."
+                      className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
                     />
                   </FormControl>
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Précisez le contexte, les participants, ou toute information utile
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
             {/* Section Auto-génération */}
-            <div className="border-t pt-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Zap className="h-5 w-5 text-yellow-500" />
-                <h3 className="font-semibold text-lg">Génération automatique</h3>
-              </div>
-              
-              <div className={cn(
-                "p-4 rounded-lg border-2 transition-colors",
-                autoGenerate 
-                  ? "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-300 dark:border-yellow-700" 
-                  : "bg-muted/50 border-muted"
-              )}>
+            <div className="border-t pt-6 mt-6">
+              <h3 className="text-sm font-semibold mb-4">Options de génération</h3>
+
+              <div className="p-5 rounded-lg border bg-background">
                 <div className="flex items-start gap-3">
                   <input
                     type="checkbox"
                     id="auto_generate"
                     checked={autoGenerate}
                     onChange={(e) => setAutoGenerate(e.target.checked)}
-                    className="mt-1 rounded border-input"
+                    className="mt-0.5 h-4 w-4 rounded border-input cursor-pointer"
                   />
                   <div className="flex-1">
-                    <label htmlFor="auto_generate" className="font-medium cursor-pointer">
+                    <label htmlFor="auto_generate" className="text-sm font-medium cursor-pointer block">
                       Générer automatiquement les articles à partir du stock
                     </label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Tous les produits présents dans l'entrepôt sélectionné seront ajoutés automatiquement avec leurs quantités actuelles comme quantité attendue.
+                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                      Les lignes d'inventaire seront créées automatiquement pour tous les produits présents dans l'entrepôt sélectionné
                     </p>
                   </div>
                 </div>
 
-                {autoGenerate && (
-                  <div className="mt-4 pl-7 space-y-3">
-                    <div className="flex items-center gap-2">
+                {autoGenerate ? (
+                  <div className="mt-5 pt-5 border-t space-y-4">
+                    <div className="flex items-start gap-3">
                       <input
                         type="checkbox"
                         id="include_zero"
                         checked={generateOptions.include_zero_stock}
                         onChange={(e) => setGenerateOptions({ ...generateOptions, include_zero_stock: e.target.checked })}
-                        className="rounded border-input"
+                        className="mt-0.5 h-4 w-4 rounded border-input cursor-pointer"
                       />
-                      <label htmlFor="include_zero" className="text-sm">
-                        Inclure les produits avec stock = 0
+                      <label htmlFor="include_zero" className="text-sm cursor-pointer flex-1">
+                        Inclure les produits avec stock à zéro
                       </label>
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Filtrer par catégorie (optionnel)</label>
+                      <label className="text-sm font-medium mb-2 block">Filtrer par catégorie</label>
                       <select
                         value={generateOptions.category_id || ""}
                         onChange={(e) => setGenerateOptions({ ...generateOptions, category_id: e.target.value || undefined })}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       >
                         <option value="">Toutes les catégories</option>
                         {categories.map((cat) => (
                           <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
                       </select>
+                      <p className="text-xs text-muted-foreground mt-1.5">
+                        Optionnel : sélectionnez une catégorie pour limiter la génération
+                      </p>
                     </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      Vous devrez ajouter manuellement les articles à inventorier après la création
+                    </p>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end gap-4 pt-4 border-t">
-              <Button type="button" variant="outline" asChild>
-                <Link href={`/apps/${slug}/inventory/stock-counts`}>
-                  Annuler
-                </Link>
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                    {autoGenerate ? "Création et génération..." : "Création..."}
-                  </>
-                ) : (
-                  <>
-                    {autoGenerate ? (
-                      <>
-                        <Zap className="mr-2 h-4 w-4" aria-hidden="true" />
-                        Créer et générer les articles
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" aria-hidden="true" />
-                        Créer l'inventaire
-                      </>
-                    )}
-                  </>
-                )}
-              </Button>
+            <div className="flex items-center justify-between pt-6 border-t mt-6">
+              <p className="text-xs text-muted-foreground">
+                * Champs obligatoires
+              </p>
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" asChild disabled={submitting}>
+                  <Link href={`/apps/${slug}/inventory/stock-counts`}>
+                    Annuler
+                  </Link>
+                </Button>
+                <Button type="submit" disabled={submitting || !form.watch("warehouse_id")}>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                      Création en cours...
+                    </>
+                  ) : (
+                    "Créer l'inventaire"
+                  )}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>
-      </Card>
+        </Card>
 
-      {/* Help */}
-      <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
-        <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-foreground mt-0.5" />
-          <div>
-            <h3 className="font-semibold mb-2">💡 Comment ça fonctionne</h3>
-            <ul className="text-sm text-muted-foreground space-y-2">
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <span><strong>Génération automatique :</strong> Les articles sont créés à partir du stock actuel de l'entrepôt avec la quantité système comme quantité attendue.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <span><strong>Comptage rapide :</strong> Il vous suffit ensuite de saisir uniquement les quantités comptées physiquement.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <span><strong>Détection des écarts :</strong> Le système calcule automatiquement les différences entre le stock système et le stock physique.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <span><strong>Validation :</strong> Après validation, les ajustements de stock sont appliqués automatiquement.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </Card>
+        {/* Informations */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Processus */}
+          <Card className="p-5 bg-background">
+            <h3 className="text-sm font-semibold mb-4 text-foreground">Processus d'inventaire</h3>
+            <div className="space-y-2.5 text-sm">
+              <div className="flex items-start gap-3">
+                <span className="text-muted-foreground font-medium min-w-[22px]">1.</span>
+                <span className="text-muted-foreground leading-relaxed">Création de l'inventaire</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-muted-foreground font-medium min-w-[22px]">2.</span>
+                <span className="text-muted-foreground leading-relaxed">Génération automatique des articles</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-muted-foreground font-medium min-w-[22px]">3.</span>
+                <span className="text-muted-foreground leading-relaxed">Saisie des quantités comptées</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-muted-foreground font-medium min-w-[22px]">4.</span>
+                <span className="text-muted-foreground leading-relaxed">Vérification et complétion</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-muted-foreground font-medium min-w-[22px]">5.</span>
+                <span className="text-muted-foreground leading-relaxed">Validation et ajustement du stock</span>
+              </div>
+            </div>
+          </Card>
 
-      {/* Workflow */}
-      <Card className="p-4">
-        <h3 className="font-semibold mb-3">📋 Workflow de l'inventaire</h3>
-        <div className="flex items-center gap-2 text-sm flex-wrap">
-          <Badge variant="outline" className="gap-1">
-            1. Création
-          </Badge>
-          <span className="text-muted-foreground">→</span>
-          <Badge variant="outline" className="gap-1">
-            2. Génération articles
-          </Badge>
-          <span className="text-muted-foreground">→</span>
-          <Badge variant="warning" className="gap-1">
-            3. Comptage physique
-          </Badge>
-          <span className="text-muted-foreground">→</span>
-          <Badge variant="info" className="gap-1">
-            4. Complétion
-          </Badge>
-          <span className="text-muted-foreground">→</span>
-          <Badge variant="success" className="gap-1">
-            5. Validation
-          </Badge>
+          {/* Fonctionnement */}
+          <Card className="p-5 bg-background">
+            <h3 className="text-sm font-semibold mb-4 text-foreground">Fonctionnement</h3>
+            <div className="space-y-3.5 text-sm">
+              <div>
+                <p className="font-medium text-foreground mb-1">Génération automatique</p>
+                <p className="text-muted-foreground leading-relaxed">Les articles sont créés à partir du stock actuel de l'entrepôt avec la quantité système comme référence.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground mb-1">Détection des écarts</p>
+                <p className="text-muted-foreground leading-relaxed">Le système calcule automatiquement les différences entre le stock système et le stock physique compté.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground mb-1">Ajustement automatique</p>
+                <p className="text-muted-foreground leading-relaxed">Après validation, les ajustements de stock sont appliqués automatiquement dans le système.</p>
+              </div>
+            </div>
+          </Card>
         </div>
-      </Card>
+      </div>
     </div>
+    </Can>
   );
 }

@@ -1,73 +1,65 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card, Input } from "@/components/ui";
+import { Can, usePermissionContext } from "@/components/apps/common";
+import { ConfirmationDialog } from "@/components/common/confirmation-dialog";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
 import {
-  getStockCount,
-  validateStockCount,
-  cancelStockCount,
   addStockCountItem,
-  updateStockCountItem,
-  deleteStockCountItem,
-  getProducts,
-  startStockCount,
-  completeStockCount,
-  generateStockCountItems,
   autoFillStockCounts,
-  getStockCountSummary,
-  getStockCountDiscrepancies,
-  getCategories,
+  cancelStockCount,
+  completeStockCount,
+  deleteStockCountItem,
   exportStockCountPdf,
+  generateStockCountItems,
+  getCategories,
+  getProducts,
+  getStockCount,
+  getStockCountDiscrepancies,
+  getStockCountSummary,
+  startStockCount,
+  updateStockCountItem,
+  validateStockCount,
 } from "@/lib/services/inventory";
 import type {
-  StockCount,
-  StockCountItem,
-  StockCountStatus,
-  ProductList,
-  Category,
-} from "@/lib/types/inventory";
-import type {
-  StockCountSummary,
   DiscrepanciesResponse,
   GenerateItemsOptions,
+  StockCountSummary,
 } from "@/lib/services/inventory/stock-count.service";
-import {
-  ArrowLeft,
-  Save,
-  Loader2,
-  Clipboard,
-  Calendar,
-  Archive,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Package,
-  AlertTriangle,
-  Plus,
-  Trash2,
-  Keyboard,
-  X,
-  Search,
-  Zap,
-  RefreshCw,
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  Play,
-  Check,
-  Download,
-  FileDown,
-  Filter,
-  Copy,
-} from "lucide-react";
-import Link from "next/link";
+import type {
+  Category,
+  ProductList,
+  StockCount
+} from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { getStatusBadgeNode } from "@/lib/utils/BadgeStatus";
-import { ConfirmationDialog } from "@/components/common/confirmation-dialog";
-import React from "react";
-import { Can, usePermissionContext } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import {
+  Archive,
+  ArrowLeft,
+  BarChart3,
+  Calendar,
+  Check,
+  CheckCircle,
+  Clipboard,
+  Copy,
+  FileDown,
+  Filter,
+  Keyboard,
+  Loader2,
+  Package,
+  Play,
+  Plus,
+  Search,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+  X,
+  XCircle,
+  Zap
+} from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 export default function StockCountDetailPage() {
   const params = useParams();
@@ -297,7 +289,7 @@ export default function StockCountDetailPage() {
   const loadSummary = async () => {
     if (!stockCount) return;
     try {
-      const data = await getStockCountSummary(stockCount.id);
+      const data = await getStockCountSummary(stockCount?.id);
       setSummary(data);
       setShowSummary(true);
     } catch (err: any) {
@@ -308,7 +300,7 @@ export default function StockCountDetailPage() {
   const loadDiscrepancies = async () => {
     if (!stockCount) return;
     try {
-      const data = await getStockCountDiscrepancies(stockCount.id);
+      const data = await getStockCountDiscrepancies(stockCount?.id);
       setDiscrepancies(data);
     } catch (err: any) {
       setError(err.message || "Erreur lors du chargement des écarts");
@@ -319,7 +311,7 @@ export default function StockCountDetailPage() {
     if (!stockCount) return;
     try {
       setPdfLoading(true);
-      await exportStockCountPdf(stockCount.id);
+      await exportStockCountPdf(stockCount?.id);
       setSuccess("PDF téléchargé avec succès !");
     } catch (err: any) {
       setError(err.message || "Erreur lors de l'export PDF");
@@ -333,7 +325,7 @@ export default function StockCountDetailPage() {
     try {
       setSaving(true);
       setError(null);
-      await startStockCount(stockCount.id);
+      await startStockCount(stockCount?.id);
       setSuccess("Inventaire démarré !");
       await loadStockCount();
     } catch (err: any) {
@@ -350,7 +342,7 @@ export default function StockCountDetailPage() {
     try {
       setSaving(true);
       setError(null);
-      await completeStockCount(stockCount.id);
+      await completeStockCount(stockCount?.id);
       setSuccess("Inventaire complété !");
       await loadStockCount();
     } catch (err: any) {
@@ -366,7 +358,7 @@ export default function StockCountDetailPage() {
     try {
       setSaving(true);
       setError(null);
-      await validateStockCount(stockCount.id);
+      await validateStockCount(stockCount?.id);
       setSuccess("Inventaire validé avec succès ! Les ajustements ont été appliqués.");
       await loadStockCount();
     } catch (err: any) {
@@ -382,7 +374,7 @@ export default function StockCountDetailPage() {
     try {
       setSaving(true);
       setError(null);
-      await cancelStockCount(stockCount.id);
+      await cancelStockCount(stockCount?.id);
       setSuccess("Inventaire annulé.");
       await loadStockCount();
     } catch (err: any) {
@@ -398,7 +390,7 @@ export default function StockCountDetailPage() {
     try {
       setGenerating(true);
       setError(null);
-      const result = await generateStockCountItems(stockCount.id, generateOptions);
+      const result = await generateStockCountItems(stockCount?.id, generateOptions);
       setSuccess(result.message);
       setShowGenerateModal(false);
       setGenerateOptions({ include_zero_stock: false, overwrite: false });
@@ -416,7 +408,7 @@ export default function StockCountDetailPage() {
     try {
       setSaving(true);
       setError(null);
-      const result = await autoFillStockCounts(stockCount.id);
+      const result = await autoFillStockCounts(stockCount?.id);
       setSuccess(result.message);
       await loadStockCount();
     } catch (err: any) {
@@ -440,7 +432,7 @@ export default function StockCountDetailPage() {
     try {
       setAddingItem(true);
       setError(null);
-      await addStockCountItem(stockCount.id, {
+      await addStockCountItem(stockCount?.id, {
         product: selectedProduct.id,
         expected_quantity: parseInt(expectedQty) || 0,
         counted_quantity: parseInt(countedQty) || 0,
@@ -462,7 +454,7 @@ export default function StockCountDetailPage() {
 
     try {
       setSaving(true);
-      await deleteStockCountItem(stockCount.id, itemId);
+      await deleteStockCountItem(stockCount?.id, itemId);
       setSuccess("Article supprimé.");
       await loadStockCount();
     } catch (err: any) {
@@ -476,7 +468,7 @@ export default function StockCountDetailPage() {
     if (!stockCount) return;
 
     try {
-      await updateStockCountItem(stockCount.id, itemId, {
+      await updateStockCountItem(stockCount?.id, itemId, {
         counted_quantity: newCount,
       });
       await loadStockCount();
@@ -522,43 +514,29 @@ export default function StockCountDetailPage() {
     );
   }
 
-  if (!stockCount) {
-    return (
-      <div className="p-6">
-        <Alert variant="error">Inventaire non trouvé</Alert>
-        <Button asChild className="mt-4">
-          <Link href={`/apps/${slug}/inventory/stock-counts`}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour à la liste
-          </Link>
-        </Button>
-      </div>
-    );
-  }
-
   const isEditable =
-   ( stockCount.status === "planned" ||
-    stockCount.status === "in_progress" ||
-    stockCount.status === "draft") && hasPermission(COMMON_PERMISSIONS.INVENTORY.VALIDATE_STOCK_COUNTS)
+   ( stockCount?.status === "planned" ||
+    stockCount?.status === "in_progress" ||
+    stockCount?.status === "draft") && hasPermission(COMMON_PERMISSIONS.INVENTORY.VALIDATE_STOCK_COUNTS)
   const canStart =
-    stockCount.status === "planned" || stockCount.status === "draft";
-  const canComplete = stockCount.status === "in_progress";
-  const canValidate = stockCount.status === "completed";
+    stockCount?.status === "planned" || stockCount?.status === "draft";
+  const canComplete = stockCount?.status === "in_progress";
+  const canValidate = stockCount?.status === "completed";
   const canCancel = isEditable;
 
   // Calcul des statistiques
-  const totalItems = stockCount.items?.length || 0;
+  const totalItems = stockCount?.items?.length || 0;
   const itemsWithDiscrepancy =
-    stockCount.items?.filter(
+    stockCount?.items?.filter(
       (item) => item.difference !== undefined && item.difference !== 0
     ).length || 0;
   const totalExpected =
-    stockCount.items?.reduce(
+    stockCount?.items?.reduce(
       (sum, item) => sum + Number(item.expected_quantity),
       0
     ) || 0;
   const totalCounted =
-    stockCount.items?.reduce(
+    stockCount?.items?.reduce(
       (sum, item) => sum + Number(item.counted_quantity),
       0
     ) || 0;
@@ -663,7 +641,7 @@ export default function StockCountDetailPage() {
                 <p className="text-sm text-muted-foreground">
                   Cette action va générer automatiquement tous les articles
                   d&apos;inventaire à partir du stock actuel de l&apos;entrepôt{" "}
-                  <strong>{stockCount.warehouse_name}</strong>.
+                  <strong>{stockCount?.warehouse_name}</strong>.
                 </p>
 
                 {/* Options */}
@@ -1174,18 +1152,18 @@ export default function StockCountDetailPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold flex items-center gap-2">
                 <Clipboard className="h-8 w-8" aria-hidden="true" />
-                {stockCount.count_number}
+                {stockCount?.count_number}
               </h1>
-              {getStatusBadgeNode(stockCount.status)}
+              {stockCount && getStatusBadgeNode(stockCount?.status)}
             </div>
             <p className="text-muted-foreground mt-1 flex items-center gap-4">
               <span className="flex items-center gap-1">
                 <Archive className="h-4 w-4" aria-hidden="true" />
-                {stockCount.warehouse_name}
+                {stockCount?.warehouse_name}
               </span>
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" aria-hidden="true" />
-                {formatDate(stockCount.count_date)}
+                {stockCount &&  formatDate(stockCount?.count_date)}
               </span>
             </p>
           </div>
@@ -1233,13 +1211,15 @@ export default function StockCountDetailPage() {
             <Button
               onClick={() => setShowValidateConfirmation(true)}
               disabled={saving}
+              size="sm"
+              title="Valider l'inventaire : mettra à jour le stock pour qu'il corresponde au stock physique compté"
             >
               {saving ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
                 <CheckCircle className="mr-2 h-4 w-4" aria-hidden="true" />
               )}
-              Valider l&apos;inventaire
+              Valider (mettre à jour le stock)
             </Button>
           )}
        </Can>
@@ -1346,10 +1326,10 @@ export default function StockCountDetailPage() {
       </div>
 
       {/* Notes */}
-      {stockCount.notes && (
+      {stockCount?.notes && (
         <Card className="p-4 bg-muted/50">
           <h3 className="font-semibold mb-2">Notes</h3>
-          <p className="text-muted-foreground">{stockCount.notes}</p>
+          <p className="text-muted-foreground">{stockCount?.notes}</p>
         </Card>
       )}
 
