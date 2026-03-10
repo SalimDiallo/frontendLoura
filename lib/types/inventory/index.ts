@@ -44,9 +44,12 @@ export enum StockCountStatus {
 }
 
 export enum AlertType {
+  STOCK_WARNING = 'stock_warning',
   LOW_STOCK = 'low_stock',
   OUT_OF_STOCK = 'out_of_stock',
   OVERSTOCK = 'overstock',
+  HIGH_VALUE_LOW_STOCK = 'high_value_low_stock',
+  NO_MOVEMENT = 'no_movement',
   EXPIRING_SOON = 'expiring_soon',
 }
 

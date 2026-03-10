@@ -218,7 +218,9 @@ export default function ProductsPage() {
             <div className="flex gap-2" role="group" aria-label="Filtrer les produits">
               <Button
                 variant={filterActive === undefined ? "default" : "outline"}
-                onClick={() => setFilterActive(undefined)}
+                onClick={() => {
+                  setFilterActive(undefined);
+                }}
                 aria-pressed={filterActive === undefined}
               >
                 Tous
@@ -226,7 +228,9 @@ export default function ProductsPage() {
               </Button>
               <Button
                 variant={filterActive === true ? "default" : "outline"}
-                onClick={() => setFilterActive(filterActive === true ? undefined : true)}
+                onClick={() => {
+                  setFilterActive(filterActive === true ? undefined : true);
+                }}
                 aria-pressed={filterActive === true}
               >
                 Actifs
@@ -234,7 +238,9 @@ export default function ProductsPage() {
               </Button>
               <Button
                 variant={filterActive === false ? "default" : "outline"}
-                onClick={() => setFilterActive(filterActive === false ? undefined : false)}
+                onClick={() => {
+                  setFilterActive(filterActive === false ? undefined : false);
+                }}
                 aria-pressed={filterActive === false}
               >
                 Inactifs
@@ -381,7 +387,43 @@ export default function ProductsPage() {
 
         {/* Summary */}
         <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <p>Total: {filteredProducts.length} produit(s)</p>
+          <div className="flex items-center gap-4">
+            <p>
+              <span className="font-medium text-foreground">{filteredProducts.length}</span> produit(s)
+              {searchTerm && <span className="ml-2">• Recherche active</span>}
+            </p>
+            {(filterActive !== undefined || filterLowStock) && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs">Filtres actifs:</span>
+                {filterActive === true && (
+                  <Badge variant="outline" className="text-xs">Actifs</Badge>
+                )}
+                {filterActive === false && (
+                  <Badge variant="outline" className="text-xs">Inactifs</Badge>
+                )}
+                {filterLowStock && (
+                  <Badge variant="destructive" className="text-xs">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    Stock bas
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+          {(filterActive !== undefined || filterLowStock || searchTerm) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFilterActive(undefined);
+                setFilterLowStock(false);
+                setSearchTerm("");
+              }}
+              className="text-xs"
+            >
+              Réinitialiser les filtres
+            </Button>
+          )}
         </div>
 
         {/* Hint */}

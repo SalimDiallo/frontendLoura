@@ -149,10 +149,10 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   { code: COMMON_PERMISSIONS.INVENTORY.DELETE_EXPENSES, label: "Supprimer des dépenses", category: "Dépenses", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES] },
 
   // === SALES ===
-  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_SALES, label: "Voir les ventes", category: "Ventes", module: "inventory", depends: [] },
-  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_SALES, label: "Créer des ventes", category: "Ventes", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_SALES] },
-  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_SALES, label: "Modifier des ventes", category: "Ventes", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_SALES] },
-  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_SALES, label: "Annuler des ventes", category: "Ventes", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_SALES] },
+  { code: COMMON_PERMISSIONS.INVENTORY.VIEW_SALES, label: "Voir les ventes && créances", category: "Ventes && créances", module: "inventory", depends: [] },
+  { code: COMMON_PERMISSIONS.INVENTORY.CREATE_SALES, label: "Créer des ventes && créances", category: "Ventes && créances", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_SALES] },
+  { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_SALES, label: "Modifier des ventes && créances", category: "Ventes && créances", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_SALES] },
+  { code: COMMON_PERMISSIONS.INVENTORY.DELETE_SALES, label: "Annuler des ventes && créances", category: "Ventes && créances", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_SALES] },
 
   // === PAYMENTS ===
   { code: COMMON_PERMISSIONS.INVENTORY.VIEW_PAYMENTS, label: "Voir les paiements", category: "Paiements", module: "inventory", depends: [] },

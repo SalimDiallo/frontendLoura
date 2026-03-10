@@ -16,6 +16,10 @@ import {
   Filter,
   Bell,
   BellOff,
+  PackagePlus,
+  Gem,
+  Clock,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -81,20 +85,82 @@ export default function AlertsPage() {
 
   const criticalCount = alerts.filter(a => a.severity === "critical" && !a.is_resolved).length;
   const highCount = alerts.filter(a => a.severity === "high" && !a.is_resolved).length;
+  const mediumCount = alerts.filter(a => a.severity === "medium" && !a.is_resolved).length;
+  const warningCount = alerts.filter(a => a.alert_type === "stock_warning" && !a.is_resolved).length;
+
+  const getAlertConfig = (alert: Alert) => {
+    const configs = {
+      out_of_stock: {
+        icon: XCircle,
+        iconColor: "text-red-500",
+        bgColor: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900",
+        badgeBg: "bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-200",
+        iconBg: "bg-red-100 dark:bg-red-900/50",
+        label: "Rupture",
+      },
+      low_stock: {
+        icon: TrendingDown,
+        iconColor: "text-orange-600",
+        bgColor: "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-900",
+        badgeBg: "bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-200",
+        iconBg: "bg-orange-100 dark:bg-orange-900/50",
+        label: "Stock critique",
+      },
+      stock_warning: {
+        icon: AlertTriangle,
+        iconColor: "text-yellow-600",
+        bgColor: "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-900",
+        badgeBg: "bg-yellow-200 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-200",
+        iconBg: "bg-yellow-100 dark:bg-yellow-900/50",
+        label: "Stock bas",
+      },
+      overstock: {
+        icon: PackagePlus,
+        iconColor: "text-blue-600",
+        bgColor: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900",
+        badgeBg: "bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-200",
+        iconBg: "bg-blue-100 dark:bg-blue-900/50",
+        label: "Surstock",
+      },
+      high_value_low_stock: {
+        icon: Gem,
+        iconColor: "text-purple-600",
+        bgColor: "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-900",
+        badgeBg: "bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-200",
+        iconBg: "bg-purple-100 dark:bg-purple-900/50",
+        label: "Produit de valeur",
+      },
+      no_movement: {
+        icon: Clock,
+        iconColor: "text-gray-600",
+        bgColor: "bg-gray-50 dark:bg-gray-950/30 border-gray-200 dark:border-gray-900",
+        badgeBg: "bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-200",
+        iconBg: "bg-gray-100 dark:bg-gray-900/50",
+        label: "Inactif",
+      },
+      expiring_soon: {
+        icon: Calendar,
+        iconColor: "text-red-600",
+        bgColor: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900",
+        badgeBg: "bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-200",
+        iconBg: "bg-red-100 dark:bg-red-900/50",
+        label: "Expiration proche",
+      },
+    };
+
+    return configs[alert.alert_type as keyof typeof configs] || configs.stock_warning;
+  };
 
   const getAlertStyle = (alert: Alert) => {
     if (alert.is_resolved) return "bg-muted/30 border-muted";
-    if (alert.alert_type === "out_of_stock") return "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900";
-    if (alert.severity === "critical") return "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900";
-    if (alert.severity === "high") return "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-900";
-    return "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-900";
+    const config = getAlertConfig(alert);
+    return config.bgColor;
   };
 
   const getAlertIcon = (alert: Alert) => {
-    if (alert.alert_type === "out_of_stock") {
-      return <XCircle className="h-5 w-5 text-red-500" />;
-    }
-    return <TrendingDown className="h-5 w-5 text-orange-500" />;
+    const config = getAlertConfig(alert);
+    const Icon = config.icon;
+    return <Icon className={cn("h-5 w-5", config.iconColor)} />;
   };
 
   if (loading) {
@@ -139,20 +205,26 @@ export default function AlertsPage() {
 
       {/* Stats */}
       {!showResolved && (
-        <div className="flex gap-3">
+        <div className="flex gap-2 flex-wrap">
           {criticalCount > 0 && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm font-medium">
               <XCircle className="h-4 w-4" />
-              {criticalCount} rupture(s)
+              {criticalCount} critique{criticalCount > 1 ? 's' : ''}
             </div>
           )}
           {highCount > 0 && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-sm font-medium">
               <TrendingDown className="h-4 w-4" />
-              {highCount} stock(s) faible(s)
+              {highCount} haute{highCount > 1 ? 's' : ''}
             </div>
           )}
-          {criticalCount === 0 && highCount === 0 && alerts.length === 0 && (
+          {warningCount > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-sm font-medium">
+              <AlertTriangle className="h-4 w-4" />
+              {warningCount} avertissement{warningCount > 1 ? 's' : ''}
+            </div>
+          )}
+          {criticalCount === 0 && highCount === 0 && mediumCount === 0 && alerts.length === 0 && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-sm font-medium">
               <CheckCircle className="h-4 w-4" />
               Aucune alerte
@@ -211,9 +283,7 @@ export default function AlertsPage() {
                 {/* Icon */}
                 <div className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0",
-                  alert.is_resolved ? "bg-muted" : 
-                  alert.alert_type === "out_of_stock" ? "bg-red-100 dark:bg-red-900/50" :
-                  "bg-orange-100 dark:bg-orange-900/50"
+                  alert.is_resolved ? "bg-muted" : getAlertConfig(alert).iconBg
                 )}>
                   {alert.is_resolved ? (
                     <CheckCircle className="h-5 w-5 text-muted-foreground" />
@@ -227,11 +297,9 @@ export default function AlertsPage() {
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className={cn(
                       "text-xs font-medium px-2 py-0.5 rounded-full",
-                      alert.alert_type === "out_of_stock" 
-                        ? "bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-200"
-                        : "bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-200"
+                      getAlertConfig(alert).badgeBg
                     )}>
-                      {alert.alert_type === "out_of_stock" ? "Rupture" : "Stock faible"}
+                      {getAlertConfig(alert).label}
                     </span>
                     {alert.is_resolved && (
                       <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-200 dark:bg-green-800 text-green-700 dark:text-green-200">
@@ -275,8 +343,14 @@ export default function AlertsPage() {
       )}
 
       {/* Footer */}
-      <div className="text-center text-xs text-muted-foreground pt-4">
-        Les alertes sont générées automatiquement quand le stock descend en dessous du seuil défini
+      <div className="text-center text-xs text-muted-foreground pt-4 space-y-1">
+        <p className="font-medium">Les alertes sont générées automatiquement selon les critères suivants :</p>
+        <p className="text-[11px]">
+          🟡 Avertissement : stock entre min et min+5 •
+          🟠 Critique : stock ≤ min •
+          🔴 Rupture : stock = 0 •
+          🔵 Surstock : stock &gt; max
+        </p>
       </div>
     </div>
   );

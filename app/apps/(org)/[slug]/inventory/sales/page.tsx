@@ -1,37 +1,42 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card, Input } from "@/components/ui";
-import { getSales, cancelSale, getSaleReceiptUrl, getSaleInvoiceUrl } from "@/lib/services/inventory";
-import type { SaleList } from "@/lib/types/inventory";
+import { Can } from "@/components/apps/common/protected-route";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
 import {
-  Plus,
-  Search,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { PDFPreviewWrapper } from "@/components/ui/pdf-preview";
+import { usePDF } from "@/lib/hooks/usePDF";
+import { cancelSale, getSales } from "@/lib/services/inventory";
+import type { SaleList } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn, formatCurrency } from "@/lib/utils";
+import {
   AlertTriangle,
-  ShoppingCart,
+  Ban,
   Calendar,
+  CheckCircle,
+  Clock,
+  Download,
   Eye as EyeIcon,
   FileText,
-  Ban,
   Keyboard,
-  X,
-  CreditCard,
-  Banknote,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Zap,
-  MoreVertical,
-  Download,
+  Plus,
+  Search,
+  ShoppingCart,
   Truck,
+  X,
+  XCircle,
+  Zap
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency } from "@/lib/utils";
-import { Can } from "@/components/apps/common/protected-route";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { usePDF } from "@/lib/hooks/usePDF";
-import { PDFPreviewWrapper } from "@/components/ui/pdf-preview";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 export default function SalesPage() {
   const params = useParams();
@@ -46,7 +51,6 @@ export default function SalesPage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLTableSectionElement>(null);
@@ -264,27 +268,27 @@ export default function SalesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Ventes</h1>
-          <p className="text-muted-foreground text-sm">
+          <h1 className="text-3xl font-bold tracking-tight">Ventes</h1>
+          <p className="text-muted-foreground mt-1">
             Gérez vos ventes et remises
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowShortcuts(true)}>
-            <Keyboard className="h-3.5 w-3.5" />
+          <Button variant="ghost" size="sm" onClick={() => setShowShortcuts(true)} className="h-9">
+            <Keyboard className="h-4 w-4" />
           </Button>
           <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SALES}>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" asChild className="h-9">
               <Link href={`/apps/${slug}/inventory/sales/new`}>
-                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                <Plus className="mr-2 h-4 w-4" />
                 Avancé
               </Link>
             </Button>
-            <Button size="sm" asChild className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg">
+            <Button size="sm" asChild className="h-9 bg-emerald-600 hover:bg-emerald-700">
               <Link href={`/apps/${slug}/inventory/sales/quick`}>
-                <Zap className="mr-1.5 h-3.5 w-3.5" />
-                Caisse
-                <kbd className="ml-1.5 hidden sm:inline-flex h-4 items-center rounded border border-white/30 bg-white/20 px-1 font-mono text-[10px]">
+                <Zap className="mr-2 h-4 w-4" />
+                Caisse Express
+                <kbd className="ml-2 hidden sm:inline-flex h-5 items-center rounded border border-white/30 bg-white/20 px-1.5 font-mono text-[10px]">
                   N
                 </kbd>
               </Link>
@@ -294,29 +298,29 @@ export default function SalesPage() {
       </div>
 
       {/* Filters */}
-      <Card className="p-3">
+      <Card className="p-4">
         <div className="flex flex-col md:flex-row gap-3">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 ref={searchInputRef}
-                placeholder="Rechercher..."
+                placeholder="Rechercher par numéro ou client..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 pr-16 h-8 text-sm"
+                className="pl-10 pr-20 h-10"
               />
-              <kbd className="absolute right-2.5 top-1/2 transform -translate-y-1/2 hidden sm:inline-flex h-4 items-center rounded border bg-muted px-1 font-mono text-[10px] text-muted-foreground">
+              <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 hidden sm:inline-flex h-5 items-center rounded border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground">
                 Ctrl+K
               </kbd>
             </div>
           </div>
-          <div className="flex gap-1.5 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant={filterStatus === undefined ? "default" : "outline"}
               onClick={() => setFilterStatus(undefined)}
               size="sm"
-              className="h-8 text-xs px-2.5"
+              className="h-10 px-4"
             >
               Tous
             </Button>
@@ -324,27 +328,27 @@ export default function SalesPage() {
               variant={filterStatus === "paid" ? "default" : "outline"}
               onClick={() => setFilterStatus(filterStatus === "paid" ? undefined : "paid")}
               size="sm"
-              className="h-8 text-xs px-2.5"
+              className="h-10 px-4"
             >
-              <CheckCircle className="mr-1 h-3 w-3" />
+              <CheckCircle className="mr-2 h-4 w-4" />
               Payées
             </Button>
             <Button
               variant={filterStatus === "partial" ? "default" : "outline"}
               onClick={() => setFilterStatus(filterStatus === "partial" ? undefined : "partial")}
               size="sm"
-              className="h-8 text-xs px-2.5"
+              className="h-10 px-4"
             >
-              <Clock className="mr-1 h-3 w-3" />
+              <Clock className="mr-2 h-4 w-4" />
               Partielles
             </Button>
             <Button
               variant={filterStatus === "pending" ? "default" : "outline"}
               onClick={() => setFilterStatus(filterStatus === "pending" ? undefined : "pending")}
               size="sm"
-              className="h-8 text-xs px-2.5"
+              className="h-10 px-4"
             >
-              <Clock className="mr-1 h-3 w-3" />
+              <Clock className="mr-2 h-4 w-4" />
               En attente
             </Button>
           </div>
@@ -363,79 +367,59 @@ export default function SalesPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900">
-              <ShoppingCart className="h-4 w-4 text-foreground dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Ventes</p>
-              <p className="text-lg font-bold">{filteredSales.length}</p>
-            </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4 border-l-4 border-l-slate-500">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Ventes</p>
+            <p className="text-2xl font-bold">{filteredSales.length}</p>
           </div>
         </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900">
-              <Banknote className="h-4 w-4 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-base font-bold">{formatCurrency(totalSales)}</p>
-            </div>
+        <Card className="p-4 border-l-4 border-l-blue-500">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</p>
+            <p className="text-xl font-bold">{formatCurrency(totalSales)}</p>
           </div>
         </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900">
-              <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Payé</p>
-              <p className="text-base font-bold text-green-600">{formatCurrency(totalPaid)}</p>
-            </div>
+        <Card className="p-4 border-l-4 border-l-emerald-500">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payé</p>
+            <p className="text-xl font-bold text-emerald-600">{formatCurrency(totalPaid)}</p>
           </div>
         </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900">
-              <CreditCard className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Reste</p>
-              <p className="text-base font-bold text-orange-600">{formatCurrency(totalRemaining)}</p>
-            </div>
+        <Card className="p-4 border-l-4 border-l-orange-500">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Reste</p>
+            <p className="text-xl font-bold text-orange-600">{formatCurrency(totalRemaining)}</p>
           </div>
         </Card>
       </div>
 
       {/* Sales List */}
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+      <Card className="overflow-visible">
+        <div className="overflow-x-auto overflow-y-visible">
+          <table className="w-full">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left px-3 py-2 font-medium text-xs">N° Vente</th>
-                <th className="text-left px-3 py-2 font-medium text-xs">Date</th>
-                <th className="text-left px-3 py-2 font-medium text-xs">Client</th>
-                <th className="text-left px-3 py-2 font-medium text-xs hidden md:table-cell">Entrepôt</th>
-                <th className="text-center px-2 py-2 font-medium text-xs">Qté</th>
-                <th className="text-right px-3 py-2 font-medium text-xs">Total</th>
-                <th className="text-right px-3 py-2 font-medium text-xs">Payé</th>
-                <th className="text-center px-2 py-2 font-medium text-xs">Statut</th>
-                <th className="text-center px-2 py-2 font-medium text-xs">Actions</th>
+              <tr className="border-b bg-muted/30">
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">N° Vente</th>
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Date</th>
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Client</th>
+                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Entrepôt</th>
+                <th className="text-center px-3 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Qté</th>
+                <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Total</th>
+                <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Payé</th>
+                <th className="text-center px-3 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Statut</th>
+                <th className="text-center px-3 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody ref={tableRef}>
               {filteredSales.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center p-6 text-muted-foreground">
-                    <ShoppingCart className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                    <p className="text-sm">Aucune vente trouvée</p>
+                  <td colSpan={9} className="text-center p-12 text-muted-foreground">
+                    <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                    <p className="text-sm font-medium">Aucune vente trouvée</p>
                     <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SALES}>
                       <p className="text-xs mt-2">
-                        Appuyez sur <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-xs">N</kbd> pour créer une vente
+                        Appuyez sur <kbd className="px-2 py-1 rounded border bg-muted font-mono text-xs">N</kbd> pour créer une vente
                       </p>
                     </Can>
                   </td>
@@ -447,165 +431,153 @@ export default function SalesPage() {
                     className={cn(
                       "border-b transition-colors cursor-pointer",
                       selectedIndex === index
-                        ? "bg-primary/10 ring-2 ring-primary ring-inset"
-                        : "hover:bg-muted/50"
+                        ? "bg-primary/5 ring-1 ring-primary ring-inset"
+                        : "hover:bg-muted/30"
                     )}
                     onClick={() => setSelectedIndex(index)}
                     onDoubleClick={() => router.push(`/apps/${slug}/inventory/sales/${sale.id}`)}
                     tabIndex={0}
                   >
-                    <td className="px-3 py-2">
-                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+                    <td className="px-4 py-3">
+                      <code className="text-xs bg-muted px-2 py-1 rounded font-mono font-semibold">
                         {sale.sale_number}
                       </code>
                     </td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-3.5 w-3.5" />
                         <span>{new Date(sale.sale_date).toLocaleDateString("fr-FR")}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
-                      <span className="text-xs font-medium truncate max-w-[120px] block">{sale.customer_name || "Client anonyme"}</span>
+                    <td className="px-4 py-3">
+                      <span className="text-sm font-medium truncate max-w-[150px] block">{sale.customer_name || "Client anonyme"}</span>
                     </td>
-                    <td className="px-3 py-2 text-muted-foreground text-xs hidden md:table-cell">
+                    <td className="px-4 py-3 text-muted-foreground text-sm hidden md:table-cell">
                       {sale.warehouse_name || "-"}
                     </td>
-                    <td className="px-2 py-2 text-center">
-                      <Badge variant="outline" className="text-xs px-1.5 py-0">
+                    <td className="px-3 py-3 text-center">
+                      <Badge variant="outline" className="text-xs px-2 py-0.5">
                         {sale.item_count || 0}
                       </Badge>
                     </td>
-                    <td className="px-3 py-2 text-right font-semibold text-xs">
+                    <td className="px-4 py-3 text-right font-semibold text-sm">
                       {formatCurrency(Number(sale.total_amount) || 0)}
                     </td>
-                    <td className="px-3 py-2 text-right text-xs">
+                    <td className="px-4 py-3 text-right text-sm">
                       <span className={cn(
-                        (Number(sale.paid_amount) || 0) >= (Number(sale.total_amount) || 0) && "text-green-600 font-medium",
+                        "font-medium",
+                        (Number(sale.paid_amount) || 0) >= (Number(sale.total_amount) || 0) && "text-emerald-600",
                         (Number(sale.paid_amount) || 0) > 0 && (Number(sale.paid_amount) || 0) < (Number(sale.total_amount) || 0) && "text-orange-600"
                       )}>
                         {formatCurrency(Number(sale.paid_amount) || 0)}
                       </span>
                     </td>
-                    <td className="px-2 py-2 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {getStatusIcon(sale.payment_status)}
-                        <Badge variant={getStatusVariant(sale.payment_status)} className="text-[10px] px-1.5 py-0">
-                          {sale.payment_status_display}
-                        </Badge>
-                      </div>
+                    <td className="px-3 py-3 text-center">
+                      <Badge variant={getStatusVariant(sale.payment_status)} className="text-xs px-2.5 py-1">
+                        {sale.payment_status_display}
+                      </Badge>
                     </td>
-                    <td className="px-2 py-2">
-                      <div className="flex items-center justify-center gap-0.5">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center justify-center gap-1">
+                        <Button variant="ghost" size="sm" className="h-8 px-2" asChild>
                           <Link href={`/apps/${slug}/inventory/sales/${sale.id}`}>
-                            <EyeIcon className="h-3.5 w-3.5" />
+                            <EyeIcon className="h-4 w-4" />
                           </Link>
                         </Button>
-                        <div className="relative">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenMenuId(openMenuId === sale.id ? null : sale.id);
-                            }}
-                          >
-                            <FileText className="h-3.5 w-3.5" />
-                          </Button>
-                          {openMenuId === sale.id && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-10"
-                                onClick={() => setOpenMenuId(null)}
-                              />
-                              <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20">
-                                <div className="py-1">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      preview(
-                                        `/inventory/sales/${sale.id}/receipt/`,
-                                        `Reçu - ${sale.sale_number}`,
-                                        `Recu_${sale.sale_number}.pdf`
-                                      );
-                                      setOpenMenuId(null);
-                                    }}
-                                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer w-full text-left"
-                                  >
-                                    <EyeIcon className="h-3.5 w-3.5" />
-                                    Aperçu reçu
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      download(
-                                        `/inventory/sales/${sale.id}/receipt/`,
-                                        `Recu_${sale.sale_number}.pdf`
-                                      );
-                                      setOpenMenuId(null);
-                                    }}
-                                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer w-full text-left"
-                                  >
-                                    <Download className="h-3.5 w-3.5" />
-                                    Télécharger reçu
-                                  </button>
-                                  <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      preview(
-                                        `/inventory/sales/${sale.id}/invoice/`,
-                                        `Facture - ${sale.sale_number}`,
-                                        `Facture_${sale.sale_number}.pdf`
-                                      );
-                                      setOpenMenuId(null);
-                                    }}
-                                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer w-full text-left"
-                                  >
-                                    <EyeIcon className="h-3.5 w-3.5" />
-                                    Aperçu facture
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      download(
-                                        `/inventory/sales/${sale.id}/invoice/`,
-                                        `Facture_${sale.sale_number}.pdf`
-                                      );
-                                      setOpenMenuId(null);
-                                    }}
-                                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer w-full text-left"
-                                  >
-                                    <Download className="h-3.5 w-3.5" />
-                                    Télécharger facture
-                                  </button>
-                                  <Link
-                                    href={`/apps/${slug}/inventory/documents/delivery-notes/new?sale=${sale.id}`}
-                                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-t border-gray-200 dark:border-gray-700"
-                                    onClick={() => setOpenMenuId(null)}
-                                  >
-                                    <Truck className="h-3.5 w-3.5 text-blue-600" />
-                                    Créer bon de livraison
-                                  </Link>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-3"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <FileText className="h-4 w-4 mr-1.5" />
+                              <span className="text-xs font-medium">Documents</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuLabel>Reçu</DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                preview(
+                                  `/inventory/sales/${sale.id}/receipt/`,
+                                  `Reçu - ${sale.sale_number}`,
+                                  `Recu_${sale.sale_number}.pdf`
+                                );
+                              }}
+                            >
+                              <EyeIcon className="text-blue-600" />
+                              Aperçu
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                download(
+                                  `/inventory/sales/${sale.id}/receipt/`,
+                                  `Recu_${sale.sale_number}.pdf`
+                                );
+                              }}
+                            >
+                              <Download className="text-emerald-600" />
+                              Télécharger
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator />
+
+                            <DropdownMenuLabel>Facture</DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                preview(
+                                  `/inventory/sales/${sale.id}/invoice/`,
+                                  `Facture - ${sale.sale_number}`,
+                                  `Facture_${sale.sale_number}.pdf`
+                                );
+                              }}
+                            >
+                              <EyeIcon className="text-blue-600" />
+                              Aperçu
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                download(
+                                  `/inventory/sales/${sale.id}/invoice/`,
+                                  `Facture_${sale.sale_number}.pdf`
+                                );
+                              }}
+                            >
+                              <Download className="text-emerald-600" />
+                              Télécharger
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator />
+
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/apps/${slug}/inventory/documents/delivery-notes/new?sale=${sale.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Truck className="text-blue-600" />
+                                <span className="text-blue-600 font-medium">Bon de livraison</span>
+                              </Link>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         {sale.payment_status !== "paid" && sale.payment_status !== "cancelled" && (
                           <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_SALES}>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0"
+                              className="h-8 px-2 hover:bg-red-50 hover:text-red-600"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setCancelConfirmId(sale.id);
                               }}
                             >
-                              <Ban className="h-3.5 w-3.5 text-red-500" />
+                              <Ban className="h-4 w-4" />
                             </Button>
                           </Can>
                         )}
@@ -620,26 +592,31 @@ export default function SalesPage() {
       </Card>
 
       {/* Summary */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <p>{filteredSales.length} vente(s)</p>
-        <div className="flex gap-3">
-          <span className="flex items-center gap-1">
-            <CheckCircle className="h-3 w-3 text-green-600" />
-            {sales.filter((s) => s.payment_status === "paid").length} payées
-          </span>
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3 text-orange-600" />
-            {sales.filter((s) => s.payment_status === "partial").length} partielles
-          </span>
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3 text-yellow-600" />
-            {sales.filter((s) => s.payment_status === "pending").length} en attente
-          </span>
+      <Card className="p-4">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Total:</span>
+            <span className="font-semibold">{filteredSales.length} vente(s)</span>
+          </div>
+          <div className="flex gap-4">
+            <span className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
+              <span className="text-muted-foreground">{sales.filter((s) => s.payment_status === "paid").length} payées</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-full bg-orange-500"></div>
+              <span className="text-muted-foreground">{sales.filter((s) => s.payment_status === "partial").length} partielles</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
+              <span className="text-muted-foreground">{sales.filter((s) => s.payment_status === "pending").length} en attente</span>
+            </span>
+          </div>
         </div>
-      </div>
+      </Card>
 
-      <p className="text-center text-[10px] text-muted-foreground">
-        <kbd className="px-1 py-0.5 rounded border bg-muted font-mono text-[9px]">?</kbd> raccourcis
+      <p className="text-center text-xs text-muted-foreground">
+        <kbd className="px-2 py-1 rounded border bg-muted font-mono text-xs">?</kbd> pour voir les raccourcis clavier
       </p>
 
       {/* PDF Preview Modal */}

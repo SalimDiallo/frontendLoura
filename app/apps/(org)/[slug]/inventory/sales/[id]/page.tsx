@@ -1,29 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card } from "@/components/ui";
-import { getSale, addPaymentToSale, getSaleReceiptUrl, getSaleInvoiceUrl, getDeliveryNotes } from "@/lib/services/inventory";
-import type { Sale, Payment, DeliveryNote } from "@/lib/types/inventory";
+import { Can } from "@/components/apps/common";
+import Etiquette from "@/components/landing/ui/Etiquette";
+import { Badge, Button, Card } from "@/components/ui";
+import { addPaymentToSale, getDeliveryNotes, getSale, getSaleInvoiceUrl, getSaleReceiptUrl } from "@/lib/services/inventory";
+import type { DeliveryNote, Sale } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { getBadgeWIthOutIconAdLabel } from "@/lib/utils/BadgeStatus";
 import {
   ArrowLeft,
-  AlertTriangle,
-  Download,
-  CreditCard,
+  Banknote,
   Calendar,
+  Clock,
+  CreditCard,
+  Download,
+  Percent,
   ShoppingCart,
+  Truck,
   User,
   Warehouse,
-  CheckCircle,
-  Clock,
-  Percent,
-  Banknote,
-  X,
-  Truck,
+  X
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency } from "@/lib/utils";
-import { getBadgeWIthOutIconAdLabel, getStatusIcon } from "@/lib/utils/BadgeStatus";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function SaleDetailPage() {
   const params = useParams();
@@ -92,26 +93,12 @@ export default function SaleDetailPage() {
     );
   }
 
-  if (error || !sale) {
-    return (
-      <div className="p-6">
-        <Alert variant="error">
-          <AlertTriangle className="h-4 w-4" />
-          <div>
-            <h3 className="font-semibold">Erreur</h3>
-            <p className="text-sm">{error || "Vente non trouvée"}</p>
-          </div>
-        </Alert>
-        <Button className="mt-4" asChild>
-          <Link href={`/apps/${slug}/inventory/sales`}>Retour à la liste</Link>
-        </Button>
-      </div>
-    );
-  }
+ 
 
  
   return (
-    <div className="p-6 space-y-6">
+   <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_SALES} showMessage>
+       <div className="p-6 space-y-6">
       {/* Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -128,13 +115,13 @@ export default function SaleDetailPage() {
                 <input
                   type="number"
                   min="0"
-                  max={sale.remaining_amount}
+                  max={sale?.remaining_amount}
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
                   className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm mt-1"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Reste à payer: {formatCurrency(sale.remaining_amount || 0)}
+                  Reste à payer: {formatCurrency(sale?.remaining_amount || 0)}
                 </p>
               </div>
               <div>
@@ -178,24 +165,26 @@ export default function SaleDetailPage() {
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">{sale.sale_number}</h1>
-                {getBadgeWIthOutIconAdLabel({ status: sale.payment_status, label: sale.payment_status_display ?? "" })}
+              <h1 className="text-2xl font-bold">{sale?.sale_number}</h1>
+                {sale?.payment_status && sale?.payment_status_display && (
+                  getBadgeWIthOutIconAdLabel({ status: sale.payment_status, label: sale.payment_status_display })
+                )}
               
-              {sale.is_credit && <Badge variant="info">À crédit</Badge>}
+              {sale?.is_credit && <Badge variant="info" size="sm">À crédit</Badge>}
             </div>
             <p className="text-muted-foreground">
-              Créée le {new Date(sale.sale_date).toLocaleDateString("fr-FR")}
+              {sale?.sale_date && <>Créée le {formatDate(sale.sale_date)}</>}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {sale.payment_status !== "paid" && sale.payment_status !== "cancelled" && (
-            <Button onClick={() => setShowPaymentModal(true)}>
+          {sale?.payment_status !== "paid" && sale?.payment_status !== "cancelled" && (
+            <Button onClick={() => setShowPaymentModal(true)} size={"sm"}>
               <CreditCard className="mr-2 h-4 w-4" />
               Ajouter paiement
             </Button>
           )}
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild size={"sm"}>
             <Link href={`/apps/${slug}/inventory/documents/delivery-notes/new?sale=${saleId}`}>
               <Truck className="mr-2 h-4 w-4" />
               Créer bon de livraison
@@ -213,6 +202,26 @@ export default function SaleDetailPage() {
               Facture
             </a>
           </Button>
+
+          {sale?.is_credit_sale && (
+            <div className="flex flex-col items-center">
+              {/* Etiquette inclinée placée au-dessus du bouton, façon 'suspendu' */}
+              <Etiquette className="absolute">
+                 Vente à crédit
+              </Etiquette>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="mt-6"
+              >
+                <Link href={`/apps/${slug}/inventory/credit-sales/${sale.credit_id}`}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Voir crédit
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -225,7 +234,7 @@ export default function SaleDetailPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total brut</p>
-              <p className="text-xl font-bold">{formatCurrency(sale.subtotal || 0)}</p>
+              <p className="text-xl font-bold">{formatCurrency(sale?.subtotal || 0)}</p>
             </div>
           </div>
         </Card>
@@ -237,7 +246,7 @@ export default function SaleDetailPage() {
             <div>
               <p className="text-sm text-muted-foreground">Remises</p>
               <p className="text-xl font-bold text-red-600">
-                -{formatCurrency(sale.discount_amount || 0)}
+                -{formatCurrency(sale?.discount_amount || 0)}
               </p>
             </div>
           </div>
@@ -250,7 +259,7 @@ export default function SaleDetailPage() {
             <div>
               <p className="text-sm text-muted-foreground">Payé</p>
               <p className="text-xl font-bold text-green-600">
-                {formatCurrency(sale.paid_amount || 0)}
+                {formatCurrency(sale?.paid_amount || 0)}
               </p>
             </div>
           </div>
@@ -263,7 +272,7 @@ export default function SaleDetailPage() {
             <div>
               <p className="text-sm text-muted-foreground">Reste</p>
               <p className="text-xl font-bold text-orange-600">
-                {formatCurrency(sale.remaining_amount || 0)}
+                {formatCurrency(sale?.remaining_amount || 0)}
               </p>
             </div>
           </div>
@@ -317,7 +326,7 @@ export default function SaleDetailPage() {
         <div className="lg:col-span-2">
           <Card>
             <div className="p-4 border-b">
-              <h2 className="font-semibold">Articles ({sale.items?.length || 0})</h2>
+              <h2 className="font-semibold">Articles ({sale?.items?.length || 0})</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -331,7 +340,7 @@ export default function SaleDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sale.items?.map((item) => (
+                  {sale?.items?.map((item) => (
                     <tr key={item.id} className="border-b">
                       <td className="p-4">
                         <p className="font-medium">{item.product_name}</p>
@@ -359,16 +368,16 @@ export default function SaleDetailPage() {
                     <td colSpan={4} className="p-4 text-right font-medium">
                       Sous-total
                     </td>
-                    <td className="p-4 text-right font-bold">{formatCurrency(sale.subtotal)}</td>
+                    <td className="p-4 text-right font-bold">{sale && formatCurrency(sale?.subtotal)}</td>
                   </tr>
-                  {sale.discount_amount > 0 && (
+                  {sale &&sale?.discount_amount > 0 && (
                     <tr>
                       <td colSpan={4} className="p-4 text-right font-medium text-red-600">
                         Remise globale
-                        {sale.cart_discount_type === "percentage" && ` (${sale.cart_discount_value}%)`}
+                        {sale?.cart_discount_type === "percentage" && ` (${sale?.cart_discount_value}%)`}
                       </td>
                       <td className="p-4 text-right font-bold text-red-600">
-                        -{formatCurrency(sale.discount_amount)}
+                        -{formatCurrency(sale?.discount_amount)}
                       </td>
                     </tr>
                   )}
@@ -377,7 +386,7 @@ export default function SaleDetailPage() {
                       Total
                     </td>
                     <td className="p-4 text-right font-bold text-lg">
-                      {formatCurrency(sale.total_amount)}
+                      {sale && formatCurrency(sale?.total_amount)}
                     </td>
                   </tr>
                 </tfoot>
@@ -396,14 +405,14 @@ export default function SaleDetailPage() {
                 <User className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <dt className="text-xs text-muted-foreground">Client</dt>
-                  <dd className="font-medium">{sale.customer_name || "Client anonyme"}</dd>
+                  <dd className="font-medium">{sale?.customer_name || "Client anonyme"}</dd>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Warehouse className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <dt className="text-xs text-muted-foreground">Entrepôt</dt>
-                  <dd className="font-medium">{sale.warehouse_name}</dd>
+                  <dd className="font-medium">{sale?.warehouse_name}</dd>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -411,40 +420,40 @@ export default function SaleDetailPage() {
                 <div>
                   <dt className="text-xs text-muted-foreground">Date de vente</dt>
                   <dd className="font-medium">
-                    {new Date(sale.sale_date).toLocaleDateString("fr-FR")}
+                    {sale && formatDate(sale?.sale_date)}
                   </dd>
                 </div>
               </div>
-              {sale.is_credit && sale.credit_due_date && (
+              {sale?.is_credit && sale?.credit_due_date && (
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <dt className="text-xs text-muted-foreground">Échéance crédit</dt>
                     <dd className="font-medium">
-                      {new Date(sale.credit_due_date).toLocaleDateString("fr-FR")}
+                      {new Date(sale?.credit_due_date).toLocaleDateString("fr-FR")}
                     </dd>
                   </div>
                 </div>
               )}
             </dl>
-            {sale.notes && (
+            {sale?.notes && (
               <div className="mt-4 pt-4 border-t">
                 <dt className="text-xs text-muted-foreground mb-1">Notes</dt>
-                <dd className="text-sm whitespace-pre-wrap">{sale.notes}</dd>
+                <dd className="text-sm whitespace-pre-wrap">{sale?.notes}</dd>
               </div>
             )}
           </Card>
 
           {/* Payments */}
           <Card className="p-4">
-            <h3 className="font-semibold mb-4">Paiements ({sale.payments?.length || 0})</h3>
-            {!sale.payments || sale.payments.length === 0 ? (
+            <h3 className="font-semibold mb-4">Paiements ({sale?.payments?.length || 0})</h3>
+            {!sale?.payments || sale?.payments.length === 0 ? (
               <p className="text-muted-foreground text-sm text-center py-4">
                 Aucun paiement enregistré
               </p>
             ) : (
               <div className="space-y-3">
-                {sale.payments.map((payment) => (
+                {sale?.payments.map((payment) => (
                   <div
                     key={payment.id}
                     className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
@@ -465,5 +474,6 @@ export default function SaleDetailPage() {
         </div>
       </div>
     </div>
+   </Can>
   );
 }

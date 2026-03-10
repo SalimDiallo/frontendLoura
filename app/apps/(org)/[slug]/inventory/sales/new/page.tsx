@@ -1,38 +1,38 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Card, Input, Label, Badge } from "@/components/ui";
+import { Can } from "@/components/apps/common";
+import { Alert, Badge, Button, Card, Input, Label } from "@/components/ui";
 import { QuickSelect } from "@/components/ui/quick-select";
-import { createSale, getProducts, getWarehouses, getCustomers, createCustomer, createWarehouse } from "@/lib/services/inventory";
-import type { SaleCreate, SaleItemCreate, ProductList, Warehouse, Customer, PaymentMethod } from "@/lib/types/inventory";
+import { createCustomer, createSale, createWarehouse, getCustomers, getProducts, getWarehouses } from "@/lib/services/inventory";
+import type { Customer, PaymentMethod, ProductList, SaleCreate, Warehouse } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn, formatCurrency } from "@/lib/utils";
 import {
-  ArrowLeft,
   AlertTriangle,
-  Save,
-  Plus,
-  Trash2,
-  ShoppingCart,
-  Search,
-  Percent,
+  ArrowLeft,
+  Banknote,
+  Building2,
   Calculator,
+  Check,
+  CheckCircle2,
+  CreditCard,
+  Minus,
+  Package,
+  Percent,
+  Plus,
+  Receipt,
+  Search,
+  ShoppingCart,
+  Smartphone,
+  Sparkles,
+  Trash2,
   Users,
   Warehouse as WarehouseIcon,
-  Package,
-  Minus,
-  X,
-  CreditCard,
-  Banknote,
-  Check,
-  Sparkles,
-  Smartphone,
-  Building2,
-  Receipt,
-  CircleDollarSign,
-  CheckCircle2,
+  X
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface CartItem {
   product_id: string;
@@ -330,7 +330,8 @@ export default function NewSalePage() {
     .slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-muted/30">
+  <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SALES} showMessage>
+        <div className="min-h-screen bg-muted/30">
       {/* Success overlay */}
       {success && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -972,5 +973,6 @@ export default function NewSalePage() {
         </form>
       </div>
     </div>
+  </Can>
   );
 }

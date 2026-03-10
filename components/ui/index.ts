@@ -26,3 +26,4 @@ export * from './filter-bar';
 export * from './page-section';
 export * from './password-field-toggle';
 export * from './sheet';
+export * from './dropdown-menu';

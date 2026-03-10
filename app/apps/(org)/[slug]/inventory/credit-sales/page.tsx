@@ -1,30 +1,29 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card, Input } from "@/components/ui";
+import { Can } from "@/components/apps/common";
+import { Alert, Button, Card, Input } from "@/components/ui";
 import { getCreditSales, getCreditSalesSummary, sendCreditReminder } from "@/lib/services/inventory";
 import type { CreditSale, CreditSaleSummary } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn, formatCurrency } from "@/lib/utils";
+import { getBadgeWIthOutIconAdLabel } from "@/lib/utils/BadgeStatus";
 import {
-  Search,
-  AlertTriangle,
-  CreditCard,
-  Calendar,
-  Eye,
-  Bell,
-  Clock,
-  CheckCircle,
-  XCircle,
   AlertCircle,
+  AlertTriangle,
+  Calendar,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  Eye,
   Keyboard,
-  X,
+  Search,
   TrendingUp,
   Users,
-  Banknote,
+  X
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatCurrency, getDaysColor } from "@/lib/utils";
-import { getBadgeWIthOutIconAdLabel } from "@/lib/utils/BadgeStatus";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 export default function CreditSalesPage() {
   const params = useParams();
@@ -165,7 +164,8 @@ export default function CreditSalesPage() {
   }
 
   return (
-    <div className="space-y-4 p-4">
+   <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_SALES} showMessage>
+       <div className="space-y-4 p-4">
       {/* Shortcuts Modal */}
       {showShortcuts && (
         <div
@@ -529,6 +529,7 @@ export default function CreditSalesPage() {
         Appuyez sur <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">?</kbd> pour voir tous les raccourcis clavier
       </p>
     </div>
+   </Can>
   );
 }
 

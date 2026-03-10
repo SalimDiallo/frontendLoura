@@ -1,27 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card } from "@/components/ui";
-import { getMovement, deleteMovement } from "@/lib/services/inventory";
+import { Badge, Button, Card } from "@/components/ui";
+import { deleteMovement, getMovement } from "@/lib/services/inventory";
 import type { Movement, MovementType } from "@/lib/types/inventory";
 import {
+  ArrowDown,
   ArrowLeft,
-  Trash2,
-  Package,
+  ArrowRight,
+  ArrowUp,
+  Building,
   Calendar,
   FileText,
-  ArrowRight,
-  ArrowDown,
-  ArrowUp,
+  Package,
   RefreshCw,
-  Building,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 // IMPORTANT: import DeleteConfirmation dialog
-import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
 import { Can } from "@/components/apps/common";
+import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { formatDate } from "@/lib/utils";
 
 const movementTypeConfig: Record<MovementType, { label: string; icon: any; variant: "default" | "success" | "warning" | "error" }> = {
   in: { label: "Entrée", icon: ArrowDown, variant: "success" },
@@ -89,21 +90,14 @@ export default function MovementDetailPage() {
     );
   }
 
-  if (error || !movement) {
-    return (
-      <div className="p-4">
-        <Alert variant="error" title="Erreur">
-          {error || "Mouvement introuvable"}
-        </Alert>
-      </div>
-    );
-  }
+ 
 
-  const typeInfo = movementTypeConfig[movement.movement_type];
+  const typeInfo = movement?.movement_type ? movementTypeConfig[movement.movement_type] : movementTypeConfig["in"];
   const TypeIcon = typeInfo.icon;
 
   return (
-    <div className="space-y-6 p-6">
+ <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK} showMessage>
+       <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -121,12 +115,12 @@ export default function MovementDetailPage() {
               </Badge>
             </div>
             <p className="text-muted-foreground">
-              {movement.reference && (
+              {movement?.reference && (
                 <>
-                  Référence: <code className="bg-muted px-2 py-1 rounded text-sm">{movement.reference}</code>
+                  Référence: <code className="bg-muted px-2 py-1 rounded text-sm">{movement?.reference}</code>
                 </>
               )}
-              {!movement.reference && "Aucune référence"}
+              {!movement?.reference && "Aucune référence"}
             </p>
           </div>
         </div>
@@ -144,7 +138,7 @@ export default function MovementDetailPage() {
             onOpenChange={setDeleteDialogOpen}
             itemName={
               "du mouvement" +
-              (movement.reference ? ` "${movement.reference}"` : "")
+              (movement?.reference ? ` "${movement?.reference}"` : "")
             }
             onConfirm={handleDelete}
             loading={deleting}
@@ -164,26 +158,26 @@ export default function MovementDetailPage() {
             <div>
               <p className="text-muted-foreground text-xs">Produit</p>
               <Link
-                href={`/apps/${slug}/inventory/products/${movement.product}`}
+                href={`/apps/${slug}/inventory/products/${movement?.product}`}
                 className="font-medium hover:text-primary"
               >
-                {movement.product_name || movement.product}
+                {movement?.product_name || movement?.product}
               </Link>
             </div>
-            {movement.product_sku && (
+            {movement?.product_sku && (
               <div>
                 <p className="text-muted-foreground text-xs">SKU</p>
                 <code className="text-sm bg-muted px-2 py-1 rounded">
-                  {movement.product_sku}
+                  {movement?.product_sku}
                 </code>
               </div>
             )}
             <div>
               <p className="text-muted-foreground text-xs">Quantité</p>
               <p className="text-2xl font-bold">
-                {movement.movement_type === "out" && "-"}
-                {movement.movement_type === "in" && "+"}
-                {movement.quantity}
+                {movement?.movement_type === "out" && "-"}
+                {movement?.movement_type === "in" && "+"}
+                {movement?.quantity}
               </p>
             </div>
           </div>
@@ -197,25 +191,25 @@ export default function MovementDetailPage() {
           <div className="space-y-3 text-sm">
             <div>
               <p className="text-muted-foreground text-xs">
-                {movement.movement_type === "transfer"
+                {movement?.movement_type === "transfer"
                   ? "Entrepôt source"
                   : "Entrepôt"}
               </p>
               <Link
-                href={`/apps/${slug}/inventory/warehouses/${movement.warehouse}`}
+                href={`/apps/${slug}/inventory/warehouses/${movement?.warehouse}`}
                 className="font-medium hover:text-primary"
               >
-                {movement.warehouse_name || movement.warehouse}
+                {movement?.warehouse_name || movement?.warehouse}
               </Link>
             </div>
-            {movement.movement_type === "transfer" && movement.destination_warehouse && (
+            {movement?.movement_type === "transfer" && movement?.destination_warehouse && (
               <div>
                 <p className="text-muted-foreground text-xs">Entrepôt destination</p>
                 <Link
-                  href={`/apps/${slug}/inventory/warehouses/${movement.destination_warehouse}`}
+                  href={`/apps/${slug}/inventory/warehouses/${movement?.destination_warehouse}`}
                   className="font-medium hover:text-primary"
                 >
-                  {movement.destination_warehouse_name || movement.destination_warehouse}
+                  {movement?.destination_warehouse_name || movement?.destination_warehouse}
                 </Link>
               </div>
             )}
@@ -233,25 +227,37 @@ export default function MovementDetailPage() {
           <div>
             <p className="text-muted-foreground text-xs">Date du mouvement</p>
             <p className="font-medium">
-              {new Date(movement.movement_date).toLocaleDateString("fr-FR", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              {movement?.movement_date
+                ? formatDate(movement.movement_date, {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : ""}
             </p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Date de création</p>
             <p className="text-sm text-muted-foreground">
-              {new Date(movement.created_at).toLocaleString("fr-FR")}
+              {movement?.created_at
+                ? formatDate(movement.created_at)
+                : ""}
             </p>
           </div>
-          {movement.updated_at !== movement.created_at && (
+          {movement?.updated_at !== movement?.created_at && (
             <div>
               <p className="text-muted-foreground text-xs">Dernière modification</p>
               <p className="text-sm text-muted-foreground">
-                {new Date(movement.updated_at).toLocaleString("fr-FR")}
+                {movement?.updated_at
+                  ? formatDate(movement.updated_at, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : ""}
               </p>
             </div>
           )}
@@ -259,15 +265,16 @@ export default function MovementDetailPage() {
       </Card>
 
       {/* Notes */}
-      {movement.notes && (
+      {movement?.notes && (
         <Card className="p-6">
           <h3 className="font-semibold mb-3 flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Notes
           </h3>
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{movement.notes}</p>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{movement?.notes}</p>
         </Card>
       )}
     </div>
+ </Can>
   );
 }

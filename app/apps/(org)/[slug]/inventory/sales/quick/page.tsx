@@ -1,42 +1,44 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Input, Badge } from "@/components/ui";
+import { Can } from "@/components/apps/common";
+import { Badge, Button, Input } from "@/components/ui";
 import { QuickSelect } from "@/components/ui/quick-select";
 import {
+  createCustomer,
   createSale,
+  getCustomers,
   getProducts,
   getWarehouses,
-  getCustomers,
-  createCustomer,
 } from "@/lib/services/inventory";
-import type { ProductList, Warehouse, Customer } from "@/lib/types/inventory";
+import type { Customer, ProductList, Warehouse } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn, formatCurrency } from "@/lib/utils";
 import {
-  ShoppingCart,
-  Search,
-  Plus,
-  Minus,
-  Trash2,
-  Receipt,
-  Package,
-  X,
-  CheckCircle,
   AlertTriangle,
   Banknote,
-  CreditCard,
-  Smartphone,
-  Check,
-  Percent,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  Users,
   Calendar,
-  Edit3,
+  Check,
+  CheckCircle,
+  ChevronDown,
   ChevronLeft,
+  ChevronUp,
+  CreditCard,
+  Edit3,
+  Loader2,
+  Minus,
+  Package,
+  Percent,
+  Plus,
+  Receipt,
+  Search,
+  ShoppingCart,
+  Smartphone,
+  Trash2,
+  Users,
+  X,
 } from "lucide-react";
-import { cn, formatCurrency } from "@/lib/utils";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface CartItem {
   product_id: string;
@@ -52,7 +54,6 @@ interface CartItem {
 
 export default function QuickSalePOSPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = params.slug as string;
 
   const [products, setProducts] = useState<ProductList[]>([]);
@@ -394,7 +395,8 @@ export default function QuickSalePOSPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col lg:flex-row bg-muted/30 overflow-hidden">
+   <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SALES} showMessage>
+       <div className="h-screen flex flex-col lg:flex-row bg-muted/30 overflow-hidden">
       {/* Notifications */}
       {success && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
@@ -632,6 +634,7 @@ export default function QuickSalePOSPage() {
         </div>
       )}
     </div>
+   </Can>
   );
 }
 
@@ -855,21 +858,46 @@ function CartPanel({
               </div>
             </div>
 
-            <div className="flex gap-1">
-              {(globalDiscountType === "percentage" ? [0, 5, 10, 15, 20] : [0, 1000, 5000, 10000]).map((disc) => (
-                <button
-                  key={disc}
-                  onClick={() => setGlobalDiscountValue(disc)}
-                  className={cn(
-                    "flex-1 py-1.5 text-[10px] font-medium rounded transition-colors",
-                    globalDiscountValue === disc
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted hover:bg-muted/80"
-                  )}
-                >
-                  {disc === 0 ? "0" : globalDiscountType === "percentage" ? `-${disc}%` : `-${disc/1000}k`}
-                </button>
-              ))}
+            <div className="space-y-2">
+              {/* Quick preset buttons */}
+              <div className="flex gap-1">
+                {(globalDiscountType === "percentage" ? [0, 5, 10, 15, 20] : [0, 1000, 5000, 10000]).map((disc) => (
+                  <button
+                    key={disc}
+                    onClick={() => setGlobalDiscountValue(disc)}
+                    className={cn(
+                      "flex-1 py-1.5 text-[10px] font-medium rounded transition-colors",
+                      globalDiscountValue === disc
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted hover:bg-muted/80"
+                    )}
+                  >
+                    {disc === 0 ? "0" : globalDiscountType === "percentage" ? `-${disc}%` : `-${disc/1000}k`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Manual input field */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground shrink-0">Ou saisir:</span>
+                <Input
+                  type="number"
+                  min={0}
+                  max={globalDiscountType === "percentage" ? 100 : undefined}
+                  step={globalDiscountType === "percentage" ? 0.1 : 100}
+                  value={globalDiscountValue}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    const maxValue = globalDiscountType === "percentage" ? 100 : subtotal;
+                    setGlobalDiscountValue(Math.max(0, Math.min(value, maxValue)));
+                  }}
+                  placeholder={globalDiscountType === "percentage" ? "%" : "GNF"}
+                  className="h-8 text-sm flex-1"
+                />
+                <span className="text-xs text-muted-foreground shrink-0 w-8">
+                  {globalDiscountType === "percentage" ? "%" : "GNF"}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -885,7 +913,7 @@ function CartPanel({
           </div>
         ) : (
           <div className="divide-y">
-            {cart.map((item) => {
+            {cart.map((item:any) => {
               const product = products.find((p: any) => p.id === item.product_id);
               const remainingQty = product ? getRemainingQty(product) : (item.remaining_qty || 0);
               const itemSubtotal = item.quantity * item.unit_price;
@@ -1000,22 +1028,59 @@ function CartPanel({
 
                   {/* Item Discount */}
                   {showDiscountOptions && (
-                    <div className="mt-2 pt-2 border-t border-dashed flex items-center gap-1 flex-wrap">
-                      <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
-                      {[0, 5, 10].map((d) => (
-                        <button
-                          key={d}
-                          onClick={() => updateItemDiscount(item.product_id, "percentage", d)}
-                          className={cn(
-                            "w-6 h-6 text-[10px] rounded font-medium transition-colors shrink-0",
-                            item.discount_type === "percentage" && item.discount_value === d
-                              ? "bg-emerald-600 text-white"
-                              : "bg-muted hover:bg-muted/80"
-                          )}
-                        >
-                          {d}%
-                        </button>
-                      ))}
+                    <div className="mt-2 pt-2 border-t border-dashed space-y-1.5">
+                      {/* Quick percentage buttons */}
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Percent className="h-3 w-3 text-muted-foreground shrink-0" />
+                        {[0, 5, 10].map((d) => (
+                          <button
+                            key={d}
+                            onClick={() => updateItemDiscount(item.product_id, "percentage", d)}
+                            className={cn(
+                              "w-6 h-6 text-[10px] rounded font-medium transition-colors shrink-0",
+                              item.discount_type === "percentage" && item.discount_value === d
+                                ? "bg-emerald-600 text-white"
+                                : "bg-muted hover:bg-muted/80"
+                            )}
+                          >
+                            {d}%
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Manual input with type selector */}
+                      <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5 p-0.5 bg-muted rounded shrink-0">
+                          {["percentage", "fixed"].map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => {
+                                updateItemDiscount(item.product_id, type as any, item.discount_value);
+                              }}
+                              className={cn(
+                                "px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors",
+                                item.discount_type === type ? "bg-background shadow-sm" : ""
+                              )}
+                            >
+                              {type === "percentage" ? "%" : "GNF"}
+                            </button>
+                          ))}
+                        </div>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={item.discount_type === "percentage" ? 100 : itemSubtotal}
+                          step={item.discount_type === "percentage" ? 0.1 : 100}
+                          value={item.discount_value}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value) || 0;
+                            const maxValue = item.discount_type === "percentage" ? 100 : itemSubtotal;
+                            updateItemDiscount(item.product_id, item.discount_type, Math.max(0, Math.min(value, maxValue)));
+                          }}
+                          placeholder={item.discount_type === "percentage" ? "%" : "GNF"}
+                          className="h-6 text-xs flex-1"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

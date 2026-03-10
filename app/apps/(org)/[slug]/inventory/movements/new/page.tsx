@@ -1,30 +1,30 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Input, Card, Alert } from "@/components/ui";
+import { Can } from "@/components/apps/common";
+import { Alert, Button, Card, Input } from "@/components/ui";
 import { QuickSelect } from "@/components/ui/quick-select";
-import { createMovement, getProducts, getWarehouses, getSuppliers, getCustomers, createSupplier, createCustomer } from "@/lib/services/inventory";
+import { createCustomer, createMovement, createSupplier, getCustomers, getProducts, getSuppliers, getWarehouses } from "@/lib/services/inventory";
+import type { Customer, MovementCreate, ProductList, Supplier, Warehouse } from "@/lib/types/inventory";
 import { MovementType } from "@/lib/types/inventory";
-import type { MovementCreate, Warehouse, ProductList, Supplier, Customer } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn } from "@/lib/utils";
 import {
-  ArrowLeft,
   ArrowDownCircle,
-  ArrowUpCircle,
+  ArrowLeft,
   ArrowRightLeft,
-  Settings,
+  ArrowUpCircle,
+  Building2,
   CheckCircle,
   Loader2,
   Package,
   Search,
+  Settings,
   Users,
-  Building2,
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 const MOVEMENT_TYPES = [
   {
@@ -278,13 +278,21 @@ export default function NewMovementPage() {
           <h3 className="font-medium mb-3 text-sm text-muted-foreground">2. Produit</h3>
           {selectedProduct ? (
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Package className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="font-medium">{selectedProduct.name}</p>
                   <p className="text-xs text-muted-foreground">{selectedProduct.sku}</p>
+                </div>
+                <div className="flex flex-col items-end ml-4">
+                  <span className="text-xs text-muted-foreground">Stock actuel</span>
+                  <span className="font-bold text-lg">
+                    {typeof selectedProduct.total_stock === "number"
+                      ? selectedProduct.total_stock.toLocaleString("fr-FR")
+                      : "—"}
+                  </span>
                 </div>
               </div>
               <Button type="button" variant="ghost" size="sm" onClick={() => setFormData(prev => ({ ...prev, product: "" }))}>
@@ -317,6 +325,15 @@ export default function NewMovementPage() {
                       <div>
                         <p className="font-medium text-sm">{product.name}</p>
                         <p className="text-xs text-muted-foreground">{product.sku}</p>
+                      {/* Quantité */}
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        Quantité en stock&nbsp;:{" "}
+                        <span className="font-semibold">
+                          {typeof product.total_stock === "number"
+                            ? product.total_stock.toLocaleString("fr-FR")
+                            : "—"}
+                        </span>
+                      </span>
                       </div>
                     </button>
                   ))
@@ -389,16 +406,15 @@ export default function NewMovementPage() {
                 <label className="block text-xs font-medium mb-1">
                   {formData.movement_type === MovementType.TRANSFER ? "Source" : "Entrepôt"}
                 </label>
-                <select
-                  value={formData.warehouse}
-                  onChange={(e) => setFormData(prev => ({ ...prev, warehouse: e.target.value }))}
-                  className="w-full h-10 px-3 border rounded-md bg-background text-sm"
-                >
-                  <option value="">Sélectionner...</option>
-                  {warehouses.map((w) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
+                <QuickSelect
+                  label={formData.movement_type === MovementType.TRANSFER ? "Entrepôt source" : "Entrepôt"}
+                  items={warehouses.map(w => ({ id: w.id, name: w.name }))}
+                  selectedId={formData.warehouse || ""}
+                  onSelect={id => setFormData(prev => ({ ...prev, warehouse: id }))}
+                  placeholder="Sélectionner un entrepôt..."
+                  icon={Building2}
+                  accentColor="purple"
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">Quantité</label>
@@ -416,16 +432,18 @@ export default function NewMovementPage() {
             {formData.movement_type === MovementType.TRANSFER && (
               <div>
                 <label className="block text-xs font-medium mb-1">Destination</label>
-                <select
-                  value={formData.destination_warehouse || ""}
-                  onChange={(e) => setFormData(prev => ({ ...prev, destination_warehouse: e.target.value }))}
-                  className="w-full h-10 px-3 border rounded-md bg-background text-sm"
-                >
-                  <option value="">Sélectionner...</option>
-                  {warehouses.filter(w => w.id !== formData.warehouse).map((w) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
+                <QuickSelect
+                  label="Entrepôt destination"
+                  items={warehouses
+                    .filter(w => w.id !== formData.warehouse)
+                    .map(w => ({ id: w.id, name: w.name }))
+                  }
+                  selectedId={formData.destination_warehouse || ""}
+                  onSelect={id => setFormData(prev => ({ ...prev, destination_warehouse: id }))}
+                  placeholder="Sélectionner un entrepôt destination..."
+                  icon={Building2}
+                  accentColor="purple"
+                />
               </div>
             )}
 
