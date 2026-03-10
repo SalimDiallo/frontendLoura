@@ -162,4 +162,11 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   { code: COMMON_PERMISSIONS.INVENTORY.VIEW_REPORTS, label: "Voir les rapports", category: "Rapports", module: "inventory", depends: [] },
   { code: COMMON_PERMISSIONS.INVENTORY.EXPORT_REPORTS, label: "Exporter les rapports", category: "Rapports", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_REPORTS] },
 
+{ 
+  code: COMMON_PERMISSIONS.INVENTORY.MANAGE_DOCUMENTS,
+  label: "Gérer les documents (Peut gérer (créer/modifier/supprimer) les documents)",
+  category: "Documents",
+  module: "inventory",
+  depends: [],
+},
 ];

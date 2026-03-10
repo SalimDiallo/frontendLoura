@@ -1,21 +1,19 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { Alert, Button, Card } from "@/components/ui";
+import { getLeaveRequests } from "@/lib/services/hr/leave.service";
 import dynamic from "next/dynamic";
-import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Card, Alert, Button } from "@/components/ui";
+import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   HiOutlineArrowLeft,
   HiOutlineCalendar,
   HiOutlineCheckCircle,
-  HiOutlineXCircle,
   HiOutlineMinusCircle,
-  HiOutlineAdjustmentsHorizontal,
   HiOutlineUserGroup,
+  HiOutlineXCircle
 } from "react-icons/hi2";
-import { getLeaveRequests } from "@/lib/services/hr/leave.service";
-import { formatLeaveDays } from "@/lib/utils/leave";
 
 const ReactApexChart = dynamic(
   () => import("react-apexcharts").then((mod) => mod.default as any),

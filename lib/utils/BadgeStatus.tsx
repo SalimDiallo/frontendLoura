@@ -248,7 +248,7 @@ export function getBadgeWIthOutIconAdLabel({ status, label, className }: { statu
   return (
     <div className="flex items-center justify-center gap-2">
       <span>{getStatusIcon(status)}</span>
-      <Badge variant={getStatusVariant(status)} className={"rounded-full shadow-sm font-medium px-2.5 py-1.5 text-sm " + (className || "")}>
+      <Badge size="sm" variant={getStatusVariant(status)} className={"rounded-full shadow-sm font-medium px-2.5 py-1.5 text-xs " + (className || "")}>
         {label}
       </Badge>
     </div>

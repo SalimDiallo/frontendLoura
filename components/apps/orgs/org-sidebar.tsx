@@ -93,7 +93,7 @@ export function OrganisationSideBar() {
   const params = useParams();
   const router = useRouter();
   const { state } = useSidebar();
-  const { hasPermission,hasAnyPermission } = usePermissions();
+  const { hasPermission,hasAnyPermission, hasAllPermissions } = usePermissions();
   const isCollapsed = state === "collapsed";
   const orgSlug = params.slug as string;
 
@@ -213,14 +213,24 @@ export function OrganisationSideBar() {
         hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS)
           ? { title: "Fournisseurs", url: `/apps/${orgSlug}/inventory/suppliers`, icon: HiOutlineBriefcase }
           : null,
-        { title: "Documents", url: `/apps/${orgSlug}/inventory/documents`, icon: HiOutlineDocumentText },
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.MANAGE_DOCUMENTS)
+          ? { title: "Documents", url: `/apps/${orgSlug}/inventory/documents`, icon: HiOutlineDocumentText }
+          : null,
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES) && {
+          title: "Bons de livraison",
+          url: `/apps/${orgSlug}/inventory/documents/delivery-notes`,
+          icon: HiOutlineTruck,
+        },
         hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK_COUNTS)
           ? { title: "Inventaire", url: `/apps/${orgSlug}/inventory/stock-counts`, icon: HiOutlineDocumentText }
           : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES)
+        hasAllPermissions([
+          COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK,
+          COMMON_PERMISSIONS.INVENTORY.VIEW_SALES
+        ])
           ? { title: "Alertes", url: `/apps/${orgSlug}/inventory/alerts`, icon: HiOutlineExclamationTriangle }
           : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES)
+        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_REPORTS)
           ? { title: "Rapports", url: `/apps/${orgSlug}/inventory/reports`, icon: HiOutlineChartBar }
           : null,
       ]),

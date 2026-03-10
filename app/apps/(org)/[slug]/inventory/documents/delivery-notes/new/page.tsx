@@ -1,33 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { Button, Card, Input, Alert, Label, Badge } from "@/components/ui";
+import { Can } from "@/components/apps/common";
+import { Alert, Badge, Button, Card, Input, Label, QuickSelect } from "@/components/ui";
 import {
-  getSales,
-  getSale,
   createDeliveryNote,
   getProducts,
+  getSale,
+  getSales,
 } from "@/lib/services/inventory";
-import type { SaleList, ProductList, Sale } from "@/lib/types/inventory";
+import type { ProductList, SaleList } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import {
-  ArrowLeft,
   AlertTriangle,
-  Save,
+  ArrowLeft,
+  Check,
+  Edit3,
+  Loader2,
+  Package,
   Plus,
+  RefreshCw,
+  Save,
+  Search,
+  ShoppingCart,
   Trash2,
   Truck,
-  Search,
-  Package,
-  Loader2,
   User,
   X,
-  RefreshCw,
-  Edit3,
-  Check,
-  ShoppingCart,
 } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface DeliveryItem {
   product_id: string;
@@ -259,7 +261,8 @@ export default function NewDeliveryNotePage() {
   const canEditItems = !saleLoaded || editMode;
 
   return (
-    <div className="p-6">
+  <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_SALES} showMessage>
+        <div className="p-6">
       {/* Product Search Modal */}
       {showProductSearch && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -350,19 +353,21 @@ export default function NewDeliveryNotePage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <select
-                    value={selectedSale}
-                    onChange={(e) => setSelectedSale(e.target.value)}
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  <QuickSelect
+                    label="Vente associée"
+                    items={sales.map((sale) => ({
+                      id: sale.id,
+                      name: `${sale.sale_number} — ${sale.customer_name || "Client inconnu"}`,
+                      subtitle: new Date(sale.sale_date).toLocaleDateString("fr-FR"),
+                    }))}
+                    selectedId={selectedSale}
+                    onSelect={setSelectedSale}
+                    placeholder="Sélectionner une vente..."
+                    icon={ShoppingCart}
+                    accentColor="primary"
                     required
-                  >
-                    <option value="">Sélectionner une vente...</option>
-                    {sales.map((sale) => (
-                      <option key={sale.id} value={sale.id}>
-                        {sale.sale_number} — {sale.customer_name || "Client inconnu"} ({new Date(sale.sale_date).toLocaleDateString("fr-FR")})
-                      </option>
-                    ))}
-                  </select>
+                    canCreate={false}
+                  />
 
                   {/* Sale Info Card */}
                   {saleDetailsLoading && (
@@ -376,7 +381,7 @@ export default function NewDeliveryNotePage() {
                       <div className="flex items-start justify-between">
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="bg-white">
+                            <Badge variant="info">
                               {saleInfo.sale_number}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
@@ -686,5 +691,6 @@ export default function NewDeliveryNotePage() {
         </div>
       </form>
     </div>
+  </Can>
   );
 }

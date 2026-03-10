@@ -170,7 +170,7 @@ export default function SaleDetailPage() {
                   getBadgeWIthOutIconAdLabel({ status: sale.payment_status, label: sale.payment_status_display })
                 )}
               
-              {sale?.is_credit && <Badge variant="info" size="sm">À crédit</Badge>}
+              {sale?.is_credit && <Badge variant="info" size="sm" className="text-xs">À crédit</Badge>}
             </div>
             <p className="text-muted-foreground">
               {sale?.sale_date && <>Créée le {formatDate(sale.sale_date)}</>}
@@ -192,13 +192,13 @@ export default function SaleDetailPage() {
               Créer bon de livraison
             </Link>
           </Button>
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild size={"sm"}>
             <a href={getSaleReceiptUrl(saleId)} target="_blank">
               <Download className="mr-2 h-4 w-4" />
               Reçu
             </a>
           </Button>
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild size={"sm"}>
             <a href={getSaleInvoiceUrl(saleId)} target="_blank">
               <Download className="mr-2 h-4 w-4" />
               Facture
@@ -441,7 +441,27 @@ export default function SaleDetailPage() {
             {sale?.notes && (
               <div className="mt-4 pt-4 border-t">
                 <dt className="text-xs text-muted-foreground mb-1">Notes</dt>
-                <dd className="text-sm whitespace-pre-wrap">{sale?.notes}</dd>
+                <dd className="text-sm whitespace-pre-wrap">
+                  {(() => {
+                    // Regex for "Converti depuis proforma <UUID>"
+                    const match = sale.notes.match(/Converti depuis proforma\s+([0-9a-fA-F-]{36})/i);
+                    if (match) {
+                      const proformaId = match[1];
+                      return (
+                        <>
+                          Converti depuis {" "}
+                          <Link
+                            href={`/apps/${slug}/inventory/documents/proformas/${proformaId}`}
+                            className="underline text-primary hover:text-primary/80"
+                          >
+                            une facture proforma
+                          </Link>
+                        </>
+                      );
+                    }
+                    return sale.notes;
+                  })()}
+                </dd>
               </div>
             )}
           </Card>

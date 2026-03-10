@@ -1,28 +1,29 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card, Input } from "@/components/ui";
-import { getDeliveryNotes, markDeliveryAsDelivered, deleteDeliveryNote } from "@/lib/services/inventory";
+import { Can } from "@/components/apps/common";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { deleteDeliveryNote, getDeliveryNotes, markDeliveryAsDelivered } from "@/lib/services/inventory";
 import type { DeliveryNote } from "@/lib/types/inventory";
+import { cn } from "@/lib/utils";
 import {
-  Plus,
-  Search,
   AlertTriangle,
-  Truck,
   Calendar,
-  Eye,
-  Trash2,
-  Download,
   CheckCircle,
   Clock,
-  Package,
+  Download,
+  Eye,
   Keyboard,
-  X,
   MapPin,
+  Package,
+  Plus,
+  Search,
+  Trash2,
+  Truck,
+  X,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 export default function DeliveryNotesPage() {
   const params = useParams();
@@ -206,7 +207,8 @@ export default function DeliveryNotesPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+   <Can >
+     <div className="space-y-6 p-6">
       {/* Shortcuts Modal */}
       {showShortcuts && (
         <div
@@ -539,6 +541,7 @@ export default function DeliveryNotesPage() {
         Appuyez sur <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">?</kbd> pour voir tous les raccourcis clavier
       </p>
     </div>
+   </Can>
   );
 }
 

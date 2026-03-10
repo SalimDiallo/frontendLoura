@@ -1,37 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button, Card, Alert, Badge, Label } from "@/components/ui";
+import { Alert, Badge, Button, Card, Label, PDFPreviewWrapper } from "@/components/ui";
+import { PDFEndpoints, usePDF } from "@/lib/hooks";
 import {
-  getProforma,
-  updateProforma,
   convertProformaToSale,
+  getProforma,
   getWarehouses,
+  updateProforma,
 } from "@/lib/services/inventory";
 import type { ProformaInvoice, Warehouse } from "@/lib/types/inventory";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import {
-  ArrowLeft,
   AlertTriangle,
-  FileDown,
-  ShoppingCart,
+  ArrowLeft,
+  Calculator,
   Calendar,
   CheckCircle,
-  XCircle,
-  Loader2,
-  X,
-  User,
-  Package,
-  Calculator,
-  Mail,
-  Phone,
-  MapPin,
+  FileDown,
   FileText,
+  Loader2,
+  Mail,
+  MapPin,
+  Package,
+  Phone,
+  ShoppingCart,
+  User,
+  X,
+  XCircle,
 } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
-import { usePDF, PDFEndpoints } from "@/lib/hooks";
-import { PDFPreviewWrapper } from "@/components/ui";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function ProformaDetailPage() {
   const params = useParams();
@@ -289,7 +288,29 @@ export default function ProformaDetailPage() {
         )}
 
         {proforma.status === "converted" && proforma.converted_sale && (
-          <Alert variant="success" className="border-green-200"><CheckCircle className="h-5 w-5" /><div><p className="font-semibold">Convertie en vente</p><p className="text-sm mt-1">Vente : <code className="bg-green-100 dark:bg-green-900 px-2 py-0.5 rounded">{proforma.converted_sale}</code></p></div></Alert>
+          <Alert variant="success" className="border-green-200 gap-4 ">
+         <div className="flex items-center justify-between">
+         <div>
+            <div>
+              <p className="font-semibold">Convertie en vente</p>
+              <p className="text-sm mt-1">
+                Vente : <code className="bg-green-100 dark:bg-green-900 px-2 py-0.5 rounded">{proforma.converted_sale}</code>
+              </p>
+            </div>
+          </div>
+           <div>
+           <Link
+              href={`/apps/${slug}/inventory/sales/${proforma.converted_sale}`}
+              rel="noopener"
+              className="ml-auto"
+            >
+              <Button size="sm" variant="outline" className="flex items-center gap-1">
+                <FileText className="h-4 w-4 mr-1" /> Voir la vente
+              </Button>
+            </Link>
+           </div>
+         </div>
+          </Alert>
         )}
       </div>
 

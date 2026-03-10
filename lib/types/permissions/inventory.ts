@@ -79,4 +79,7 @@ export const INVENTORY_PERMISSIONS = {
   // === REPORTS ===
   VIEW_REPORTS: 'inventory.view_reports',
   EXPORT_REPORTS: 'inventory.export_reports',
+
+  // === DOCUMENTS ===
+  MANAGE_DOCUMENTS: 'inventory.manage_documents',
 } as const;

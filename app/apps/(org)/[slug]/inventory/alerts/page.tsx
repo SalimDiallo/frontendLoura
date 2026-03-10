@@ -1,28 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { Button, Badge, Card, Input } from "@/components/ui";
-import { getAlerts, resolveAlert, generateAlerts } from "@/lib/services/inventory";
+import { Can } from "@/components/apps/common";
+import { Button, Card, Input } from "@/components/ui";
+import { generateAlerts, getAlerts, resolveAlert } from "@/lib/services/inventory";
 import type { Alert } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn } from "@/lib/utils";
 import {
-  Search,
   AlertTriangle,
-  CheckCircle,
-  RefreshCw,
-  Package,
-  XCircle,
-  TrendingDown,
-  Filter,
   Bell,
   BellOff,
-  PackagePlus,
-  Gem,
-  Clock,
   Calendar,
+  CheckCircle,
+  Clock,
+  Gem,
+  Package,
+  PackagePlus,
+  RefreshCw,
+  Search,
+  TrendingDown,
+  XCircle
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function AlertsPage() {
   const params = useParams();
@@ -175,7 +176,8 @@ export default function AlertsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+   <Can allPermissions={[COMMON_PERMISSIONS.INVENTORY.VIEW_SALES,COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK]} showMessage>
+     <div className="p-6 space-y-6 max-w-5xl mx-auto">
       {/* Success Toast */}
       {successMessage && (
         <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top">
@@ -353,5 +355,6 @@ export default function AlertsPage() {
         </p>
       </div>
     </div>
+   </Can>
   );
 }

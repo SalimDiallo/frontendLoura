@@ -1,26 +1,25 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Card, Input, Label } from "@/components/ui";
-import { createProforma, getProducts, getCustomers } from "@/lib/services/inventory";
-import type { ProformaCreate, ProductList, Customer } from "@/lib/types/inventory";
+import { Alert, Button, Card, Input, Label, QuickSelect } from "@/components/ui";
+import { formatCurrency } from "@/lib";
+import { createProforma, getCustomers, getProducts } from "@/lib/services/inventory";
+import type { Customer, ProductList, ProformaCreate } from "@/lib/types/inventory";
 import {
-  ArrowLeft,
   AlertTriangle,
-  Save,
-  Plus,
-  Trash2,
-  FileText,
-  Search,
+  ArrowLeft,
   Calculator,
   Calendar,
-  User,
-  X,
+  FileText,
   Package,
+  Save,
+  Search,
+  Trash2,
+  User,
+  X
 } from "lucide-react";
 import Link from "next/link";
-import { formatCurrency } from "@/lib";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 interface ProformaItem {
   product_id: string;
@@ -390,18 +389,20 @@ export default function NewProformaPage() {
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium">Client existant</Label>
-                    <select
-                      value={selectedCustomer}
-                      onChange={(e) => handleCustomerChange(e.target.value)}
-                      className="w-full h-10 mt-1.5 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="">Nouveau client</option>
-                      {customers.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
+                    <QuickSelect
+                      label="Client existant"
+                      items={customers.map((c) => ({
+                        id: c.id,
+                        name: c.name,
+                        subtitle: c.phone || c.email || undefined,
+                      }))}
+                      selectedId={selectedCustomer}
+                      onSelect={handleCustomerChange}
+                      placeholder="Rechercher ou sélectionner un client..."
+                      icon={User}
+                      accentColor="primary"
+                      canCreate={false}
+                    />
                   </div>
                   <div>
                     <Label className="text-sm font-medium">

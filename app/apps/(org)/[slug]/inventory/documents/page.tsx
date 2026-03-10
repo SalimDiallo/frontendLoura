@@ -1,50 +1,44 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button, Card, Alert, Input, Badge } from "@/components/ui";
+import { Can } from "@/components/apps/common";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { API_CONFIG, STORAGE_KEYS } from "@/lib/api/config";
 import {
-  getProformas,
+  convertProformaToSale,
+  deleteDeliveryNote,
+  deleteProforma,
+  getCustomers,
   getDeliveryNotes,
   getProducts,
-  deleteProforma,
-  deleteDeliveryNote,
-  convertProformaToSale,
-  markDeliveryAsDelivered,
-  getWarehouses,
+  getProformas,
+  getWarehouses
 } from "@/lib/services/inventory";
-import type { ProformaInvoice, DeliveryNote, Warehouse, ProductList } from "@/lib/types/inventory";
+import type { Customer, DeliveryNote, ProductList, ProformaInvoice, Warehouse } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import {
-  FileText,
-  Plus,
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle,
   Download,
   ExternalLink,
-  Search,
-  Truck,
   Eye,
-  Trash2,
-  CheckCircle,
-  Clock,
-  XCircle,
-  X,
-  ShoppingCart,
-  Package,
-  Calendar,
-  ArrowLeft,
-  Receipt,
-  AlertTriangle,
-  MapPin,
-  Loader2,
   FileDown,
-  Calculator,
-  User,
-  Palette,
+  FileText,
+  Loader2,
+  Package,
+  Plus,
+  Receipt,
+  Search,
+  ShoppingCart,
+  Trash2,
+  X
 } from "lucide-react";
-import { cn, formatCurrency, formatDate } from "@/lib/utils";
-import { API_CONFIG, STORAGE_KEYS } from "@/lib/api/config";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-type TabType = "proformas" | "delivery" | "invoices";
+type TabType = "proformas"  | "invoices";
 
 // Types pour Devis/Factures
 type DocumentType = "quote" | "invoice";
@@ -115,11 +109,16 @@ export default function DocumentsHubPage() {
   const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [taxPercent, setTaxPercent] = useState<number>(18);
   const [notes, setNotes] = useState("");
-  const [themeColor, setThemeColor] = useState(THEME_COLORS[0]);
   const [generating, setGenerating] = useState(false);
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [productSearch, setProductSearch] = useState("");
   const [loadingProducts, setLoadingProducts] = useState(false);
+
+  // Client autocomplete
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
+  const clientRef = useRef<HTMLDivElement>(null);
 
   // Preview state for history
   const [previewDoc, setPreviewDoc] = useState<SavedDocument | null>(null);
@@ -129,6 +128,7 @@ export default function DocumentsHubPage() {
 
   useEffect(() => {
     loadData();
+    loadCustomers();
     // Load saved documents from localStorage
     const saved = localStorage.getItem(`${STORAGE_KEY_DOCS}_${slug}`);
     if (saved) {
@@ -136,6 +136,17 @@ export default function DocumentsHubPage() {
     }
     generateNumber();
   }, [slug]);
+
+  // Close client dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (clientRef.current && !clientRef.current.contains(e.target as Node)) {
+        setShowClientDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     generateNumber();
@@ -159,6 +170,27 @@ export default function DocumentsHubPage() {
       setLoading(false);
     }
   };
+
+  const loadCustomers = async () => {
+    try {
+      const data = await getCustomers({ is_active: true });
+      setCustomers(data);
+    } catch (err: any) {
+      console.error("Erreur chargement clients:", err);
+    }
+  };
+
+  const selectCustomer = (customer: Customer) => {
+    setClientName(customer.name);
+    setClientEmail(customer.email || "");
+    setClientPhone(customer.phone || "");
+    setClientSearch("");
+    setShowClientDropdown(false);
+  };
+
+  const filteredCustomers = customers.filter(c =>
+    c.name.toLowerCase().includes((clientSearch || clientName).toLowerCase())
+  );
 
   const loadProducts = useCallback(async () => {
     if (products.length > 0) return;
@@ -203,19 +235,6 @@ export default function DocumentsHubPage() {
       setError(err.message || "Erreur lors de la conversion");
     } finally {
       setConverting(false);
-    }
-  };
-
-  const handleMarkDelivered = async (id: string) => {
-    try {
-      setMarkingDelivered(id);
-      await markDeliveryAsDelivered(id);
-      setSuccess("Livraison marquée comme effectuée !");
-      loadData();
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de la mise à jour");
-    } finally {
-      setMarkingDelivered(null);
     }
   };
 
@@ -460,7 +479,8 @@ export default function DocumentsHubPage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
+   <Can permission={COMMON_PERMISSIONS.INVENTORY.MANAGE_DOCUMENTS} showMessage>
+       <div className="min-h-screen bg-[#f8f9fb] dark:bg-muted/20">
       {/* Delete Modal */}
       {deleteConfirmId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -533,65 +553,51 @@ export default function DocumentsHubPage() {
 
       {/* Header */}
       <div className="bg-background border-b sticky top-0 z-10">
-        <div className="p-4 flex items-center justify-between">
+        <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href={`/apps/${slug}/inventory`}>
-              <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-semibold flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                Documents
-              </h1>
-              <p className="text-xs text-muted-foreground">Pro forma, Bons de livraison, Devis & Factures</p>
+              <h1 className="text-base font-semibold tracking-tight">Documents</h1>
+              <p className="text-xs text-muted-foreground">Pro forma · Bons de livraison · Devis & Factures</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {activeTab === "proformas" && (
-              <Button asChild>
-                <Link href={`/apps/${slug}/inventory/documents/proformas/new`}><Plus className="mr-2 h-4 w-4" />Nouvelle Proforma</Link>
-              </Button>
-            )}
-            {activeTab === "delivery" && (
-              <Button asChild>
-                <Link href={`/apps/${slug}/inventory/documents/delivery-notes/new`}><Plus className="mr-2 h-4 w-4" />Nouveau Bon</Link>
+              <Button asChild size="sm" className="h-8 text-xs font-medium">
+                <Link href={`/apps/${slug}/inventory/documents/proformas/new`}><Plus className="mr-1.5 h-3.5 w-3.5" />Nouvelle Proforma</Link>
               </Button>
             )}
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="px-4 flex border-t bg-muted/30 overflow-x-auto">
-          <button
-            onClick={() => { setActiveTab("proformas"); setSearchTerm(""); }}
-            className={cn("flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
-              activeTab === "proformas" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Receipt className="h-4 w-4" />
-            Pro Forma
-            <Badge variant="outline" className="ml-1">{proformas.length}</Badge>
-          </button>
-          <button
-            onClick={() => { setActiveTab("delivery"); setSearchTerm(""); }}
-            className={cn("flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
-              activeTab === "delivery" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Truck className="h-4 w-4" />
-            Bons de livraison
-            <Badge variant="outline" className="ml-1">{deliveryNotes.length}</Badge>
-          </button>
-          <button
-            onClick={() => { setActiveTab("invoices"); setSearchTerm(""); }}
-            className={cn("flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
-              activeTab === "invoices" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <FileText className="h-4 w-4" />
-            Devis & Factures
-            <Badge variant="outline" className="ml-1">{savedDocuments.length}</Badge>
-          </button>
+        <div className="px-6 flex overflow-x-auto">
+          {[
+            { key: "proformas" as TabType, icon: Receipt, label: "Pro Forma", count: proformas.length },
+            { key: "invoices" as TabType, icon: FileText, label: "Devis & Factures", count: savedDocuments.length },
+          ].map(({ key, icon: Icon, label, count }) => (
+            <button
+              key={key}
+              onClick={() => { setActiveTab(key); setSearchTerm(""); }}
+              className={cn(
+                "flex items-center gap-2 px-3 py-3 text-sm border-b-2 -mb-px transition-all whitespace-nowrap",
+                activeTab === key
+                  ? "border-foreground text-foreground font-medium"
+                  : "border-transparent text-muted-foreground hover:text-foreground font-normal"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+              <span className={cn(
+                "ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                activeTab === key ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
+              )}>{count}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -613,46 +619,71 @@ export default function DocumentsHubPage() {
         </div>
       )}
 
-      <div className="p-4 space-y-4">
+      <div className="p-6 space-y-4">
         {/* ==================== PROFORMAS TAB ==================== */}
         {activeTab === "proformas" && (
           <>
-            <Card className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Rechercher une proforma..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
-              </div>
-            </Card>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900"><FileText className="h-4 w-4 text-foreground" /></div><div><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold">{proformas.length}</p></div></div></Card>
-              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900"><Clock className="h-4 w-4 text-yellow-600" /></div><div><p className="text-xs text-muted-foreground">En attente</p><p className="text-lg font-bold">{proformas.filter(p => ["draft", "sent"].includes(p.status)).length}</p></div></div></Card>
-              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-green-100 dark:bg-green-900"><CheckCircle className="h-4 w-4 text-green-600" /></div><div><p className="text-xs text-muted-foreground">Converties</p><p className="text-lg font-bold">{proformas.filter(p => p.status === "converted").length}</p></div></div></Card>
-              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-red-100 dark:bg-red-900"><XCircle className="h-4 w-4 text-red-600" /></div><div><p className="text-xs text-muted-foreground">Expirées</p><p className="text-lg font-bold">{proformas.filter(p => p.status === "expired" || p.is_expired).length}</p></div></div></Card>
+            {/* Search */}
+            <div className="relative w-full max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input placeholder="Rechercher une proforma..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-9 text-sm bg-background" />
             </div>
-            <Card>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Total", value: proformas.length, color: "border-l-slate-400" },
+                { label: "En attente", value: proformas.filter(p => ["draft", "sent"].includes(p.status)).length, color: "border-l-amber-400" },
+                { label: "Converties", value: proformas.filter(p => p.status === "converted").length, color: "border-l-emerald-400" },
+                { label: "Expirées", value: proformas.filter(p => p.status === "expired" || p.is_expired).length, color: "border-l-rose-400" },
+              ].map(({ label, value, color }) => (
+                <Card key={label} className={cn("p-4 border-l-4", color)}>
+                  <p className="text-xs text-muted-foreground mb-1">{label}</p>
+                  <p className="text-2xl font-semibold tracking-tight">{value}</p>
+                </Card>
+              ))}
+            </div>
+            <Card className="border shadow-sm">
               <div className="overflow-x-auto">
                 {filteredProformas.length === 0 ? (
-                  <div className="text-center p-12">
-                    <Receipt className="h-16 w-16 mx-auto mb-4 text-muted-foreground/20" />
-                    <h3 className="font-semibold text-lg mb-1">Aucune pro forma</h3>
-                    <Button asChild className="mt-4"><Link href={`/apps/${slug}/inventory/documents/proformas/new`}><Plus className="mr-2 h-4 w-4" />Nouvelle Proforma</Link></Button>
+                  <div className="text-center py-16">
+                    <Receipt className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
+                    <p className="text-sm font-medium text-muted-foreground mb-4">Aucune pro forma</p>
+                    <Button asChild size="sm"><Link href={`/apps/${slug}/inventory/documents/proformas/new`}><Plus className="mr-2 h-3.5 w-3.5" />Nouvelle Proforma</Link></Button>
                   </div>
                 ) : (
                   <table className="w-full">
-                    <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">N° Proforma</th><th className="text-left p-4 font-medium">Client</th><th className="text-left p-4 font-medium">Date</th><th className="text-right p-4 font-medium">Montant</th><th className="text-center p-4 font-medium">Statut</th><th className="text-center p-4 font-medium">Actions</th></tr></thead>
-                    <tbody>
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Référence</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Client</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Montant</th>
+                        <th className="text-center px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Statut</th>
+                        <th className="text-center px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
                       {filteredProformas.map((proforma) => (
-                        <tr key={proforma.id} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => router.push(`/apps/${slug}/inventory/documents/proformas/${proforma.id}`)}>
-                          <td className="p-4"><code className="text-sm bg-muted px-2 py-1 rounded font-mono">{proforma.proforma_number}</code></td>
-                          <td className="p-4 font-medium">{proforma.customer_name_display || proforma.client_name || "N/A"}</td>
-                          <td className="p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="h-4 w-4" />{formatDate(proforma.issue_date)}</div></td>
-                          <td className="p-4 text-right font-bold">{formatCurrency(proforma.total_amount)}</td>
-                          <td className="p-4 text-center"><Badge variant={getProformaStatusVariant(proforma.status)}>{proforma.status_display || proforma.status}</Badge></td>
-                          <td className="p-4">
-                            <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                              <Button variant="ghost" size="sm" asChild><Link href={`/apps/${slug}/inventory/documents/proformas/${proforma.id}`}><Eye className="h-4 w-4" /></Link></Button>
-                              {proforma.status !== "converted" && (<Button variant="ghost" size="sm" onClick={() => setConvertModal({ proforma, warehouseId: "" })}><ShoppingCart className="h-4 w-4 text-green-600" /></Button>)}
-                              <Button variant="ghost" size="sm" onClick={() => { setDeleteConfirmId(proforma.id); setDeleteType("proforma"); }}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                        <tr key={proforma.id} className="hover:bg-muted/30 transition-colors cursor-pointer group" onClick={() => router.push(`/apps/${slug}/inventory/documents/proformas/${proforma.id}`)}>
+                          <td className="px-4 py-3">
+                            <span className="text-sm font-medium text-foreground">{proforma.proforma_number}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-sm">{proforma.customer_name_display || proforma.client_name || "—"}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-sm text-muted-foreground">{formatDate(proforma.issue_date)}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-sm font-semibold">{formatCurrency(proforma.total_amount)}</span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Badge variant={getProformaStatusVariant(proforma.status)} className="text-xs">{proforma.status_display || proforma.status}</Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild><Link href={`/apps/${slug}/inventory/documents/proformas/${proforma.id}`}><Eye className="h-3.5 w-3.5" /></Link></Button>
+                              {proforma.status !== "converted" && (<Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setConvertModal({ proforma, warehouseId: "" })}><ShoppingCart className="h-3.5 w-3.5 text-emerald-600" /></Button>)}
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setDeleteConfirmId(proforma.id); setDeleteType("proforma"); }}><Trash2 className="h-3.5 w-3.5 text-rose-500" /></Button>
                             </div>
                           </td>
                         </tr>
@@ -664,213 +695,207 @@ export default function DocumentsHubPage() {
             </Card>
           </>
         )}
-
-        {/* ==================== DELIVERY NOTES TAB ==================== */}
-        {activeTab === "delivery" && (
-          <>
-            <Card className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Rechercher un bon de livraison..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
-              </div>
-            </Card>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900"><Truck className="h-4 w-4 text-foreground" /></div><div><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-bold">{deliveryNotes.length}</p></div></div></Card>
-              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900"><Package className="h-4 w-4 text-yellow-600" /></div><div><p className="text-xs text-muted-foreground">Prêts</p><p className="text-lg font-bold">{deliveryNotes.filter(n => n.status === "ready").length}</p></div></div></Card>
-              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900"><Truck className="h-4 w-4 text-purple-600" /></div><div><p className="text-xs text-muted-foreground">En transit</p><p className="text-lg font-bold">{deliveryNotes.filter(n => n.status === "in_transit").length}</p></div></div></Card>
-              <Card className="p-3"><div className="flex items-center gap-2"><div className="p-2 rounded-lg bg-green-100 dark:bg-green-900"><CheckCircle className="h-4 w-4 text-green-600" /></div><div><p className="text-xs text-muted-foreground">Livrés</p><p className="text-lg font-bold">{deliveryNotes.filter(n => n.status === "delivered").length}</p></div></div></Card>
-            </div>
-            <Card>
-              <div className="overflow-x-auto">
-                {filteredDeliveries.length === 0 ? (
-                  <div className="text-center p-12">
-                    <Truck className="h-16 w-16 mx-auto mb-4 text-muted-foreground/20" />
-                    <h3 className="font-semibold text-lg mb-1">Aucun bon de livraison</h3>
-                    <Button asChild className="mt-4"><Link href={`/apps/${slug}/inventory/documents/delivery-notes/new`}><Plus className="mr-2 h-4 w-4" />Nouveau Bon</Link></Button>
-                  </div>
-                ) : (
-                  <table className="w-full">
-                    <thead><tr className="border-b bg-muted/50"><th className="text-left p-4 font-medium">N° Bon</th><th className="text-left p-4 font-medium">Destinataire</th><th className="text-left p-4 font-medium">Adresse</th><th className="text-left p-4 font-medium">Date</th><th className="text-center p-4 font-medium">Statut</th><th className="text-center p-4 font-medium">Actions</th></tr></thead>
-                    <tbody>
-                      {filteredDeliveries.map((note) => (
-                        <tr key={note.id} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => router.push(`/apps/${slug}/inventory/documents/delivery-notes/${note.id}`)}>
-                          <td className="p-4"><code className="text-sm bg-muted px-2 py-1 rounded font-mono">{note.delivery_number}</code></td>
-                          <td className="p-4"><div className="font-medium">{note.recipient_name}</div>{note.recipient_phone && <p className="text-sm text-muted-foreground">{note.recipient_phone}</p>}</td>
-                          <td className="p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground max-w-xs truncate"><MapPin className="h-3 w-3 flex-shrink-0" /><span className="truncate">{note.delivery_address}</span></div></td>
-                          <td className="p-4"><div className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="h-4 w-4" />{formatDate(note.delivery_date)}</div></td>
-                          <td className="p-4 text-center"><Badge variant={getDeliveryStatusVariant(note.status)}>{note.status_display}</Badge></td>
-                          <td className="p-4">
-                            <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                              <Button variant="ghost" size="sm" asChild><Link href={`/apps/${slug}/inventory/documents/delivery-notes/${note.id}`}><Eye className="h-4 w-4" /></Link></Button>
-                              {note.status !== "delivered" && note.status !== "cancelled" && (
-                                <Button variant="ghost" size="sm" onClick={() => handleMarkDelivered(note.id)} disabled={markingDelivered === note.id}>
-                                  {markingDelivered === note.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4 text-green-600" />}
-                                </Button>
-                              )}
-                              {note.status === "pending" && (<Button variant="ghost" size="sm" onClick={() => { setDeleteConfirmId(note.id); setDeleteType("delivery"); }}><Trash2 className="h-4 w-4 text-red-500" /></Button>)}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </Card>
-          </>
-        )}
-
         {/* ==================== DEVIS & FACTURES TAB ==================== */}
         {activeTab === "invoices" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Formulaire de création */}
+          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+
+            {/* === Colonne gauche: Historique === */}
+            <div className="lg:sticky lg:top-4 lg:self-start">
+              <Card className="border shadow-sm">
+                <div className="px-4 py-3 border-b">
+                  <h3 className="text-sm font-semibold mb-2">Historique</h3>
+                  {savedDocuments.length > 0 && (
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                      <Input placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-8 h-8 text-xs bg-background" />
+                    </div>
+                  )}
+                </div>
+                <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                  {filteredSavedDocs.length === 0 ? (
+                    <div className="text-center py-10">
+                      <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground/20" />
+                      <p className="text-xs text-muted-foreground">Aucun document généré</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {filteredSavedDocs.map((doc) => (
+                        <div key={doc.id} className="px-4 py-3 hover:bg-muted/30 transition-colors group">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[10px] font-medium">{doc.type === "quote" ? "Devis" : "Facture"}</Badge>
+                              <span className="text-sm font-medium">{doc.number}</span>
+                            </div>
+                            <span className="text-sm font-semibold">{formatCurrency(doc.total)}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground">{doc.clientName} · {formatDate(doc.createdAt)}</p>
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleDownloadDoc(doc)} disabled={downloadingDoc === doc.id} title="Télécharger">
+                                {downloadingDoc === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handlePreviewDoc(doc)} title="Aperçu">
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => deleteFromHistory(doc.id)} title="Supprimer">
+                                <Trash2 className="h-3 w-3 text-rose-500" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            {/* === Colonne droite: Formulaire === */}
             <div className="space-y-4">
-              <Card className="p-4">
-                <h3 className="font-semibold mb-4 flex items-center gap-2"><FileText className="h-4 w-4" />Créer un document</h3>
+              {/* Type de document */}
+              <Card className="p-5">
+                <h3 className="text-sm font-semibold mb-4">Nouveau document</h3>
                 <div className="flex gap-2 mb-4">
                   {([{ type: "quote" as DocumentType, label: "Devis" }, { type: "invoice" as DocumentType, label: "Facture" }]).map(({ type, label }) => (
-                    <button key={type} onClick={() => setDocumentType(type)} className={cn("flex-1 p-3 rounded-lg border-2 transition-all text-sm font-medium", documentType === type ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30")}>
+                    <button key={type} onClick={() => setDocumentType(type)} className={cn("flex-1 py-2.5 rounded-md border text-sm font-medium transition-all", documentType === type ? "border-foreground bg-foreground text-background" : "border-input text-muted-foreground hover:text-foreground hover:border-foreground/40")}>
                       {label}
                     </button>
                   ))}
                 </div>
-                <div className="grid gap-3">
-                  <div className="flex gap-2">
-                    <Input placeholder="Numéro *" value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} className="flex-1" />
-                    <Button variant="outline" size="sm" onClick={generateNumber}>Auto</Button>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Numéro</label>
+                    <div className="flex gap-2">
+                      <Input value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} className="flex-1 h-9 text-sm" />
+                      <Button variant="outline" size="sm" className="h-9 text-xs" onClick={generateNumber}>Auto</Button>
+                    </div>
                   </div>
-                  <Input type="date" value={documentDate} onChange={(e) => setDocumentDate(e.target.value)} />
-                </div>
-              </Card>
-
-              <Card className="p-4">
-                <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm"><User className="h-4 w-4" />Client</h3>
-                <div className="grid gap-3">
-                  <Input placeholder="Nom du client *" value={clientName} onChange={(e) => setClientName(e.target.value)} />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input placeholder="Email" type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
-                    <Input placeholder="Téléphone" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} />
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Date</label>
+                    <Input type="date" value={documentDate} onChange={(e) => setDocumentDate(e.target.value)} className="h-9 text-sm" />
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold flex items-center gap-2 text-sm"><Package className="h-4 w-4" />Articles ({items.length})</h3>
+              {/* Client */}
+              <Card className="p-5">
+                <h3 className="text-sm font-semibold mb-4">Client</h3>
+                <div className="grid gap-3">
+                  <div ref={clientRef} className="relative">
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Nom *</label>
+                    <Input
+                      value={clientName}
+                      onChange={(e) => { setClientName(e.target.value); setShowClientDropdown(true); }}
+                      onFocus={() => setShowClientDropdown(true)}
+                      placeholder="Tapez pour rechercher ou saisir un nouveau client"
+                      className="h-9 text-sm"
+                    />
+                    {showClientDropdown && clientName.length > 0 && filteredCustomers.length > 0 && (
+                      <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
+                        {filteredCustomers.slice(0, 8).map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between"
+                            onClick={() => selectCustomer(c)}
+                          >
+                            <div>
+                              <span className="font-medium">{c.name}</span>
+                              {c.phone && <span className="text-xs text-muted-foreground ml-2">{c.phone}</span>}
+                            </div>
+                            {c.email && <span className="text-xs text-muted-foreground truncate ml-2 max-w-[120px]">{c.email}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">Email</label>
+                      <Input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} className="h-9 text-sm" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">Téléphone</label>
+                      <Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} className="h-9 text-sm" />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Articles */}
+              <Card className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold">Articles ({items.length})</h3>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => { loadProducts(); setShowProductSearch(true); }}><Search className="mr-1 h-3 w-3" />Produits</Button>
-                    <Button size="sm" onClick={addManualItem}><Plus className="mr-1 h-3 w-3" />Ajouter</Button>
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { loadProducts(); setShowProductSearch(true); }}><Search className="mr-1.5 h-3 w-3" />Catalogue</Button>
+                    <Button size="sm" className="h-8 text-xs" onClick={addManualItem}><Plus className="mr-1.5 h-3 w-3" />Ligne</Button>
                   </div>
                 </div>
                 {items.length === 0 ? (
-                  <div className="text-center py-6 border-2 border-dashed rounded-lg"><Package className="h-6 w-6 mx-auto mb-2 text-muted-foreground/30" /><p className="text-sm text-muted-foreground">Aucun article</p></div>
+                  <div className="text-center py-10 border border-dashed rounded-md">
+                    <Package className="h-5 w-5 mx-auto mb-2 text-muted-foreground/40" />
+                    <p className="text-xs text-muted-foreground">Ajoutez des articles depuis le catalogue ou manuellement</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {items.map((item, idx) => (
-                      <div key={item.id} className="flex gap-2 items-start p-2 rounded-lg bg-muted/50">
-                        <span className="text-xs text-muted-foreground w-4 pt-2">{idx + 1}</span>
-                        <div className="flex-1 grid gap-1">
+                      <div key={item.id} className="flex gap-2 items-start p-3 rounded-md border bg-background">
+                        <span className="text-[10px] text-muted-foreground/60 w-4 pt-2 text-center">{idx + 1}</span>
+                        <div className="flex-1 grid gap-1.5">
                           <Input placeholder="Désignation" value={item.product_name} onChange={(e) => updateItem(item.id, "product_name", e.target.value)} className="h-8 text-sm" />
-                          <div className="grid grid-cols-3 gap-1">
-                            <Input type="number" min={1} value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 0)} className="h-8 text-sm" placeholder="Qté" />
-                            <Input type="number" min={0} value={item.unit_price} onChange={(e) => updateItem(item.id, "unit_price", parseFloat(e.target.value) || 0)} className="h-8 text-sm" placeholder="Prix" />
-                            <div className="h-8 flex items-center justify-end text-sm font-medium px-2 bg-background rounded-md">{formatCurrency(item.quantity * item.unit_price)}</div>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            <div>
+                              <label className="text-[10px] text-muted-foreground mb-0.5 block">Qté</label>
+                              <Input type="number" min={1} value={item.quantity} onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 0)} className="h-8 text-sm" />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-muted-foreground mb-0.5 block">Prix unitaire</label>
+                              <Input type="number" min={0} value={item.unit_price} onChange={(e) => updateItem(item.id, "unit_price", parseFloat(e.target.value) || 0)} className="h-8 text-sm" />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-muted-foreground mb-0.5 block">Total</label>
+                              <div className="h-8 flex items-center justify-end text-sm font-medium px-2 border rounded-md bg-muted/30">{formatCurrency(item.quantity * item.unit_price)}</div>
+                            </div>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeItem(item.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeItem(item.id)}><Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" /></Button>
                       </div>
                     ))}
                   </div>
                 )}
               </Card>
 
-              <Card className="p-4">
-                <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm"><Calculator className="h-4 w-4" />Options</h3>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <div><label className="text-xs text-muted-foreground mb-1 block">Remise %</label><Input type="number" min={0} max={100} value={discountPercent} onChange={(e) => setDiscountPercent(parseFloat(e.target.value) || 0)} /></div>
-                  <div><label className="text-xs text-muted-foreground mb-1 block">TVA %</label><Input type="number" min={0} value={taxPercent} onChange={(e) => setTaxPercent(parseFloat(e.target.value) || 0)} /></div>
+              {/* Options & Totaux */}
+              <Card className="p-5">
+                <h3 className="text-sm font-semibold mb-4">Options</h3>
+                <div className="grid sm:grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">Remise (%)</label>
+                    <Input type="number" min={0} max={100} value={discountPercent} onChange={(e) => setDiscountPercent(parseFloat(e.target.value) || 0)} className="h-9 text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1.5 block">TVA (%)</label>
+                    <Input type="number" min={0} value={taxPercent} onChange={(e) => setTaxPercent(parseFloat(e.target.value) || 0)} className="h-9 text-sm" />
+                  </div>
                 </div>
-                <div className="flex gap-2 mb-3">
-                  {THEME_COLORS.map((color) => (
-                    <button key={color.name} onClick={() => setThemeColor(color)} className={cn("w-6 h-6 rounded-full transition-all", themeColor.name === color.name && "ring-2 ring-offset-2")} style={{ backgroundColor: color.primary }} title={color.name} />
-                  ))}
+                <div className="mb-4">
+                  <label className="text-xs text-muted-foreground mb-1.5 block">Notes</label>
+                  <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
                 </div>
-                <textarea rows={2} placeholder="Notes..." value={notes} onChange={(e) => setNotes(e.target.value)} className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+
+                {/* Récapitulatif */}
+                <div className="border-t pt-4 space-y-2">
+                  <div className="flex justify-between text-sm"><span className="text-muted-foreground">Sous-total</span><span>{formatCurrency(subtotal)}</span></div>
+                  {discountPercent > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Remise ({discountPercent}%)</span><span>-{formatCurrency(discountAmount)}</span></div>}
+                  {taxPercent > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">TVA ({taxPercent}%)</span><span>{formatCurrency(taxAmount)}</span></div>}
+                  <div className="flex justify-between text-base font-semibold pt-2 border-t"><span>Total</span><span>{formatCurrency(invoiceTotal)}</span></div>
+                </div>
               </Card>
 
               <Button className="w-full" size="lg" onClick={handleGenerate} disabled={generating || items.length === 0 || !clientName || !documentNumber}>
-                {generating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <FileDown className="mr-2 h-5 w-5" />}
-                Générer et télécharger
+                {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+                Générer et télécharger le PDF
               </Button>
-            </div>
-
-            {/* Historique */}
-            <div className="space-y-4">
-              <Card className="p-4">
-                <h3 className="font-semibold mb-4">Historique ({savedDocuments.length})</h3>
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
-                </div>
-                {filteredSavedDocs.length === 0 ? (
-                  <div className="text-center py-8"><FileText className="h-12 w-12 mx-auto mb-2 text-muted-foreground/20" /><p className="text-sm text-muted-foreground">Aucun document</p></div>
-                ) : (
-                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                    {filteredSavedDocs.map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", doc.type === "quote" ? "bg-blue-100 text-foreground" : "bg-green-100 text-green-600")}>
-                            {doc.type === "quote" ? <FileText className="h-4 w-4" /> : <Receipt className="h-4 w-4" />}
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">{doc.number}</p>
-                            <p className="text-xs text-muted-foreground">{doc.clientName} • {formatDate(doc.createdAt)}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="font-medium text-sm mr-2">{formatCurrency(doc.total)}</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePreviewDoc(doc)} title="Voir">
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownloadDoc(doc)} disabled={downloadingDoc === doc.id} title="Télécharger">
-                            {downloadingDoc === doc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteFromHistory(doc.id)} title="Supprimer">
-                            <Trash2 className="h-3 w-3 text-red-500" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-
-              {/* Preview Live */}
-              <Card className="overflow-hidden shadow-lg">
-                <div className="bg-white text-black p-4 text-sm" style={{ fontFamily: "system-ui" }}>
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h1 className="text-lg font-bold" style={{ color: themeColor.primary }}>{documentType === "quote" ? "DEVIS" : "FACTURE"}</h1>
-                      <p className="text-xs text-gray-500">N° {documentNumber || "XXX"}</p>
-                    </div>
-                    <div className="text-right text-xs text-gray-600"><p>Date: {formatDate(documentDate)}</p></div>
-                  </div>
-                  <div className="mb-3 p-2 rounded-lg text-xs" style={{ backgroundColor: themeColor.secondary }}>
-                    <p className="text-gray-500">Client</p>
-                    <p className="font-medium">{clientName || "Nom du client"}</p>
-                  </div>
-                  <div className="flex justify-end">
-                    <div className="w-40 text-xs">
-                      <div className="flex justify-between py-1"><span className="text-gray-500">Sous-total</span><span>{formatCurrency(subtotal)}</span></div>
-                      {discountPercent > 0 && <div className="flex justify-between py-1 text-green-600"><span>Remise</span><span>-{formatCurrency(discountAmount)}</span></div>}
-                      {taxPercent > 0 && <div className="flex justify-between py-1"><span className="text-gray-500">TVA</span><span>{formatCurrency(taxAmount)}</span></div>}
-                      <div className="flex justify-between py-2 mt-2 rounded-lg px-2 font-bold" style={{ backgroundColor: themeColor.secondary, color: themeColor.primary }}>
-                        <span>Total</span><span>{formatCurrency(invoiceTotal)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
             </div>
           </div>
         )}
@@ -917,5 +942,6 @@ export default function DocumentsHubPage() {
         </div>
       )}
     </div>
+   </Can>
   );
 }

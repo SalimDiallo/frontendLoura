@@ -136,6 +136,7 @@ export interface SaleItemCreate {
 export interface Sale {
   id: string;
   organization: string;
+  proforma_id?:string;
   credit_id?:string;
   customer?: string | null;
   customer_name?: string;

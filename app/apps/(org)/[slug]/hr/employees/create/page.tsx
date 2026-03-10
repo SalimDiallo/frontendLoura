@@ -1,36 +1,36 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import Link from "next/link";
-import { createEmployee, getEmployees } from "@/lib/services/hr/employee.service";
-import { getDepartments } from "@/lib/services/hr/department.service";
-import { getPositions, createPosition } from "@/lib/services/hr/position.service";
-import { getRoles } from "@/lib/services/hr/role.service";
-import { organizationService } from "@/lib/services/core";
-import type { Department, Position, Role, EmployeeListItem, EmployeeCreate } from "@/lib/types/hr";
-import type { Organization } from "@/lib/types/core";
-import { AVAILABLE_PERMISSIONS } from "@/lib/constants/permissions-data-label";
-import { PermissionSelector } from "@/components/apps/hr/permission-selector";
-import { EmploymentStatus, Gender } from "@/lib/types/hr";
-import {
-  HiOutlineUserCircle,
-  HiOutlineArrowLeft,
-  HiOutlineCheckCircle,
-  HiOutlineSparkles,
-  HiOutlinePlusCircle,
-  HiOutlineXMark,
-  HiOutlineShieldCheck,
-} from "react-icons/hi2";
-import { Alert, Button, Card, Form, Badge } from "@/components/ui";
-import { FormInputField, FormSelectField } from "@/components/ui/form-fields";
 import { Can } from "@/components/apps/common";
+import { PermissionSelector } from "@/components/apps/hr/permission-selector";
+import { Alert, Badge, Button, Card, Form, QuickSelect } from "@/components/ui";
+import { FormInputField, FormSelectField } from "@/components/ui/form-fields";
+import { AVAILABLE_PERMISSIONS } from "@/lib/constants/permissions-data-label";
+import { organizationService } from "@/lib/services/core";
+import { getDepartments } from "@/lib/services/hr/department.service";
+import { createEmployee, getEmployees } from "@/lib/services/hr/employee.service";
+import { createPosition, getPositions } from "@/lib/services/hr/position.service";
+import { getRoles } from "@/lib/services/hr/role.service";
+import type { Organization } from "@/lib/types/core";
+import type { Department, EmployeeCreate, EmployeeListItem, Position, Role } from "@/lib/types/hr";
+import { EmploymentStatus, Gender } from "@/lib/types/hr";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn } from "@/lib/utils";
 import { formatApiErrorsForDisplay } from "@/lib/utils/format-api-errors";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import {
+  HiOutlineArrowLeft,
+  HiOutlineCheckCircle,
+  HiOutlinePlusCircle,
+  HiOutlineShieldCheck,
+  HiOutlineSparkles,
+  HiOutlineUserCircle,
+  HiOutlineXMark,
+} from "react-icons/hi2";
+import * as z from "zod";
 
 // Schema de validation
 const employeeSchema = z.object({
@@ -329,15 +329,19 @@ export default function CreateEmployeePage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Poste</label>
                 <div className="flex gap-2">
-                  <select
-                    {...form.register('position')}
-                    className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">Sélectionner un poste</option>
-                    {positions?.map((pos) => (
-                      <option key={pos.id} value={pos.id}>{pos.title}</option>
-                    ))}
-                  </select>
+                  <QuickSelect
+                    label="Poste"
+                    items={positions?.map((pos) => ({
+                      id: pos.id,
+                      name: pos.title
+                    })) || []}
+                    selectedId={form.watch("position") || ""}
+                    onSelect={id => form.setValue("position", id)}
+                    placeholder="Sélectionner un poste"
+                    accentColor="primary"
+                    canCreate={false}
+                    disabled={form.formState.isSubmitting}
+                  />
                   <Can permission={COMMON_PERMISSIONS.HR.CREATE_POSITIONS}>
                     <Button type="button" variant="outline" size="sm" onClick={() => setShowPositionModal(true)} className="h-10 gap-1">
                       <HiOutlinePlusCircle className="size-4" />
