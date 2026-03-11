@@ -2,7 +2,7 @@
 
 import { Can } from "@/components/apps/common";
 import { FormActions, FormCheckbox, FormField, FormHeader, FormSection, FormSelect } from "@/components/common";
-import { Alert, Button } from "@/components/ui";
+import { Alert, Button, QuickSelect } from "@/components/ui";
 import { formatCurrency } from "@/lib";
 import { useEntityForm } from "@/lib/hooks";
 import { createProduct, getCategories } from "@/lib/services/inventory";
@@ -145,13 +145,21 @@ export default function NewProductPage() {
                 />
               </div>
 
-              <FormSelect
+              <QuickSelect
                 label="Catégorie"
-                name="category"
-                value={form.formData.category}
-                onChange={form.handleChange}
-                options={categoryOptions}
+                items={categoryOptions.map(opt => ({
+                  id: opt.value,
+                  name: opt.label
+                }))}
+                selectedId={form.formData.category ?? ""}
+                onSelect={id =>
+                  form.handleChange({
+                    target: { name: "category", value: id }
+                  } as unknown as React.ChangeEvent<HTMLSelectElement>)
+                }
                 placeholder="Aucune catégorie"
+                required={false}
+                canCreate={false}
               />
 
               <FormField

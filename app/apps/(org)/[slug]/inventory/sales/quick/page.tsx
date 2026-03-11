@@ -3,6 +3,7 @@
 import { Can } from "@/components/apps/common";
 import { Badge, Button, Input } from "@/components/ui";
 import { QuickSelect } from "@/components/ui/quick-select";
+import { usePermissions } from "@/lib/hooks";
 import {
   createCustomer,
   createSale,
@@ -679,6 +680,8 @@ function CartPanel({
   setCustomers,
   isMobile = false,
 }: any) {
+  const {hasPermission} = usePermissions()
+
   return (
     <div className="flex flex-col h-full">
       {/* Summary + Actions */}
@@ -704,6 +707,7 @@ function CartPanel({
             items={customers.map((c: any) => ({ id: c.id, name: c.name, subtitle: c.phone || c.email }))}
             selectedId={selectedCustomer}
             onSelect={setSelectedCustomer}
+            canCreate={hasPermission(COMMON_PERMISSIONS.INVENTORY.CREATE_CUSTOMERS)}
             onCreate={async (name: string, phone?: string) => {
               setCreatingCustomer(true);
               try {

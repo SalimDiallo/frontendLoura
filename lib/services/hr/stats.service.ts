@@ -15,8 +15,6 @@ export async function getHRStats(organizationSlug?: string): Promise<HRStats> {
   const searchParams = new URLSearchParams();
 
   if (organizationSlug) {
-    console.log(organizationSlug);
-    
     searchParams.append('organization_subdomain', organizationSlug);
   } else {
     // Tenter de l'obtenir depuis l'URL du browser

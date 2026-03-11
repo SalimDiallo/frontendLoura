@@ -31,7 +31,7 @@ export type {
 
 // Constants
 // Utils
-export { cn, formatCurrency } from './utils';
+export { cn, formatCurrency, formatCompactCurrency } from './utils';
 
 // Error handling
 export { formatError, logError, isAuthenticationError, isNetworkError } from './utils/error-handler';

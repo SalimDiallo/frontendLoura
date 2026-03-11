@@ -499,12 +499,158 @@ export interface AlertUpdate extends Partial<AlertCreate> {}
 // ============================================
 
 export interface InventoryStats {
+  // Stock
   total_products: number;
   total_stock_value: number;
+  total_stock_value_selling: number;
+  total_stock_quantity: number;
+  potential_margin: number;
   low_stock_count: number;
-  active_alerts: number;
-  pending_orders: number;
+  out_of_stock_count: number;
+  overstock_count: number;
   warehouse_count: number;
+
+  // Sales (30d)
+  revenue_30d: number;
+  revenue_prev_30d: number;
+  revenue_variation: number | null;
+  sales_count_30d: number;
+  avg_ticket: number;
+  payment_methods: PaymentMethodBreakdown[];
+
+  // Sales (7d) - Weekly comparison
+  revenue_7d: number;
+  revenue_prev_7d: number;
+  revenue_variation_7d: number | null;
+  sales_count_7d: number;
+  sales_count_prev_7d: number;
+
+  // Expenses (30d)
+  expenses_30d: number;
+  expenses_prev_30d: number;
+  expenses_variation: number | null;
+  expenses_count_30d: number;
+  expense_by_category: ExpenseCategoryBreakdown[];
+  // Breakdown of expenses
+  base_expenses_30d: number;
+  purchases_30d: number;
+  purchases_count_30d: number;
+
+  // Profitability
+  net_profit_30d: number;
+  margin_percent: number;
+
+  // Credit / Receivables
+  total_receivables: number;
+  credit_count: number;
+  overdue_count: number;
+  overdue_amount: number;
+
+  // Orders & Supply Chain
+  pending_orders: number;
+  pending_orders_value: number;
+  supplier_count: number;
+  customer_count: number;
+
+  // Alerts
+  active_alerts: number;
+  alerts_by_severity: Record<string, number>;
+  recent_alerts: RecentAlert[];
+
+  // Trends & Charts
+  sales_trend: SalesTrendItem[];
+  top_selling_products: TopSellingProduct[];
+  low_stock_products: LowStockProduct[];
+
+  // Movements (30d)
+  movements_30d: MovementsSummary30d;
+
+  // Advanced Analytics
+  stock_turnover_ratio: number;
+  days_of_inventory: number;
+  abc_distribution: ABCDistribution;
+  category_performance: CategoryPerformance[];
+}
+
+export interface ABCDistribution {
+  A: number;
+  B: number;
+  C: number;
+}
+
+export interface CategoryPerformance {
+  category_id: string;
+  category_name: string;
+  stock_value: number;
+  stock_quantity: number;
+  product_count: number;
+  revenue_90d: number;
+  qty_sold_90d: number;
+  turnover_ratio: number;
+}
+
+export interface PaymentMethodBreakdown {
+  payment_method: string;
+  count: number;
+  total: number;
+}
+
+export interface ExpenseCategoryBreakdown {
+  category__name: string;
+  total: number;
+  count: number;
+}
+
+export interface RecentAlert {
+  id: string;
+  alert_type: string;
+  severity: string;
+  message: string;
+  product__name: string;
+  product__sku: string;
+  warehouse__name: string | null;
+  created_at: string | null;
+}
+
+export interface SalesTrendItem {
+  month: string;
+  label: string;
+  revenue: number;
+  sales_count: number;
+  paid: number;
+  expenses: number;
+  base_expenses: number;
+  purchases: number;
+  profit: number;
+}
+
+export interface TopSellingProduct {
+  id: string;
+  name: string;
+  sku: string;
+  qty_sold: number;
+  revenue: number;
+}
+
+export interface LowStockProduct {
+  id: string;
+  name: string;
+  sku: string;
+  category__name: string | null;
+  min_stock_level: number;
+  purchase_price: number;
+  current_stock: number;
+  stock_val: number;
+}
+
+export interface MovementsSummary30d {
+  total: number;
+  entries: number;
+  exits: number;
+  transfers: number;
+  adjustments: number;
+  entries_value: number;
+  exits_value: number;
 }
 
 export interface TopProduct {
@@ -618,6 +764,186 @@ export interface StockCountsSummary {
 export interface StockCountsSummaryResponse {
   stock_counts: StockCountReportItem[];
   summary: StockCountsSummary;
+}
+
+// ============================================
+// Advanced Reports Types
+// ============================================
+
+// Analyse financière
+export interface FinancialAnalysisSummary {
+  revenue: number;
+  cogs: number;
+  gross_profit: number;
+  gross_margin_percent: number;
+  operating_expenses: number;
+  base_expenses: number;
+  purchases: number;
+  net_profit: number;
+  net_margin_percent: number;
+  sales_count: number;
+  avg_ticket: number;
+  total_paid: number;
+  total_discount: number;
+  expenses_count: number;
+  purchases_count: number;
+}
+
+export interface PaymentMethodDistribution {
+  payment_method: string;
+  total: number;
+  count: number;
+  percentage: number;
+}
+
+export interface CategoryRevenue {
+  category_name: string;
+  revenue: number;
+  qty_sold: number;
+  cogs: number;
+  gross_profit: number;
+  margin_percent: number;
+}
+
+export interface DailySales {
+  day: string;
+  revenue: number;
+  count: number;
+}
+
+export interface FinancialAnalysisResponse {
+  period: {
+    days: number;
+    start_date: string;
+    end_date: string;
+  };
+  summary: FinancialAnalysisSummary;
+  payment_methods: PaymentMethodDistribution[];
+  top_categories: CategoryRevenue[];
+  daily_trend: DailySales[];
+}
+
+// Analyse ABC/Pareto
+export interface ABCProduct {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  revenue: number;
+  qty_sold: number;
+  sales_count: number;
+  revenue_percent: number;
+  cumulative_percent: number;
+  classification: 'A' | 'B' | 'C';
+}
+
+export interface ABCAnalysisDistribution {
+  A: {
+    count: number;
+    revenue: number;
+    revenue_percent: number;
+  };
+  B: {
+    count: number;
+    revenue: number;
+    revenue_percent: number;
+  };
+  C: {
+    count: number;
+    revenue: number;
+    revenue_percent: number;
+  };
+}
+
+export interface ABCAnalysisResponse {
+  period_days: number;
+  total_revenue: number;
+  total_products: number;
+  products: ABCProduct[];
+  abc_distribution: ABCAnalysisDistribution;
+}
+
+// Rapport crédits
+export interface CreditByCustomer {
+  customer_id: string;
+  customer_name: string;
+  total_debt: number;
+  credits_count: number;
+  overdue_count: number;
+}
+
+export interface RecentCredit {
+  id: string;
+  sale__sale_number: string;
+  customer__name: string;
+  total_amount: number;
+  paid_amount: number;
+  remaining_amount: number;
+  due_date: string | null;
+  status: string;
+  created_at: string | null;
+  days_overdue: number;
+}
+
+export interface CreditsReportSummary {
+  total_credits: number;
+  total_amount: number;
+  total_paid: number;
+  total_remaining: number;
+  pending_count: number;
+  partial_count: number;
+  overdue_count: number;
+  paid_count: number;
+  overdue_amount: number;
+  recovery_rate: number;
+}
+
+export interface CreditsReportResponse {
+  summary: CreditsReportSummary;
+  by_customer: CreditByCustomer[];
+  recent_credits: RecentCredit[];
+}
+
+// Performance des ventes
+export interface SalesPerformanceSummary {
+  total_sales: number;
+  total_revenue: number;
+  avg_ticket: number;
+  total_items_sold: number;
+  unique_customers: number;
+  conversion_rate: number;
+}
+
+export interface SalesByWeekday {
+  weekday: number;
+  weekday_name: string;
+  count: number;
+  revenue: number;
+}
+
+export interface SalesByHour {
+  hour: number;
+  count: number;
+  revenue: number;
+}
+
+export interface TopProductSold {
+  product__name: string;
+  product__sku: string;
+  qty_sold: number;
+  revenue: number;
+}
+
+export interface SalesPerformanceResponse {
+  period: {
+    days: number;
+    start_date: string;
+    end_date: string;
+  };
+  summary: SalesPerformanceSummary;
+  by_weekday: SalesByWeekday[];
+  by_hour: SalesByHour[];
+  top_products: TopProductSold[];
 }
 
 // ============================================

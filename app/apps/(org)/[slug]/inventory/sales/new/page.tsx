@@ -3,6 +3,7 @@
 import { Can } from "@/components/apps/common";
 import { Alert, Badge, Button, Card, Input, Label } from "@/components/ui";
 import { QuickSelect } from "@/components/ui/quick-select";
+import { usePermissions } from "@/lib/hooks";
 import { createCustomer, createSale, createWarehouse, getCustomers, getProducts, getWarehouses } from "@/lib/services/inventory";
 import type { Customer, PaymentMethod, ProductList, SaleCreate, Warehouse } from "@/lib/types/inventory";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
@@ -76,6 +77,7 @@ export default function NewSalePage() {
   // Remise globale
   const [cartDiscountType, setCartDiscountType] = useState<"percentage" | "fixed">("percentage");
   const [cartDiscountValue, setCartDiscountValue] = useState<number>(0);
+  const {hasPermission} = usePermissions()
   
   // Méthodes de paiement disponibles
   const PAYMENT_METHODS = [
@@ -684,6 +686,7 @@ export default function NewSalePage() {
                     label="Client"
                     items={customers.map(c => ({ id: c.id, name: c.name, subtitle: c.phone || c.email }))}
                     selectedId={selectedCustomer}
+                    canCreate={hasPermission(COMMON_PERMISSIONS.INVENTORY.CREATE_CUSTOMERS)}
                     onSelect={setSelectedCustomer}
                     onCreate={async (name, phone) => {
                       const code = `CLI-${Date.now().toString(36).toUpperCase()}`;

@@ -32,6 +32,38 @@ export const formatCurrency = (amount: number, currency: string = "GNF") => {
 };
 
 /**
+ * Formate un montant en devise de manière compacte pour les dashboards
+ * Ex: 120 002 267 836 → "120B MAD", 7 500 000 → "7.5M MAD"
+ */
+export const formatCompactCurrency = (amount: number, currency: string = "GNF") => {
+  let localCurrency: string | null = null;
+  if (typeof window !== "undefined") {
+    try {
+      localCurrency = window.localStorage.getItem("loura-currency");
+    } catch {
+      localCurrency = null;
+    }
+  }
+  
+  const currencyUsed = localCurrency || currency || "GNF";
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? "-" : "";
+  
+  let formatted: string;
+  if (abs >= 1_000_000_000) {
+    formatted = `${sign}${(abs / 1_000_000_000).toFixed(1)}B`;
+  } else if (abs >= 1_000_000) {
+    formatted = `${sign}${(abs / 1_000_000).toFixed(1)}M`;
+  } else if (abs >= 1_000) {
+    formatted = `${sign}${(abs / 1_000).toFixed(1)}K`;
+  } else {
+    formatted = `${sign}${abs.toFixed(0)}`;
+  }
+  
+  return `${formatted} ${currencyUsed}`;
+};
+
+/**
  * Formate un nombre avec séparateurs de milliers
  */
 export const formatNumber = (value: number, locale: string = "fr-FR") => {

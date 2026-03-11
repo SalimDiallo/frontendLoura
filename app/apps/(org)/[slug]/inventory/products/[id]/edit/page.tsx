@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { Alert } from "@/components/ui";
-import { getProduct, updateProduct, getCategories } from "@/lib/services/inventory";
-import type { ProductUpdate, Category } from "@/lib/types/inventory";
-import { ProductUnit } from "@/lib/types/inventory";
-import { AlertTriangle, Package, DollarSign, BarChart3, Tag } from "lucide-react";
-import { useEntityForm } from "@/lib/hooks";
-import { FormHeader, FormActions, FormSection, FormField, FormCheckbox, FormSelect } from "@/components/common";
 import { Can } from "@/components/apps/common";
+import { FormActions, FormCheckbox, FormField, FormHeader, FormSection, FormSelect } from "@/components/common";
+import { Alert, QuickSelect } from "@/components/ui";
+import { useEntityForm } from "@/lib/hooks";
+import { getCategories, getProduct, updateProduct } from "@/lib/services/inventory";
+import type { Category, ProductUpdate } from "@/lib/types/inventory";
+import { ProductUnit } from "@/lib/types/inventory";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { AlertTriangle, BarChart3, DollarSign, Package, Tag } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useState } from "react";
 
 export default function EditProductPage() {
   const params = useParams();
@@ -45,8 +45,8 @@ export default function EditProductPage() {
     onSubmit: (data) => updateProduct(productId, data),
     redirectUrl: `/apps/${slug}/inventory/products/${productId}`,
     validate: (data) => {
-      if (!data.name.trim()) return "Le nom du produit est requis";
-      if (!data.sku.trim()) return "Le SKU est requis";
+      if (!data?.name?.trim()) return "Le nom du produit est requis";
+      if (!data?.sku?.trim()) return "Le SKU est requis";
       return null;
     },
   });
@@ -128,15 +128,21 @@ export default function EditProductPage() {
                 />
               </div>
 
-              <FormSelect
+              <QuickSelect
                 label="Catégorie"
-                name="category"
-                value={form.formData.category || ""}
-                onChange={form.handleChange}
-                options={[
-                  { value: "", label: "Aucune catégorie" },
-                  ...categories.map((cat) => ({ value: cat.id, label: cat.name })),
-                ]}
+                items={categories.map((cat) => ({
+                  id: cat.id,
+                  name: cat.name,
+                }))}
+                selectedId={form.formData.category ?? ""}
+                onSelect={id =>
+                  form.handleChange({
+                    target: { name: "category", value: id }
+                  } as unknown as React.ChangeEvent<HTMLSelectElement>)
+                }
+                placeholder="Aucune catégorie"
+                required={false}
+                canCreate={false}
                 icon={Tag}
               />
 

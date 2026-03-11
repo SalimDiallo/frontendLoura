@@ -93,7 +93,7 @@ export function OrganisationSideBar() {
   const params = useParams();
   const router = useRouter();
   const { state } = useSidebar();
-  const { hasPermission,hasAnyPermission, hasAllPermissions } = usePermissions();
+  const { hasPermission, hasAnyPermission, hasAllPermissions } = usePermissions();
   const isCollapsed = state === "collapsed";
   const orgSlug = params.slug as string;
 
@@ -120,7 +120,6 @@ export function OrganisationSideBar() {
 
   const getInitials = (u: typeof user) => {
     if (!u) return "U";
-    // Correction de l'erreur ici: mettre l'initiale du prénom et du nom s'ils existent
     if (u.last_name || u.first_name) {
       const ln = u.last_name?.[0] ?? "";
       const fn = u.first_name?.[0] ?? "";
@@ -157,93 +156,163 @@ export function OrganisationSideBar() {
     },
   ];
 
-  const hrMenuGroups: MenuGroup[] = [
-    {
-      title: "RH",
-      icon: HiOutlineUsers,
-      children: filterNotNull([
-        hasAnyPermission([COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES,COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS, COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS]) && { title: "Vue d'ensemble", url: `/apps/${orgSlug}/hr`, icon: HiOutlineSquares2X2 } ,
-        hasAnyPermission([COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS, COMMON_PERMISSIONS.HR.VIEW_POSITIONS]) && { title: "Départements & Postes", url: `/apps/${orgSlug}/hr/departments`, icon: Building2 },
-        hasPermission(COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES) && { title: "Employés", url: `/apps/${orgSlug}/hr/employees`, icon: HiOutlineUsers },
-        hasPermission(COMMON_PERMISSIONS.HR.VIEW_ROLES) && { title: "Rôles", url: `/apps/${orgSlug}/hr/roles`, icon: HiOutlineBriefcase },
-        { title: "Paie", url: `/apps/${orgSlug}/hr/payroll/`, icon: HiOutlineDocumentCurrencyDollar },
-        hasPermission(COMMON_PERMISSIONS.HR.VIEW_CONTRACTS) && { title: "Contrats", url: `/apps/${orgSlug}/hr/contracts`, icon: HiOutlineIdentification },
-        { title: "Congés", url: `/apps/${orgSlug}/hr/leaves`, icon: HiOutlineBriefcase },
-        { title: "Pointage", url: `/apps/${orgSlug}/hr/attendance`, icon: HiOutlineClock }
-      ]),
-    },
+  // RH group: get the list of permissions for RH and if none are granted, hide ALL menus (return null in render)
+  // Inventaire group: get the list of permissions for inventory and if none are granted, hide ALL menus (return null in render)
+  // We'll check that before the actual render block.
+
+  // Find all the permissions required for the HR menu group
+  const hrRequiredPermissions: string[] = [
+    COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES,
+    COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS,
+    COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS,
+    COMMON_PERMISSIONS.HR.VIEW_POSITIONS,
+    COMMON_PERMISSIONS.HR.VIEW_ROLES,
+    COMMON_PERMISSIONS.HR.VIEW_CONTRACTS,
+  ];
+  // Remove "Paie", "Congés", "Pointage" which do not check permissions in code - you can only hide the group by permission checks on above.
+
+  // For inventory, get all possible relevant permissions
+  const inventoryRequiredPermissions: string[] = [
+    COMMON_PERMISSIONS.INVENTORY.CREATE_SALES,
+    COMMON_PERMISSIONS.INVENTORY.VIEW_SALES,
+    COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS,
+    COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES,
+    COMMON_PERMISSIONS.INVENTORY.VIEW_PRODUCTS,
+    COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES,
+    COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES,
+    COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK,
+    COMMON_PERMISSIONS.INVENTORY.VIEW_CUSTOMERS,
+    COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS,
+    COMMON_PERMISSIONS.INVENTORY.MANAGE_DOCUMENTS,
+    COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK_COUNTS,
+    COMMON_PERMISSIONS.INVENTORY.VIEW_REPORTS,
   ];
 
-  const inventoryMenuGroups: MenuGroup[] = [
-    {
-      title: "Gestion des stocks",
-      icon: HiOutlineCube,
-      children: filterNotNull([
-        { title: "Tableau de bord", url: `/apps/${orgSlug}/inventory`, icon: HiOutlineSquares2X2 },
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.CREATE_SALES)
-          ? { title: "Caisse", url: `/apps/${orgSlug}/inventory/sales/quick`, icon: HiOutlineShoppingCart }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES)
-          ? { title: "Ventes", url: `/apps/${orgSlug}/inventory/sales`, icon: HiOutlineReceiptPercent }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES)
-          ? { title: "Créances", url: `/apps/${orgSlug}/inventory/credit-sales`, icon: HiOutlineBanknotes }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS)
-          ? { title: "Approvisionnement", url: `/apps/${orgSlug}/inventory/orders`, icon: HiOutlineTruck }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES)
-          ? { title: "Dépenses", url: `/apps/${orgSlug}/inventory/expenses`, icon: HiOutlineCurrencyDollar }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_PRODUCTS)
-          ? { title: "Produits", url: `/apps/${orgSlug}/inventory/products`, icon: HiOutlineCube }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES)
-          ? { title: "Catégories", url: `/apps/${orgSlug}/inventory/categories`, icon: HiOutlineTag }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES)
-          ? { title: "Entrepôts", url: `/apps/${orgSlug}/inventory/warehouses`, icon: HiOutlineArchiveBox }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK)
-          ? { title: "Mouvements Stocks", url: `/apps/${orgSlug}/inventory/movements`, icon: HiOutlineArrowPath }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_CUSTOMERS)
-          ? { title: "Clients", url: `/apps/${orgSlug}/inventory/customers`, icon: HiOutlineUsers }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS)
-          ? { title: "Fournisseurs", url: `/apps/${orgSlug}/inventory/suppliers`, icon: HiOutlineBriefcase }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.MANAGE_DOCUMENTS)
-          ? { title: "Documents", url: `/apps/${orgSlug}/inventory/documents`, icon: HiOutlineDocumentText }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES) && {
-          title: "Bons de livraison",
-          url: `/apps/${orgSlug}/inventory/documents/delivery-notes`,
-          icon: HiOutlineTruck,
+  // Evaluate if user has any permission for HR or Inventory
+  const hasHRPermission =
+    hrRequiredPermissions.some((perm) => hasPermission(perm));
+  const hasInventoryPermission =
+    inventoryRequiredPermissions.some((perm) => hasPermission(perm));
+
+  // If user does NOT have HR permissions, RH menus are all hidden (there won't even be "Paie", etc.)
+  // If user does NOT have inventory permissions, inventory menus are all hidden.
+
+  // Compose HR menu group only if hasHRPermission
+  const hrMenuGroups: MenuGroup[] = [
+        {
+          title: "RH",
+          icon: HiOutlineUsers,
+          children: filterNotNull([
+            hasAnyPermission([
+              COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES,
+              COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS,
+              COMMON_PERMISSIONS.HR.VIEW_LEAVE_REQUESTS,
+            ]) && {
+              title: "Vue d'ensemble",
+              url: `/apps/${orgSlug}/hr`,
+              icon: HiOutlineSquares2X2,
+            },
+            hasAnyPermission([
+              COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS,
+              COMMON_PERMISSIONS.HR.VIEW_POSITIONS,
+            ]) && {
+              title: "Départements & Postes",
+              url: `/apps/${orgSlug}/hr/departments`,
+              icon: Building2,
+            },
+            hasPermission(COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES) && {
+              title: "Employés",
+              url: `/apps/${orgSlug}/hr/employees`,
+              icon: HiOutlineUsers,
+            },
+            hasPermission(COMMON_PERMISSIONS.HR.VIEW_ROLES) && {
+              title: "Rôles",
+              url: `/apps/${orgSlug}/hr/roles`,
+              icon: HiOutlineBriefcase,
+            },
+            { title: "Paie", url: `/apps/${orgSlug}/hr/payroll/`, icon: HiOutlineDocumentCurrencyDollar },
+            hasPermission(COMMON_PERMISSIONS.HR.VIEW_CONTRACTS) && {
+              title: "Contrats",
+              url: `/apps/${orgSlug}/hr/contracts`,
+              icon: HiOutlineIdentification,
+            },
+            { title: "Congés", url: `/apps/${orgSlug}/hr/leaves`, icon: HiOutlineBriefcase },
+            { title: "Pointage", url: `/apps/${orgSlug}/hr/attendance`, icon: HiOutlineClock },
+          ]),
         },
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK_COUNTS)
-          ? { title: "Inventaire", url: `/apps/${orgSlug}/inventory/stock-counts`, icon: HiOutlineDocumentText }
-          : null,
-        hasAllPermissions([
-          COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK,
-          COMMON_PERMISSIONS.INVENTORY.VIEW_SALES
-        ])
-          ? { title: "Alertes", url: `/apps/${orgSlug}/inventory/alerts`, icon: HiOutlineExclamationTriangle }
-          : null,
-        hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_REPORTS)
-          ? { title: "Rapports", url: `/apps/${orgSlug}/inventory/reports`, icon: HiOutlineChartBar }
-          : null,
-      ]),
-    },
-  ];
+      ];
+
+  // Compose Inventory menu group only if hasInventoryPermission
+  const inventoryMenuGroups: MenuGroup[] = !hasInventoryPermission
+    ? []
+    : [
+        {
+          title: "Gestion des stocks",
+          icon: HiOutlineCube,
+          children: filterNotNull([
+            { title: "Tableau de bord", url: `/apps/${orgSlug}/inventory`, icon: HiOutlineSquares2X2 },
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.CREATE_SALES)
+              ? { title: "Caisse", url: `/apps/${orgSlug}/inventory/sales/quick`, icon: HiOutlineShoppingCart }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES)
+              ? { title: "Ventes", url: `/apps/${orgSlug}/inventory/sales`, icon: HiOutlineReceiptPercent }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES)
+              ? { title: "Créances", url: `/apps/${orgSlug}/inventory/credit-sales`, icon: HiOutlineBanknotes }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS)
+              ? { title: "Approvisionnement", url: `/apps/${orgSlug}/inventory/orders`, icon: HiOutlineTruck }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES)
+              ? { title: "Dépenses", url: `/apps/${orgSlug}/inventory/expenses`, icon: HiOutlineCurrencyDollar }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_PRODUCTS)
+              ? { title: "Produits", url: `/apps/${orgSlug}/inventory/products`, icon: HiOutlineCube }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES)
+              ? { title: "Catégories", url: `/apps/${orgSlug}/inventory/categories`, icon: HiOutlineTag }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES)
+              ? { title: "Entrepôts", url: `/apps/${orgSlug}/inventory/warehouses`, icon: HiOutlineArchiveBox }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK)
+              ? { title: "Mouvements Stocks", url: `/apps/${orgSlug}/inventory/movements`, icon: HiOutlineArrowPath }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_CUSTOMERS)
+              ? { title: "Clients", url: `/apps/${orgSlug}/inventory/customers`, icon: HiOutlineUsers }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS)
+              ? { title: "Fournisseurs", url: `/apps/${orgSlug}/inventory/suppliers`, icon: HiOutlineBriefcase }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.MANAGE_DOCUMENTS)
+              ? { title: "Documents", url: `/apps/${orgSlug}/inventory/documents`, icon: HiOutlineDocumentText }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES) && {
+              title: "Bons de livraison",
+              url: `/apps/${orgSlug}/inventory/documents/delivery-notes`,
+              icon: HiOutlineTruck,
+            },
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK_COUNTS)
+              ? { title: "Inventaire", url: `/apps/${orgSlug}/inventory/stock-counts`, icon: HiOutlineDocumentText }
+              : null,
+            hasAllPermissions([
+              COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK,
+              COMMON_PERMISSIONS.INVENTORY.VIEW_SALES,
+            ])
+              ? { title: "Alertes", url: `/apps/${orgSlug}/inventory/alerts`, icon: HiOutlineExclamationTriangle }
+              : null,
+            hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_REPORTS)
+              ? { title: "Rapports", url: `/apps/${orgSlug}/inventory/reports`, icon: HiOutlineChartBar }
+              : null,
+          ]),
+        },
+      ];
 
   const isGroupActive = (group: MenuGroup) =>
     group.children.some((child) => pathname.startsWith(child.url));
 
   // Render menu group - version collapsed avec tooltip
   const renderMenuGroup = (group: MenuGroup) => {
-  
-    // Hide group if no child
     if (group.children.length === 0) {
       return null;
     }
@@ -251,7 +320,6 @@ export function OrganisationSideBar() {
     const isOpen = openGroups[group.title] ?? isGroupActive(group);
     const hasActiveChild = isGroupActive(group);
 
-    // Mode collapsed - afficher juste l'icône avec dropdown
     if (isCollapsed) {
       return (
         <SidebarMenuItem key={group.title}>
@@ -292,7 +360,6 @@ export function OrganisationSideBar() {
       );
     }
 
-    // Mode expanded - collapsible normal
     return (
       <Collapsible
         key={group.title}
@@ -344,6 +411,10 @@ export function OrganisationSideBar() {
     );
   };
 
+  // Hide ALL navigation menus if the user has neither HR nor Inventory permissions (as per rule)
+  // const showMenus =
+  //   hasHRPermission || hasInventoryPermission;
+  const showMenus = true
   return (
     <Sidebar collapsible="icon" className="border-r-0 text-[14px]">
       {/* Header */}
@@ -378,91 +449,100 @@ export function OrganisationSideBar() {
 
       {/* Content */}
       <SidebarContent className="px-1 py-3">
-        {/* Navigation */}
-        <SidebarGroup className="px-0">
-          {!isCollapsed && (
-            <SidebarGroupLabel className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
-              Navigation
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {generalMenuItems.map((item) => {
-                const isActive = pathname === item.url;
-                return (
-                  <SidebarMenuItem key={item.title}>
+        {showMenus && (
+          <>
+            {/* Navigation */}
+            <SidebarGroup className="px-0">
+              {!isCollapsed && (
+                <SidebarGroupLabel className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
+                  Navigation
+                </SidebarGroupLabel>
+              )}
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {generalMenuItems.map((item) => {
+                    const isActive = pathname === item.url;
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive}
+                          tooltip={item.title}
+                          className={cn(isCollapsed && "justify-center", "h-9 min-h-9")}
+                        >
+                          <Link href={item.url} className="gap-2">
+                            <item.icon className={cn("size-4", isActive && "text-primary")} />
+                            {!isCollapsed && <span className="text-[14px]">{item.title}</span>}
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* RH */}
+            {hrMenuGroups.length > 0 && hrMenuGroups.some((g) => g.children.length > 0) && (
+              <SidebarGroup className="px-0 mt-3">
+                {!isCollapsed && (
+                  <SidebarGroupLabel className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
+                    Ressources Humaines
+                  </SidebarGroupLabel>
+                )}
+                <SidebarGroupContent>
+                  <SidebarMenu>{hrMenuGroups.map(renderMenuGroup)}</SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+
+            {/* Stocks */}
+            {inventoryMenuGroups.length > 0 &&
+              inventoryMenuGroups.some((g) => g.children.length > 0) && (
+                <SidebarGroup className="px-0 mt-3">
+                  {!isCollapsed && (
+                    <SidebarGroupLabel className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
+                      Gestion des stocks
+                    </SidebarGroupLabel>
+                  )}
+                  <SidebarGroupContent>
+                    <SidebarMenu>{inventoryMenuGroups.map(renderMenuGroup)}</SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              )}
+
+            {/* Spacer */}
+            <div className="flex-1 min-h-2" />
+
+            {/* Settings */}
+            <SidebarGroup className="px-0 mt-auto">
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild
-                      isActive={isActive}
-                      tooltip={item.title}
+                      isActive={pathname === `/apps/${orgSlug}/settings`}
+                      tooltip="Paramètres"
                       className={cn(isCollapsed && "justify-center", "h-9 min-h-9")}
                     >
-                      <Link href={item.url} className="gap-2">
-                        <item.icon className={cn("size-4", isActive && "text-primary")} />
-                        {!isCollapsed && <span className="text-[14px]">{item.title}</span>}
+                      <Link href={`/apps/${orgSlug}/settings`} className="gap-2">
+                        <HiOutlineCog6Tooth
+                          className={cn(
+                            "size-4",
+                            pathname === `/apps/${orgSlug}/settings` && "text-primary"
+                          )}
+                        />
+                        {!isCollapsed && (
+                          <span className="text-[14px]">Paramètres</span>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* RH — masqué entièrement si aucun children ne reste après filtrage */}
-        {hrMenuGroups.some((g) => g.children.length > 0) && (
-          <SidebarGroup className="px-0 mt-3">
-            {!isCollapsed && (
-              <SidebarGroupLabel className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
-                Ressources Humaines
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>{hrMenuGroups.map(renderMenuGroup)}</SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
         )}
-
-        {/* Stocks — masqué entièrement si aucun children ne reste après filtrage */}
-        {inventoryMenuGroups.some((g) => g.children.length > 0) && (
-          <SidebarGroup className="px-0 mt-3">
-            {!isCollapsed && (
-              <SidebarGroupLabel className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
-                Gestion des stocks
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>{inventoryMenuGroups.map(renderMenuGroup)}</SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* Spacer */}
-        <div className="flex-1 min-h-2" />
-
-        {/* Settings */}
-        <SidebarGroup className="px-0 mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === `/apps/${orgSlug}/settings`}
-                  tooltip="Paramètres"
-                  className={cn(isCollapsed && "justify-center", "h-9 min-h-9")}
-                >
-                  <Link href={`/apps/${orgSlug}/settings`} className="gap-2">
-                    <HiOutlineCog6Tooth className={cn(
-                      "size-4",
-                      pathname === `/apps/${orgSlug}/settings` && "text-primary"
-                    )} />
-                    {!isCollapsed && <span className="text-[14px]">Paramètres</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
 
       {/* Footer */}
@@ -512,13 +592,19 @@ export function OrganisationSideBar() {
                 </div>
                 <div className="p-1">
                   <DropdownMenuItem asChild>
-                    <Link href={`/apps/${orgSlug}/dashboard/profile`} className="cursor-pointer gap-2 py-1.5 text-sm">
+                    <Link
+                      href={`/apps/${orgSlug}/dashboard/profile`}
+                      className="cursor-pointer gap-2 py-1.5 text-sm"
+                    >
                       <User className="size-3.5" />
                       Mon profil
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href={`/apps/${orgSlug}/dashboard/settings`} className="cursor-pointer gap-2 py-1.5 text-sm">
+                    <Link
+                      href={`/apps/${orgSlug}/dashboard/settings`}
+                      className="cursor-pointer gap-2 py-1.5 text-sm"
+                    >
                       <Settings className="size-3.5" />
                       Paramètres du compte
                     </Link>

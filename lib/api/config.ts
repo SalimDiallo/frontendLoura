@@ -322,6 +322,11 @@ export const API_ENDPOINTS = {
       MOVEMENT_HISTORY: '/inventory/stats/movement_history/',
       LOW_ROTATION_PRODUCTS: '/inventory/stats/low_rotation_products/',
       STOCK_COUNTS_SUMMARY: '/inventory/stats/stock_counts_summary/',
+      // Nouveaux rapports avancés
+      FINANCIAL_ANALYSIS: '/inventory/stats/financial_analysis/',
+      ABC_ANALYSIS: '/inventory/stats/abc_analysis/',
+      CREDITS_REPORT: '/inventory/stats/credits_report/',
+      SALES_PERFORMANCE: '/inventory/stats/sales_performance/',
       // Exports CSV
       EXPORT_STOCK_LIST: '/inventory/stats/export_stock_list/',
       EXPORT_MOVEMENTS: '/inventory/stats/export_movements/',

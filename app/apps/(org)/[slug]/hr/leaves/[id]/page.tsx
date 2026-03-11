@@ -46,9 +46,11 @@ export default function LeaveRequestDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectNotes, setRejectNotes] = useState('');
+
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [rejectNotes, setRejectNotes] = useState('');
 
   const { preview, previewState, closePreview } = usePDF({
     onSuccess: () => setSuccess('PDF chargé avec succès'),
@@ -87,6 +89,7 @@ export default function LeaveRequestDetailPage() {
       setError(err.message || "Erreur lors de l'approbation");
     } finally {
       setActionLoading(null);
+      setShowApproveDialog(false);
     }
   };
 
@@ -96,7 +99,7 @@ export default function LeaveRequestDetailPage() {
       setError(null);
       await rejectLeaveRequest(leaveId, { approval_notes: rejectNotes });
       setSuccess('Demande rejetée');
-      setShowRejectModal(false);
+      setShowRejectDialog(false);
       setRejectNotes('');
       await loadLeaveRequest();
     } catch (err: any) {
@@ -114,6 +117,8 @@ export default function LeaveRequestDetailPage() {
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la suppression');
       setActionLoading(null);
+    } finally {
+      setShowDeleteDialog(false);
     }
   };
 
@@ -511,7 +516,7 @@ export default function LeaveRequestDetailPage() {
               <div className="space-y-3">
                 <Button 
                   className="w-full"
-                  onClick={handleApprove}
+                  onClick={() => setShowApproveDialog(true)}
                   disabled={actionLoading !== null}
                 >
                   {actionLoading === 'approve' ? (
@@ -524,7 +529,7 @@ export default function LeaveRequestDetailPage() {
                 <Button 
                   variant="outline"
                   className="w-full"
-                  onClick={() => setShowRejectModal(true)}
+                  onClick={() => setShowRejectDialog(true)}
                   disabled={actionLoading !== null}
                 >
                   <XCircle className="size-4 mr-2" />
@@ -561,69 +566,60 @@ export default function LeaveRequestDetailPage() {
                     </span>
                   </Alert>
                 )}
-               {
-                canDeleteOwn &&  <Button 
-                variant="outline"
-                className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={actionLoading !== null}
-              >
-                {actionLoading === 'delete' ? (
-                  <Loader2 className="size-4 mr-2 animate-spin" />
-                ) : (
-                  <Trash2 className="size-4 mr-2" />
+                {canDeleteOwn && (
+                  <Button 
+                    variant="outline"
+                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => setShowDeleteDialog(true)}
+                    disabled={actionLoading !== null}
+                  >
+                    {actionLoading === 'delete' ? (
+                      <Loader2 className="size-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4 mr-2" />
+                    )}
+                    Supprimer
+                  </Button>
                 )}
-                Supprimer
-              </Button>
-               }
               </div>
             </Card>
           )}
         </div>
       </div>
 
-      {/* Reject Modal */}
-      {showRejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md p-6">
-            <h2 className="text-xl font-bold mb-4">Rejeter la demande</h2>
-            <p className="text-muted-foreground mb-4">
-              Voulez-vous ajouter un commentaire pour expliquer le rejet ?
-            </p>
+      {/* Approuver (confirmation dialog) */}
+      <ConfirmationDialog
+        open={showApproveDialog}
+        onOpenChange={() => setShowApproveDialog(false)}
+        title="Approuver la demande"
+        description="Êtes-vous sûr de vouloir approuver cette demande de congé ?"
+        confirmLabel="Approuver"
+        loading={actionLoading === 'approve'}
+        onConfirm={handleApprove}
+      />
+
+      {/* Rejeter (confirmation dialog avec textarea) */}
+      <ConfirmationDialog
+        open={showRejectDialog}
+        onOpenChange={() => setShowRejectDialog(false)}
+        title="Rejeter la demande"
+        description={
+          <div>
+            <div>Voulez-vous ajouter un commentaire pour expliquer le rejet ?</div>
             <textarea
               value={rejectNotes}
               onChange={(e) => setRejectNotes(e.target.value)}
               placeholder="Motif du rejet (optionnel)"
-              className="w-full p-3 border rounded-lg mb-4 min-h-[100px] resize-none"
+              className="w-full p-3 border rounded-lg mt-3 min-h-[100px] resize-none text-black dark:text-white bg-white dark:bg-zinc-900"
+              style={{ minHeight: 100 }}
             />
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setShowRejectModal(false);
-                  setRejectNotes('');
-                }}
-              >
-                Annuler
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 text-red-600 hover:bg-red-50"
-                onClick={handleReject}
-                disabled={actionLoading === 'reject'}
-              >
-                {actionLoading === 'reject' ? (
-                  <Loader2 className="size-4 mr-2 animate-spin" />
-                ) : (
-                  <XCircle className="size-4 mr-2" />
-                )}
-                Confirmer le rejet
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+          </div>
+        }
+        confirmLabel="Confirmer le rejet"
+        confirmVariant="destructive"
+        loading={actionLoading === 'reject'}
+        onConfirm={handleReject}
+      />
 
       {/* Supprimer (confirmation dialog) */}
       <ConfirmationDialog

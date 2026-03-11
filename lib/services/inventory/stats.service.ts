@@ -4,14 +4,18 @@
 
 import { apiClient } from '@/lib/api/client';
 import { API_CONFIG, API_ENDPOINTS, STORAGE_KEYS } from '@/lib/api/config';
-import type { 
-  InventoryStats, 
+import type {
+  InventoryStats,
   TopProduct,
   WarehouseStockReport,
   CategoryStockReport,
   MovementHistoryResponse,
   LowRotationProductsResponse,
   StockCountsSummaryResponse,
+  FinancialAnalysisResponse,
+  ABCAnalysisResponse,
+  CreditsReportResponse,
+  SalesPerformanceResponse,
 } from '@/lib/types/inventory';
 
 /**
@@ -365,6 +369,42 @@ export async function generateInvoicePdf(invoiceData: InvoiceData): Promise<void
     undefined,
     'POST',
     invoiceData
+  );
+}
+
+/**
+ * Récupère l'analyse financière détaillée
+ */
+export async function getFinancialAnalysis(days: number = 30): Promise<FinancialAnalysisResponse> {
+  return apiClient.get<FinancialAnalysisResponse>(
+    `${API_ENDPOINTS.INVENTORY.STATS.FINANCIAL_ANALYSIS}?days=${days}`
+  );
+}
+
+/**
+ * Récupère l'analyse ABC/Pareto des produits
+ */
+export async function getABCAnalysis(days: number = 90): Promise<ABCAnalysisResponse> {
+  return apiClient.get<ABCAnalysisResponse>(
+    `${API_ENDPOINTS.INVENTORY.STATS.ABC_ANALYSIS}?days=${days}`
+  );
+}
+
+/**
+ * Récupère le rapport détaillé des crédits et créances
+ */
+export async function getCreditsReport(): Promise<CreditsReportResponse> {
+  return apiClient.get<CreditsReportResponse>(
+    API_ENDPOINTS.INVENTORY.STATS.CREDITS_REPORT
+  );
+}
+
+/**
+ * Récupère l'analyse de performance des ventes
+ */
+export async function getSalesPerformance(days: number = 30): Promise<SalesPerformanceResponse> {
+  return apiClient.get<SalesPerformanceResponse>(
+    `${API_ENDPOINTS.INVENTORY.STATS.SALES_PERFORMANCE}?days=${days}`
   );
 }
 

@@ -1,45 +1,45 @@
 "use client";
 
-import { useMemo } from "react";
 import { Card } from "@/components/ui";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import {
-  Area,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  ComposedChart,
-  Legend,
-  Tooltip,
-} from "recharts";
 import type {
-  WarehouseStockReport,
   CategoryStockReport,
   MovementHistoryResponse,
-  LowRotationProductsResponse,
   StockCountsSummaryResponse,
+  WarehouseStockReport
 } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { cn } from "@/lib/utils";
 import {
-  TrendingUp,
-  TrendingDown,
+  Activity,
   BarChart3,
   PieChart as PieChartIcon,
-  Activity,
   Target,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useMemo } from "react";
+import {
+  Area,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Legend,
+  Line,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts";
+import { Can } from "../apps/common";
 
 // Couleurs pour les graphiques
 const CHART_COLORS = [
@@ -100,90 +100,92 @@ export function MovementsChart({
   }
 
   return (
-    <div className="space-y-4">
-      {/* KPIs en haut */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-3 rounded-xl bg-linear-to-br from-green-50 to-green-100/50 dark:from-green-950/50 dark:to-green-900/30 border border-green-200/50">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-green-600" />
-            <span className="text-xs text-green-700 dark:text-green-300">Entrées</span>
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.MANAGE_STOCK}>
+      <div className="space-y-4">
+        {/* KPIs en haut */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="p-3 rounded-xl bg-linear-to-br from-green-50 to-green-100/50 dark:from-green-950/50 dark:to-green-900/30 border border-green-200/50">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              <span className="text-xs text-green-700 dark:text-green-300">Entrées</span>
+            </div>
+            <p className="text-2xl font-bold mt-1 text-green-900 dark:text-green-100">
+              {formatNumber(data.summary.total_in)}
+            </p>
           </div>
-          <p className="text-2xl font-bold mt-1 text-green-900 dark:text-green-100">
-            {formatNumber(data.summary.total_in)}
-          </p>
-        </div>
-        <div className="p-3 rounded-xl bg-linear-to-br from-red-50 to-red-100/50 dark:from-red-950/50 dark:to-red-900/30 border border-red-200/50">
-          <div className="flex items-center gap-2">
-            <TrendingDown className="h-4 w-4 text-red-600" />
-            <span className="text-xs text-red-700 dark:text-red-300">Sorties</span>
+          <div className="p-3 rounded-xl bg-linear-to-br from-red-50 to-red-100/50 dark:from-red-950/50 dark:to-red-900/30 border border-red-200/50">
+            <div className="flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-red-600" />
+              <span className="text-xs text-red-700 dark:text-red-300">Sorties</span>
+            </div>
+            <p className="text-2xl font-bold mt-1 text-red-900 dark:text-red-100">
+              {formatNumber(data.summary.total_out)}
+            </p>
           </div>
-          <p className="text-2xl font-bold mt-1 text-red-900 dark:text-red-100">
-            {formatNumber(data.summary.total_out)}
-          </p>
-        </div>
-        <div className="p-3 rounded-xl bg-linear-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/50 dark:to-blue-900/30 border border-blue-200/50">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-foreground" />
-            <span className="text-xs text-blue-700 dark:text-blue-300">Transferts</span>
+          <div className="p-3 rounded-xl bg-linear-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/50 dark:to-blue-900/30 border border-blue-200/50">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-foreground" />
+              <span className="text-xs text-blue-700 dark:text-blue-300">Transferts</span>
+            </div>
+            <p className="text-2xl font-bold mt-1 text-blue-900 dark:text-blue-100">
+              {formatNumber(data.summary.total_transfers)}
+            </p>
           </div>
-          <p className="text-2xl font-bold mt-1 text-blue-900 dark:text-blue-100">
-            {formatNumber(data.summary.total_transfers)}
-          </p>
-        </div>
-        <div className="p-3 rounded-xl bg-linear-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/50 dark:to-purple-900/30 border border-purple-200/50">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-purple-600" />
-            <span className="text-xs text-purple-700 dark:text-purple-300">Total</span>
+          <div className="p-3 rounded-xl bg-linear-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/50 dark:to-purple-900/30 border border-purple-200/50">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-purple-600" />
+              <span className="text-xs text-purple-700 dark:text-purple-300">Total</span>
+            </div>
+            <p className="text-2xl font-bold mt-1 text-purple-900 dark:text-purple-100">
+              {formatNumber(data.summary.total_movements)}
+            </p>
           </div>
-          <p className="text-2xl font-bold mt-1 text-purple-900 dark:text-purple-100">
-            {formatNumber(data.summary.total_movements)}
-          </p>
         </div>
-      </div>
 
-      {/* Graphique principal */}
-      <div className="h-[300px]">
-        <ChartContainer config={chartConfig} className="h-full w-full">
-          <ComposedChart data={chartData}>
-            <defs>
-              <linearGradient id="gradientIn" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="gradientOut" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.4} />
-                <stop offset="95%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />
-            <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} />
-            <YAxis fontSize={10} tickLine={false} axisLine={false} />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <Area
-              type="monotone"
-              dataKey="entrees"
-              stroke="hsl(142, 71%, 45%)"
-              strokeWidth={2}
-              fill="url(#gradientIn)"
-            />
-            <Area
-              type="monotone"
-              dataKey="sorties"
-              stroke="hsl(0, 84%, 60%)"
-              strokeWidth={2}
-              fill="url(#gradientOut)"
-            />
-            <Line
-              type="monotone"
-              dataKey="total"
-              stroke="hsl(262, 83%, 58%)"
-              strokeWidth={2}
-              dot={{ fill: "hsl(262, 83%, 58%)", r: 3 }}
-            />
-          </ComposedChart>
-        </ChartContainer>
+        {/* Graphique principal */}
+        <div className="h-[300px]">
+          <ChartContainer config={chartConfig} className="h-full w-full">
+            <ComposedChart data={chartData}>
+              <defs>
+                <linearGradient id="gradientIn" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradientOut" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="hsl(0, 84%, 60%)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />
+              <XAxis dataKey="date" fontSize={10} tickLine={false} axisLine={false} />
+              <YAxis fontSize={10} tickLine={false} axisLine={false} />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Area
+                type="monotone"
+                dataKey="entrees"
+                stroke="hsl(142, 71%, 45%)"
+                strokeWidth={2}
+                fill="url(#gradientIn)"
+              />
+              <Area
+                type="monotone"
+                dataKey="sorties"
+                stroke="hsl(0, 84%, 60%)"
+                strokeWidth={2}
+                fill="url(#gradientOut)"
+              />
+              <Line
+                type="monotone"
+                dataKey="total"
+                stroke="hsl(262, 83%, 58%)"
+                strokeWidth={2}
+                dot={{ fill: "hsl(262, 83%, 58%)", r: 3 }}
+              />
+            </ComposedChart>
+          </ChartContainer>
+        </div>
       </div>
-    </div>
+    </Can>
   );
 }
 

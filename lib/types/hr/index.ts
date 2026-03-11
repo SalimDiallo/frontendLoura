@@ -639,6 +639,33 @@ export interface PayrollTrendItem {
   employes: number;      // Number of employees paid
 }
 
+export interface AttendanceToday {
+  total_expected: number;
+  present: number;
+  late: number;
+  absent: number;
+  not_checked_in: number;
+  checked_in: number;
+  rate: number;
+}
+
+export interface ExpiringContract {
+  employee_id: string;
+  employee_name: string;
+  contract_type: string;
+  end_date: string | null;
+  days_remaining: number | null;
+}
+
+export interface DepartmentPayroll {
+  department_id: string;
+  department_name: string;
+  employee_count: number;
+  total_salary: number;
+  avg_salary: number;
+  pct_of_total: number;
+}
+
 export interface HRStats {
   total_employees: number;
   active_employees: number;
@@ -648,18 +675,46 @@ export interface HRStats {
   departments_count: number;
   roles_count: number;
 
+  // Attendance today (pre-aggregated from backend)
+  attendance_today?: AttendanceToday;
+
+  // Leave requests
   pending_leave_requests: number;
   approved_leave_requests_this_month: number;
+  total_leave_days_used_this_year?: number;
+  on_leave_now?: number;
+  pending_leaves_detail?: LeaveRequest[];
 
+  // Payroll
   total_payroll_this_month: number;
+  total_payroll_prev_month?: number;
+  payroll_variation?: number;
   average_salary: number;
+  avg_contract_salary?: number;
+  total_contract_mass?: number;
+  payroll_count_this_month?: number;
 
-  // Contract stats
+  // Contracts
   total_contracts: number;
   active_contracts: number;
   expiring_contracts: number;
+  expiring_contracts_detail?: ExpiringContract[];
+  contracts_warning_60d?: number;
+  employees_without_contract?: number;
 
-  // Payroll trend (last 6 months)
+  // Turnover
+  hires_last_90d?: number;
+  departures_last_90d?: number;
+  turnover_rate?: number;
+
+  // Advances
+  pending_advances?: number;
+  pending_advances_amount?: number;
+
+  // Department payroll breakdown
+  department_payroll?: DepartmentPayroll[];
+
+  // Payroll trend (last 12 months)
   payroll_trend?: PayrollTrendItem[];
 
   recent_hires: Employee[];

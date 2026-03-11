@@ -402,7 +402,7 @@ export default function ProductsPage() {
                   <Badge variant="outline" className="text-xs">Inactifs</Badge>
                 )}
                 {filterLowStock && (
-                  <Badge variant="destructive" className="text-xs">
+                  <Badge variant="error" className="text-xs">
                     <AlertTriangle className="h-3 w-3 mr-1" />
                     Stock bas
                   </Badge>
