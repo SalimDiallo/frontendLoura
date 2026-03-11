@@ -15,10 +15,10 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # Construire l'application Next.js pour la production
-RUN pnpm build
+# RUN pnpm build
 
 # Exposer le port
 EXPOSE 3000
 
 # Démarrer l'application en mode production
-CMD ["pnpm", "start"]
+CMD ["pnpm", "dev"]
