@@ -37,6 +37,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
+import { FormSelect } from '../common';
 import { ModuleSelector } from './module-selector';
 
 const organizationSchema = z.object({
@@ -56,7 +57,11 @@ const organizationSchema = z.object({
       message: 'Le sous-domaine ne peut pas commencer ou finir par un tiret',
     }),
   logo_url: z.string().optional().or(z.literal('')),
-  category: z.string({ message: 'La catégorie est obligatoire' }),
+  category: z.string({
+    message: 'La catégorie est obligatoire'
+  })
+    .min(1, 'La catégorie est obligatoire')
+    .refine((val) => val && val !== 'undefined' && val !== '', { message: 'La catégorie est obligatoire' }),
   settings: z.object({
     country: z.string().length(2, 'Code pays ISO (2 lettres)').default('GN'),
     currency: z.string().length(3, 'Code devise ISO (3 lettres)').default('GNF'),
@@ -95,7 +100,7 @@ export function OrganizationWizard() {
       name: '',
       subdomain: '',
       logo_url: '',
-      category: undefined,
+      category: '',
       settings: {
         country: 'GN',
         currency: 'GNF',
@@ -145,7 +150,12 @@ export function OrganizationWizard() {
 
   // Load default modules when category changes
   useEffect(() => {
-    if (watchedCategory && allModules.length > 0) {
+    if (
+      watchedCategory &&
+      watchedCategory !== 'undefined' &&
+      watchedCategory !== '' &&
+      allModules.length > 0
+    ) {
       loadDefaultModules(watchedCategory);
     }
   }, [watchedCategory, allModules]);
@@ -219,6 +229,7 @@ export function OrganizationWizard() {
 
   const getCurrentStepIndex = () => STEPS.findIndex((s) => s.id === currentStep);
 
+  // Enforce category requirement even if categoryOptions present but nothing picked
   const canGoNext = () => {
     const stepIndex = getCurrentStepIndex();
     if (stepIndex === 0) {
@@ -226,8 +237,8 @@ export function OrganizationWizard() {
       return !!watchedName && !!watchedSubdomain;
     }
     if (stepIndex === 1) {
-      // Category step: require category
-      return !!watchedCategory;
+      // Category step: require a valid category picked from list
+      return !!watchedCategory && watchedCategory !== 'undefined' && watchedCategory !== '';
     }
     if (stepIndex === 2) {
       // Modules step: at least core modules
@@ -256,6 +267,13 @@ export function OrganizationWizard() {
     try {
       setError(null);
       setIsSubmitting(true);
+
+      // Ensure a valid category is picked
+      if (!data.category || data.category === '' || data.category === 'undefined') {
+        setError('La catégorie est obligatoire');
+        setIsSubmitting(false);
+        return;
+      }
 
       // Prepare modules data
       const modulesData: ModuleCreateData[] = selectedModules.map((code) => ({
@@ -470,18 +488,16 @@ export function OrganizationWizard() {
                         </p>
                       </div>
 
-                      <QuickSelect
+                      <FormSelect
                         label="Catégorie"
-                        items={categoryOptions.map(opt => ({
-                          id: opt.value,
-                          name: opt.label,
-                        }))}
-                        selectedId={form.watch('category')}
-                        onSelect={(id) => form.setValue('category', id, { shouldValidate: true })}
+                        name="category"
+                        value={form.watch("category") || ""}
+                        onChange={e => form.setValue("category", e.target.value, { shouldValidate: true })}
+                        options={categoryOptions}
                         placeholder="Sélectionner une catégorie"
                         required
                         disabled={form.formState.isSubmitting}
-                        canCreate={false}
+                        error={form.formState.errors.category?.message as string | undefined}
                       />
 
                       <div className="p-4 bg-muted/50 rounded-lg border border-border">
@@ -565,6 +581,31 @@ export function OrganizationWizard() {
                         placeholder="contact@exemple.com"
                       />
                     </div>
+                  )}
+
+                  {/* Affichage de l'ensemble des erreurs du formulaire */}
+                  {form.formState.errors && Object.keys(form.formState.errors).length > 0 && (
+                    <Alert variant="error" className="mb-4">
+                      <ul className="list-disc list-inside text-sm space-y-1">
+                        {Object.entries(form.formState.errors).map(([field, err]: any) => {
+                          // Pour les champs imbriqués (ex: settings.contact_email)
+                          if (err && err.message) {
+                            return (
+                              <li key={field}>{err.message}</li>
+                            );
+                          }
+                          // Pour les objets imbriqués (ex: settings)
+                          if (err && typeof err === 'object') {
+                            return Object.entries(err).map(([subField, subErr]: any) =>
+                              subErr?.message ? (
+                                <li key={field + '.' + subField}>{subErr.message}</li>
+                              ) : null
+                            );
+                          }
+                          return null;
+                        })}
+                      </ul>
+                    </Alert>
                   )}
 
                   {/* Step 5: Review */}
