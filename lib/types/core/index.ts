@@ -94,12 +94,66 @@ export interface Organization {
   settings: OrganizationSettings;
 }
 
+// ============================================================================
+// MODULE
+// ============================================================================
+
+export interface Module {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  app_name: string;
+  icon: string;
+  category: string;
+  default_for_all: boolean;
+  default_categories: string[];
+  requires_subscription_tier: string;
+  depends_on: string[];
+  is_core: boolean;
+  is_active: boolean;
+  order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationModuleSettings {
+  [key: string]: any;
+}
+
+export interface OrganizationModule {
+  id: string;
+  module: string;
+  module_details: Module;
+  is_enabled: boolean;
+  settings: OrganizationModuleSettings;
+  enabled_at: string;
+  enabled_by: string | null;
+}
+
+export interface ModuleCreateData {
+  module_code: string;
+  is_enabled?: boolean;
+  settings?: OrganizationModuleSettings;
+}
+
+export interface DefaultModulesResponse {
+  category: Category;
+  default_modules: Module[];
+  count: number;
+}
+
+// ============================================================================
+// ORGANIZATION (Updated with modules)
+// ============================================================================
+
 export interface OrganizationCreateData {
   name: string;
   subdomain: string;
   logo_url?: string;
   category?: number;
   settings?: Partial<OrganizationSettings>;
+  modules?: ModuleCreateData[];
 }
 
 export interface OrganizationUpdateData {

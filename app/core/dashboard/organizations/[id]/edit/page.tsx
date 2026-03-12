@@ -11,11 +11,12 @@ import { useZodForm } from '@/lib/hooks';
 import { Form, Alert, FormInputField } from '@/components/ui';
 import { FormSelectField } from '@/components/ui/form-fields';
 import { QuickSelect } from '@/components/ui/quick-select';
+import { OrganizationModuleManager } from '@/components/core';
 import { COUNTRIES, CURRENCIES } from '@/lib/data/geo';
 import { z } from 'zod';
-import { 
+import {
   Building2, Globe, Settings, ArrowRight,
-  Monitor, CheckCircle, Save, Loader2, ArrowLeft
+  Monitor, CheckCircle, Save, Loader2, ArrowLeft, Package
 } from 'lucide-react';
 
 const organizationSchema = z.object({
@@ -172,8 +173,8 @@ export default function EditOrganizationPage() {
 
   return (
     <div className="min-h-screen bg-background dark:bg-slate-950 py-8 transition-colors">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
@@ -193,10 +194,10 @@ export default function EditOrganizationPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
           {/* Main Content */}
-          <div className="md:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6">
             <Form {...form}>
               <form onSubmit={onSubmit} className="space-y-6">
                 {error && <Alert variant="error">{error}</Alert>}
@@ -289,6 +290,20 @@ export default function EditOrganizationPage() {
                   </div>
                 </div>
 
+                {/* Section: Modules */}
+                <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-6 border-b border-border dark:border-slate-800 pb-4">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <Package className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-foreground dark:text-white">
+                      Modules fonctionnels
+                    </h2>
+                  </div>
+
+                  <OrganizationModuleManager organizationId={organizationId} />
+                </div>
+
                 {/* Actions Bar */}
                 <div className="flex items-center justify-end gap-3 pt-4">
                    <Link
@@ -320,7 +335,7 @@ export default function EditOrganizationPage() {
           </div>
 
           {/* Sidebar Status */}
-          <div className="md:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-6">
              <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl p-6 shadow-sm sticky top-8">
                 <h3 className="font-semibold text-foreground mb-4">État du compte</h3>
                 

@@ -55,6 +55,20 @@ export const API_ENDPOINTS = {
       LIST: '/core/categories/',
       DETAIL: (id: number) => `/core/categories/${id}/`,
     },
+    // Modules
+    MODULES: {
+      LIST: '/core/modules/',
+      DETAIL: (id: string) => `/core/modules/${id}/`,
+      DEFAULTS: '/core/modules/defaults/',
+      BY_CATEGORY: '/core/modules/by_category/',
+    },
+    // Organisation Modules
+    ORGANIZATION_MODULES: {
+      LIST: '/core/organization-modules/',
+      DETAIL: (id: string) => `/core/organization-modules/${id}/`,
+      ENABLE: (id: string) => `/core/organization-modules/${id}/enable/`,
+      DISABLE: (id: string) => `/core/organization-modules/${id}/disable/`,
+    },
   },
 
   /**
