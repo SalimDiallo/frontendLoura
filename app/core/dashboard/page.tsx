@@ -1,7 +1,6 @@
 "use client";
 
 import { OrganizationCard } from "@/components/core/organization-card";
-import ToolsHome from "@/components/tools/NavigationTools";
 import { Button } from "@/components/ui";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
@@ -270,7 +269,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <ToolsHome />
+      {/* <ToolsHome /> */}
     </div>
   );
 }

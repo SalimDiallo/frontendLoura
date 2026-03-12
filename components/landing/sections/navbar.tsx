@@ -1,15 +1,14 @@
 "use client";
 
-import { Icons } from "@/components/landing/icons";
 import { NavMenu } from "@/components/landing/nav-menu";
-import { siteConfig } from "@/lib/landing/config";
-import { cn } from "@/lib/landing/utils";
-import { Menu, X, ArrowRight } from "lucide-react";
-import { AnimatePresence, motion, useScroll } from "framer-motion";
-import Link from "next/link";
-import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/ui";
 import Logo from "@/components/ui/Logo";
+import { siteConfig } from "@/lib/landing/config";
+import { cn } from "@/lib/landing/utils";
+import { AnimatePresence, motion, useScroll } from "framer-motion";
+import { ArrowRight, Menu, X } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 const INITIAL_WIDTH = "70rem";
 const MAX_WIDTH = "800px";
@@ -118,7 +117,7 @@ export function Navbar() {
               <div className="flex items-center">
                 <Link
                   className="group hidden md:inline-flex items-center gap-2 bg-foreground hover:bg-foreground/90 text-background font-medium text-sm px-5 py-2 rounded-full transition-all duration-200"
-                  href="#"
+                  href="/auth"
                 >
                   Commencer
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
