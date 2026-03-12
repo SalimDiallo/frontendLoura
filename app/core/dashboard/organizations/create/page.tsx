@@ -1,35 +1,35 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import { z } from 'zod';
-import { organizationService, categoryService } from '@/lib/services/core';
-import type { Category } from '@/lib/types';
-import { ApiError } from '@/lib/api/client';
-import { siteConfig } from '@/lib/config';
-import { useZodForm } from '@/lib/hooks';
 import {
-  Form,
-  FormInputField,
-  FormEmailField,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
-  Button,
   Alert,
+  Button,
+  Form,
+  FormEmailField,
+  FormInputField
 } from '@/components/ui';
 import { FormSelectField } from '@/components/ui/form-fields';
-import { Upload, X, ImageIcon, Loader2, 
-  Building2, Globe, Settings, ArrowRight,
-  Monitor, CheckCircle 
-} from 'lucide-react';
 import { QuickSelect } from '@/components/ui/quick-select';
+import { ApiError } from '@/lib/api/client';
+import { siteConfig } from '@/lib/config';
 import { COUNTRIES, CURRENCIES } from '@/lib/data/geo';
+import { useZodForm } from '@/lib/hooks';
+import { categoryService, organizationService } from '@/lib/services/core';
+import type { Category } from '@/lib/types';
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle,
+  Globe,
+  ImageIcon, Loader2,
+  Monitor,
+  Settings,
+  Upload, X
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { z } from 'zod';
 
 const organizationSchema = z.object({
   name: z
@@ -49,8 +49,7 @@ const organizationSchema = z.object({
     .optional()
     .or(z.literal('')),
   category: z
-    .number({message:"La catégorie est obligatoire"})
-    .positive('La catégorie est obligatoire'),
+    .string({message:"La catégorie est obligatoire"}),
   settings: z.object({
     country: z
       .string()
@@ -174,7 +173,7 @@ export default function CreateOrganizationPage() {
       setError(null);
       
       // Create organization first
-      const org = await organizationService.create(data);
+      const org = await organizationService.create({...data, category: Number(data)});
       
       // Upload logo if selected
       if (logoFile && org.id) {
@@ -206,7 +205,7 @@ export default function CreateOrganizationPage() {
     : [];
   
   // Get category label for preview
-  const selectedCategoryLabel = categoryOptions.find(c => c.value === watchedCategory)?.label || 'Non catégorisé';
+  const selectedCategoryLabel = categoryOptions.find(c => c.value === Number(watchedCategory))?.label || 'Non catégorisé';
 
   return (
     <div className="min-h-screen bg-background dark:bg-slate-950 py-8 transition-colors">
