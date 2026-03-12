@@ -1,23 +1,23 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
-import { Card } from "@/components/ui/card";
+import { usePermissionContext } from "@/components/apps/common";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { API_CONFIG } from "@/lib/api/config";
 import { organizationService } from "@/lib/services/core";
 import type { Organization } from "@/lib/types/core";
-import { API_CONFIG } from "@/lib/api/config";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import {
-  Users,
-  Package,
-  Settings,
   ArrowRight,
   Calendar,
   Loader2,
+  Package,
+  Settings,
+  Users,
 } from "lucide-react";
-import { usePermissionContext } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 // Liens principaux par module uniquement
 const MODULE_LINKS = [
