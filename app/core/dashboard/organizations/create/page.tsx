@@ -173,7 +173,7 @@ export default function CreateOrganizationPage() {
       setError(null);
       
       // Create organization first
-      const org = await organizationService.create({...data, category: Number(data)});
+      const org = await organizationService.create({...data, category: Number(data.category)});
       
       // Upload logo if selected
       if (logoFile && org.id) {
@@ -205,7 +205,7 @@ export default function CreateOrganizationPage() {
     : [];
   
   // Get category label for preview
-  const selectedCategoryLabel = categoryOptions.find(c => c.value === Number(watchedCategory))?.label || 'Non catégorisé';
+  const selectedCategoryLabel = categoryOptions.find(c => c.value === watchedCategory)?.label || 'Non catégorisé';
 
   return (
     <div className="min-h-screen bg-background dark:bg-slate-950 py-8 transition-colors">
