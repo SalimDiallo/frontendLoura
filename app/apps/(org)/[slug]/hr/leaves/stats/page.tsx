@@ -424,9 +424,13 @@ export default function LeaveStatsPage() {
         ) : (
           <div className="w-full overflow-x-auto pb-2">
             <ReactApexChart
+              //@ts-ignore
               type="bar"
+              //@ts-ignore
               height={390}
+              //@ts-ignore
               width="100%"
+              //@ts-ignore
               options={{
                 chart: {
                   type: "bar",
@@ -476,6 +480,7 @@ export default function LeaveStatsPage() {
                 grid: { strokeDashArray: 2, borderColor: "#ececf2" },
                 legend: { show: chartSeries.length > 1 },
               }}
+              //@ts-ignore
               series={chartSeries}
             />
           </div>

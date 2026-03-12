@@ -90,6 +90,10 @@ export interface UnifiedUser {
     subdomain: string;
     logo_url?: string;
     is_active: boolean;
+    settings: {
+      currency?: string;
+      country?: string;
+    };
   }>;
   // Fields spécifiques Employee
   employee_id?: string;
@@ -98,6 +102,10 @@ export interface UnifiedUser {
     name: string;
     subdomain: string;
     logo_url?: string;
+    settings: {
+      currency?: string;
+      country?: string;
+    };
   };
   organization_subdomain?: string; // Compatibilité ancien format
   department?: { id: string; name: string };

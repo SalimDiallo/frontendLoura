@@ -3,7 +3,19 @@
  * Ces types sont réutilisables et aident à maintenir la cohérence du code
  */
 
-// Export permission types
+// ============================================================================
+// PERMISSIONS & CONTEXT
+// ============================================================================
+
+/**
+ * Contexte utilisateur pour la gestion des permissions
+ */
+export interface UserPermissionContext {
+  userId: string;
+  permissions: string[];
+  isAdmin?: boolean;
+  isSuperuser?: boolean;
+}
 
 // ============================================================================
 // API RESPONSES

@@ -49,8 +49,8 @@ const organizationSchema = z.object({
     .optional()
     .or(z.literal('')),
   category: z
-    .string({message:"La catégorie est obligatoire"}),
-    // .positive('La catégorie est obligatoire'),
+    .number({message:"La catégorie est obligatoire"})
+    .positive('La catégorie est obligatoire'),
   settings: z.object({
     country: z
       .string()

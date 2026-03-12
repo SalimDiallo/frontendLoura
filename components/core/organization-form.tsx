@@ -4,9 +4,9 @@
 
 'use client';
 
-import { useState, FormEvent } from 'react';
-import type { Category, OrganizationCreateData, Organization } from '@/lib/types/core';
-import { Input, Select, Button } from '@/components/ui';
+import { Button, Input, QuickSelect } from '@/components/ui';
+import type { Category, Organization, OrganizationCreateData } from '@/lib/types/core';
+import { FormEvent, useState } from 'react';
 
 export interface OrganizationFormProps {
   categories: Category[];
@@ -93,18 +93,24 @@ export function OrganizationForm({
           </p>
         </div>
 
-        <Select
-          label="Catégorie"
-          options={categoryOptions}
-          placeholder="Sélectionner une catégorie"
-          value={formData.category || ''}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              category: e.target.value ? Number(e.target.value) : undefined,
-            })
-          }
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Catégorie
+          </label>
+          <QuickSelect
+            label="Catégorie"
+            items={categoryOptions.map(c => ({ id: String(c.value), name: c.label }))}
+            selectedId={formData.category ? String(formData.category) : ""}
+            onSelect={(id) =>
+              setFormData({
+                ...formData,
+                category: id ? Number(id) : undefined,
+              })
+            }
+            placeholder="Sélectionner une catégorie"
+            required={false}
+          />
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -169,23 +175,6 @@ export function OrganizationForm({
           </div>
         </div>
 
-        <Select
-          label="Thème"
-          options={[
-            { value: 'light', label: 'Clair' },
-            { value: 'dark', label: 'Sombre' },
-          ]}
-          value={formData.settings?.theme || 'light'}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              settings: {
-                ...formData.settings,
-                theme: e.target.value,
-              },
-            })
-          }
-        />
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">

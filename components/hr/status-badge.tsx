@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui';
-import type { EmploymentStatus, LeaveStatus, PayrollStatus } from '@/lib/types/hr';
 import type { BadgeProps } from '@/components/ui/badge';
+import type { EmploymentStatus, LeaveStatus, PayrollStatus } from '@/lib/types/hr';
 
 /**
  * Configuration générique pour les badges de statut
@@ -37,13 +37,14 @@ const EMPLOYMENT_STATUS_CONFIG: Record<EmploymentStatus, StatusConfig> = {
   active: { variant: 'success', label: 'Actif' },
   inactive: { variant: 'secondary', label: 'Inactif' },
   on_leave: { variant: 'warning', label: 'En congé' },
-  terminated: { variant: 'destructive', label: 'Terminé' },
+  terminated: { variant: 'error', label: 'Terminé' },
+  suspended: {variant: "error", label: "Suspendu"}
 };
 
 const LEAVE_STATUS_CONFIG: Record<LeaveStatus, StatusConfig> = {
   pending: { variant: 'warning', label: 'En attente' },
   approved: { variant: 'success', label: 'Approuvé' },
-  rejected: { variant: 'destructive', label: 'Rejeté' },
+  rejected: { variant: 'error', label: 'Rejeté' },
   cancelled: { variant: 'secondary', label: 'Annulé' },
 };
 
@@ -51,7 +52,7 @@ const PAYROLL_STATUS_CONFIG: Record<PayrollStatus, StatusConfig> = {
   draft: { variant: 'secondary', label: 'Brouillon' },
   pending: { variant: 'warning', label: 'En attente' },
   paid: { variant: 'success', label: 'Payé' },
-  cancelled: { variant: 'destructive', label: 'Annulé' },
+  cancelled: { variant: 'error', label: 'Annulé' },
 };
 
 // ============================================================================
@@ -87,4 +88,5 @@ export function PayrollStatusBadge({ status, className }: PayrollStatusBadgeProp
 
 // Export du composant générique pour d'autres modules (inventory, etc.)
 export { StatusBadge };
-export type { StatusConfig, StatusBadgeProps };
+export type { StatusBadgeProps, StatusConfig };
+

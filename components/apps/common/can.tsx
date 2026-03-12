@@ -29,16 +29,16 @@
 
 'use client';
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
-import { usePermissionContext } from './permission-provider';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
+import React from 'react';
 import {
-  HiOutlineShieldExclamation,
-  HiOutlineLockClosed,
   HiOutlineArrowLeft,
   HiOutlineExclamationTriangle,
+  HiOutlineLockClosed,
+  HiOutlineShieldExclamation,
 } from 'react-icons/hi2';
+import { usePermissionContext } from './permission-provider';
 
 // ============================================================================
 // TYPES
@@ -107,19 +107,6 @@ export interface CanProps {
 // PERMISSION NORMALIZER
 // ============================================================================
 
-import { normalizePermissionCode } from '@/lib/constants/permissions';
-
-/**
- * Normalise une permission vers le format backend (hr.view_employees)
- * Supporte les anciens formats :
- * - can_view_employee → hr.view_employees
- * - employee.view → hr.view_employees
- * - hr.view_employees → hr.view_employees (déjà correct)
- */
-function normalizePermission(code: string): string {
-  // Utiliser le normaliseur central qui gère tous les formats
-  return normalizePermissionCode(code);
-}
 
 // ============================================================================
 // DENIED VIEWS
@@ -251,16 +238,13 @@ export function Can({
     hasAccess = isAdmin;
   } else if (permission) {
     // Permission unique
-    const normalizedPerm = normalizePermission(permission);
-    hasAccess = hasPermission(normalizedPerm);
+    hasAccess = hasPermission(permission);
   } else if (anyOf && anyOf.length > 0) {
     // Au moins une permission (OR)
-    const normalizedPerms = anyOf.map(normalizePermission);
-    hasAccess = normalizedPerms.some((perm) => hasPermission(perm));
+    hasAccess = anyOf.some((perm) => hasPermission(perm));
   } else if (allOf && allOf.length > 0) {
     // Toutes les permissions (AND)
-    const normalizedPerms = allOf.map(normalizePermission);
-    hasAccess = normalizedPerms.every((perm) => hasPermission(perm));
+    hasAccess = allOf.every((perm) => hasPermission(perm));
   }
 
   // Inverser si demandé (Cannot)
@@ -333,17 +317,17 @@ export function useCanAccess() {
 
   const can = (permission: string): boolean => {
     if (isLoading) return false;
-    return hasPermission(normalizePermission(permission));
+    return hasPermission(permission);
   };
 
   const canAny = (permissions: string[]): boolean => {
     if (isLoading) return false;
-    return permissions.some((p) => hasPermission(normalizePermission(p)));
+    return permissions.some((p) => hasPermission(p));
   };
 
   const canAll = (permissions: string[]): boolean => {
     if (isLoading) return false;
-    return permissions.every((p) => hasPermission(normalizePermission(p)));
+    return permissions.every((p) => hasPermission(p));
   };
 
   const isAdmin = (): boolean => {

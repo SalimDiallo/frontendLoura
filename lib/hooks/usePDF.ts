@@ -146,9 +146,9 @@ export function usePDF(options: UsePDFOptions = {}) {
    * Génère un PDF depuis HTML (impression)
    */
   const generateFromHTML = useCallback(
-    (htmlContent: string, title: string) => {
+    (htmlContent: string) => {
       try {
-        PDFService.generateFromHTML(htmlContent, title);
+        PDFService.generateFromHTML(htmlContent);
         options.onSuccess?.();
       } catch (err: any) {
         options.onError?.(err.message || 'Erreur lors de la génération du PDF');

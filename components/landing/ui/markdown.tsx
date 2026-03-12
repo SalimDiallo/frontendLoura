@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 import { marked } from "marked";
 import { memo, useId, useMemo } from "react";
-import ReactMarkdown, { Components } from "react-markdown";
+import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock, CodeBlockCode } from "./code-block";
 
@@ -10,7 +10,7 @@ export type MarkdownProps = {
   children: string;
   id?: string;
   className?: string;
-  components?: Partial<Components>;
+  components?: Partial<any>;
 };
 
 function parseMarkdownIntoBlocks(markdown: string): string[] {
@@ -24,7 +24,7 @@ function extractLanguage(className?: string): string {
   return match ? match[1] : "plaintext";
 }
 
-const INITIAL_COMPONENTS: Partial<Components> = {
+const INITIAL_COMPONENTS: Partial<any> = {
   code: function CodeComponent({ className, children, ...props }: any) {
     const isInline =
       !props.node?.position?.start.line ||
@@ -63,7 +63,7 @@ const MemoizedMarkdownBlock = memo(
     components = INITIAL_COMPONENTS,
   }: {
     content: string;
-    components?: Partial<Components>;
+    components?: Partial<any>;
   }) {
     return (
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
@@ -105,3 +105,4 @@ const Markdown = memo(MarkdownComponent);
 Markdown.displayName = "Markdown";
 
 export { Markdown };
+

@@ -1,15 +1,15 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { Can } from "@/components/apps/common";
+import { FormActions, FormCheckbox, FormField, FormHeader, FormSection } from "@/components/common";
 import { Alert } from "@/components/ui";
+import { useEntityForm } from "@/lib/hooks";
 import { getSupplier, updateSupplier } from "@/lib/services/inventory";
 import type { SupplierUpdate } from "@/lib/types/inventory";
-import { AlertTriangle, Truck, User, Mail, Phone, MapPin, Building, FileText, CreditCard } from "lucide-react";
-import { useEntityForm } from "@/lib/hooks";
-import { FormHeader, FormActions, FormSection, FormField, FormCheckbox } from "@/components/common";
-import { generateSupplierCode } from "@/lib/utils/code-generator";
-import { Can } from "@/components/apps/common";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { generateSupplierCode } from "@/lib/utils/code-generator";
+import { AlertTriangle, Building, CreditCard, FileText, Mail, MapPin, Phone, Truck, User } from "lucide-react";
+import { useParams } from "next/navigation";
 
 export default function EditSupplierPage() {
   const params = useParams();
@@ -37,8 +37,8 @@ export default function EditSupplierPage() {
     onSubmit: (data) => updateSupplier(supplierId, data),
     redirectUrl: `/apps/${slug}/inventory/suppliers/${supplierId}`,
     validate: (data) => {
-      if (!data.name.trim()) return "Le nom du fournisseur est requis";
-      if (!data.code.trim()) return "Le code fournisseur est requis";
+      if (!data?.name?.trim()) return "Le nom du fournisseur est requis";
+      if (!data?.code?.trim()) return "Le code fournisseur est requis";
       return null;
     },
   });
@@ -103,7 +103,7 @@ export default function EditSupplierPage() {
                     type="button"
                     onClick={handleGenerateCode}
                     className="text-xs text-primary hover:underline"
-                    disabled={!form.formData.name.trim()}
+                    disabled={!form?.formData.name}
                   >
                     Générer
                   </button>
