@@ -65,14 +65,61 @@ export function ModuleSelector({
 }: ModuleSelectorProps) {
   const [hoveredModule, setHoveredModule] = useState<string | null>(null);
 
+  // Récupère toutes les dépendances d'un module récursivement
+  const getAllDependencies = (moduleCode: string, visited = new Set<string>()): string[] => {
+    if (visited.has(moduleCode)) return [];
+    visited.add(moduleCode);
+
+    const module = modules.find((m) => m.code === moduleCode);
+    if (!module || !module.depends_on || module.depends_on.length === 0) {
+      return [];
+    }
+
+    const deps: string[] = [];
+    for (const dep of module.depends_on) {
+      deps.push(dep);
+      deps.push(...getAllDependencies(dep, visited));
+    }
+
+    return [...new Set(deps)]; // Retirer les doublons
+  };
+
+  // Vérifie si un module est requis par d'autres modules sélectionnés
+  const isRequiredByOthers = (moduleCode: string): string[] => {
+    return selectedModules.filter((selectedCode) => {
+      if (selectedCode === moduleCode) return false;
+      const module = modules.find((m) => m.code === selectedCode);
+      if (!module) return false;
+
+      const allDeps = getAllDependencies(selectedCode);
+      return allDeps.includes(moduleCode);
+    });
+  };
+
   const toggleModule = (moduleCode: string, isCore: boolean) => {
     if (disabled || isCore) return;
 
-    const newSelection = selectedModules.includes(moduleCode)
-      ? selectedModules.filter((code) => code !== moduleCode)
-      : [...selectedModules, moduleCode];
+    const isCurrentlySelected = selectedModules.includes(moduleCode);
 
-    onChange(newSelection);
+    if (isCurrentlySelected) {
+      // Désactivation : vérifier si d'autres modules actifs dépendent de celui-ci
+      const dependentModules = isRequiredByOthers(moduleCode);
+      if (dependentModules.length > 0) {
+        // Désactiver aussi les modules dépendants
+        const toRemove = new Set([moduleCode, ...dependentModules]);
+        const newSelection = selectedModules.filter((code) => !toRemove.has(code));
+        onChange(newSelection);
+      } else {
+        // Désactivation simple
+        const newSelection = selectedModules.filter((code) => code !== moduleCode);
+        onChange(newSelection);
+      }
+    } else {
+      // Activation : ajouter le module et toutes ses dépendances
+      const dependencies = getAllDependencies(moduleCode);
+      const newSelection = [...new Set([...selectedModules, moduleCode, ...dependencies])];
+      onChange(newSelection);
+    }
   };
 
   const isSelected = (moduleCode: string) => selectedModules.includes(moduleCode);

@@ -3,3 +3,4 @@
  */
 
 export * from './NotificationContext';
+export * from './ModuleContext';

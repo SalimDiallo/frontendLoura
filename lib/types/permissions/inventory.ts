@@ -83,3 +83,15 @@ export const INVENTORY_PERMISSIONS = {
   // === DOCUMENTS ===
   MANAGE_DOCUMENTS: 'inventory.manage_documents',
 } as const;
+
+
+
+
+export const INVENTORY_MODULES = {
+  PRODUCTS_MODULE: 'inventory.products',          // Catalogue produits
+  WAREHOUSES_MODULE: 'inventory.warehouses',      // Gestion des entrepôts
+  MOVEMENTS_MODULE: 'inventory.movements',        // Mouvements de stock
+  PURCHASES_MODULE: 'inventory.purchases',        // Gestion des achats
+  SALES_MODULE: 'inventory.sales',                // Gestion des ventes
+  REPORTS_MODULE: 'inventory.reports',            // Rapports et alertes
+};

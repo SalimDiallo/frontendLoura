@@ -23,6 +23,7 @@ import { ChatSidebar } from "@/components/core/chat-sidebar";
 import { ThemeToggle } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/lib/hooks";
+import { ModuleProvider } from "@/lib/contexts";
 
 export default function DashboardCoreLayout({ children }: PropsWithChildren) {
   const pathname = usePathname();
@@ -87,8 +88,9 @@ export default function DashboardCoreLayout({ children }: PropsWithChildren) {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
+    <ModuleProvider>
+      <SidebarProvider>
+        <AppSidebar />
 
       <SidebarInset className="bg-background">
         {/* Header Premium */}
@@ -238,6 +240,7 @@ export default function DashboardCoreLayout({ children }: PropsWithChildren) {
           <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} />
         </div>
       </SidebarInset>
-    </SidebarProvider>
+      </SidebarProvider>
+    </ModuleProvider>
   );
 }

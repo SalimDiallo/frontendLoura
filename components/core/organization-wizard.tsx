@@ -26,7 +26,6 @@ import {
   Globe,
   ImageIcon,
   Loader2,
-  Monitor,
   Package,
   Settings,
   Upload,
@@ -393,9 +392,57 @@ export function OrganizationWizard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+
+             {/* Preview Sidebar */}
+             {/* <div className="lg:col-span-1">
+            <div className="sticky top-8">
+              <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-4 text-sm font-medium text-muted-foreground">
+                  <Monitor className="w-4 h-4" />
+                  Aperçu
+                </div>
+
+                <div className="bg-background dark:bg-slate-950 rounded-lg border border-border p-4 shadow-sm">
+                  <div className="flex items-start gap-4">
+                    <div className="relative w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border">
+                      {logoPreview ? (
+                        <Image
+                          src={logoPreview}
+                          alt="Preview"
+                          fill
+                          className="object-contain p-1"
+                        />
+                      ) : (
+                        <Building2 className="w-6 h-6 text-muted-foreground/40" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">
+                        {watchedName || "Nom de l'organisation"}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {selectedCategoryLabel}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-muted/50 rounded-md">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">
+                      Adresse Web
+                    </div>
+                    <div className="flex items-center text-sm font-mono text-primary truncate">
+                      <span className="truncate">{watchedSubdomain || 'sous-domaine'}</span>
+                      <span className="opacity-50">.loura.app</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div> */}
+
           {/* Main Content */}
-          <div className="lg:col-span-2">
+          <div className="">
             <Form {...form}>
               <form onSubmit={onSubmit} className="space-y-6">
                 {error && <Alert variant="error">{error}</Alert>}
@@ -701,53 +748,6 @@ export function OrganizationWizard() {
                 </div>
               </form>
             </Form>
-          </div>
-
-          {/* Preview Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-8">
-              <div className="bg-card dark:bg-slate-900 border border-border dark:border-slate-800 rounded-xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4 text-sm font-medium text-muted-foreground">
-                  <Monitor className="w-4 h-4" />
-                  Aperçu
-                </div>
-
-                <div className="bg-background dark:bg-slate-950 rounded-lg border border-border p-4 shadow-sm">
-                  <div className="flex items-start gap-4">
-                    <div className="relative w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border">
-                      {logoPreview ? (
-                        <Image
-                          src={logoPreview}
-                          alt="Preview"
-                          fill
-                          className="object-contain p-1"
-                        />
-                      ) : (
-                        <Building2 className="w-6 h-6 text-muted-foreground/40" />
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">
-                        {watchedName || "Nom de l'organisation"}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {selectedCategoryLabel}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 p-3 bg-muted/50 rounded-md">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">
-                      Adresse Web
-                    </div>
-                    <div className="flex items-center text-sm font-mono text-primary truncate">
-                      <span className="truncate">{watchedSubdomain || 'sous-domaine'}</span>
-                      <span className="opacity-50">.loura.app</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

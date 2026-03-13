@@ -31,7 +31,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-type SortField = "name" | "total_sales" | "total_debt";
+type SortField = "name" | "total_purchases" | "total_debt";
 type SortOrder = "asc" | "desc";
 type PeriodFilter = "all" | "current_month" | "last_month" | "custom";
 
@@ -50,7 +50,7 @@ export default function CustomersPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Nouveaux états pour les filtres avancés
-  const [sortField, setSortField] = useState<SortField>("total_sales");
+  const [sortField, setSortField] = useState<SortField>("total_purchases");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("current_month");
   const [customStartDate, setCustomStartDate] = useState("");
@@ -225,8 +225,8 @@ export default function CustomersPage() {
 
   // Top 5 clients par chiffre d'affaires
   const topCustomers = [...customers]
-    .filter((c) => (c.total_sales || 0) > 0)
-    .sort((a, b) => (b.total_sales || 0) - (a.total_sales || 0))
+    .filter((c) => (c.total_purchases || 0) > 0)
+    .sort((a, b) => (b.total_purchases || 0) - (a.total_purchases || 0))
     .slice(0, 5);
 
   const toggleSort = (field: SortField) => {
@@ -371,9 +371,9 @@ export default function CustomersPage() {
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Ventes</span>
+                      <span className="text-muted-foreground">CA</span>
                       <span className="font-bold text-green-600">
-                        {formatCurrency(customer.total_sales || 0)}
+                        {formatCurrency(customer.total_purchases || 0)}
                       </span>
                     </div>
                     {(customer.total_debt || 0) > 0 && (
@@ -409,10 +409,10 @@ export default function CustomersPage() {
               <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950">
                 <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="text-xs text-muted-foreground">CA Total</p>
-                <p className="text-xl font-bold">
-                  {formatCurrency(customers.reduce((acc, c) => acc + (c.total_sales || 0), 0))}
+                <p className="text-base font-bold break-words">
+                  {formatCurrency(customers.reduce((acc, c) => acc + (c.total_purchases || 0), 0))}
                 </p>
               </div>
             </div>
@@ -564,12 +564,12 @@ export default function CustomersPage() {
                       </Button>
                       <Button
                         size="sm"
-                        variant={sortField === "total_sales" ? "default" : "outline"}
-                        onClick={() => toggleSort("total_sales")}
+                        variant={sortField === "total_purchases" ? "default" : "outline"}
+                        onClick={() => toggleSort("total_purchases")}
                         className="text-xs"
                       >
                         CA
-                        {sortField === "total_sales" && (
+                        {sortField === "total_purchases" && (
                           <ArrowDownUp className="h-3 w-3 ml-1" />
                         )}
                       </Button>
@@ -701,7 +701,7 @@ export default function CustomersPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span className="font-semibold text-green-600">
-                          {formatCurrency(customer.total_sales || 0)}
+                          {formatCurrency(customer.total_purchases || 0)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">

@@ -59,3 +59,12 @@ export const HR_PERMISSIONS = {
   MANUAL_CHECKIN: 'hr.manual_checkin',
   CREATE_QR_SESSION: 'hr.create_qr_session',
 } as const;
+
+export const HR_MODULES = {
+  EMPLOYEES_MODULE: 'hr.employees',
+  PAYROLL_MODULE: 'hr.payroll',
+  LEAVE_MODULE: 'hr.leave',
+  ATTENDANCE_MODULE: 'hr.attendance',
+  CONTRACTS_MODULE: 'hr.contracts',
+  PERMISSIONS_MODULE: 'hr.permissions',
+};

@@ -55,4 +55,19 @@ export const moduleService = {
       API_ENDPOINTS.CORE.MODULES.BY_CATEGORY
     );
   },
+
+  /**
+   * Récupérer les modules actifs pour l'organisation de l'utilisateur connecté
+   * @param organizationSubdomain - Subdomain de l'organisation (pour les admins)
+   */
+  async getActiveForUser(organizationSubdomain?: string): Promise<{
+    active_modules: string[];
+    organization_id: string;
+    organization_name: string;
+  }> {
+    const url = organizationSubdomain
+      ? `${API_ENDPOINTS.CORE.MODULES.LIST}active_for_user/?organization_subdomain=${organizationSubdomain}`
+      : `${API_ENDPOINTS.CORE.MODULES.LIST}active_for_user/`;
+    return apiClient.get(url);
+  },
 };

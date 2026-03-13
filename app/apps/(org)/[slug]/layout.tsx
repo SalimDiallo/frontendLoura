@@ -27,6 +27,7 @@ import { QRScanFAB } from "@/components/apps/hr";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, HelpCircle } from "lucide-react";
 import { organizationService } from "@/lib/services";
+import { ModuleProvider } from "@/lib/contexts";
 
 
 export default function OrganizationLayout({ children }: PropsWithChildren) {
@@ -156,9 +157,10 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
 
   return (
     <OrgAccessGuard organizationSlug={slug}>
-      <PermissionProvider organizationSlug={slug}>
-        <NotificationProvider>
-          <SidebarProvider>
+      <ModuleProvider>
+        <PermissionProvider organizationSlug={slug}>
+          <NotificationProvider>
+            <SidebarProvider>
           <OrganisationSideBar />
 
           <SidebarInset className="bg-background">
@@ -264,7 +266,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                 <div className="h-6 w-px bg-border/60 mx-1" />
 
                 {/* AI Assistant button */}
-                <Button
+                {/* <Button
                   variant={chatOpen ? "default" : "outline"}
                   size="sm"
                   onClick={() => setChatOpen((prev) => !prev)}
@@ -293,7 +295,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                       <span className="relative inline-flex rounded-full size-2 bg-white" />
                     </span>
                   )}
-                </Button>
+                </Button> */}
               </div>
             </header>
 
@@ -310,7 +312,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                 <div className="mx-auto max-w-7xl">{children}</div>
               </main>
 
-              <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} />
+              {/* <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} /> */}
             </div>
 
             {/* QR Scan Floating Action Button */}
@@ -322,6 +324,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
         </SidebarProvider>
       </NotificationProvider>
       </PermissionProvider>
+      </ModuleProvider>
     </OrgAccessGuard>
   );
 }

@@ -326,7 +326,6 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
     setActiveConversationId(newConv.id);
     setShowHistory(false);
   };
-
   return (
     <TooltipProvider>
       <aside

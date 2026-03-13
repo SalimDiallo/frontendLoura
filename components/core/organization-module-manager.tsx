@@ -56,6 +56,7 @@ export function OrganizationModuleManager({
   const [orgModules, setOrgModules] = useState<OrganizationModule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [processingModules, setProcessingModules] = useState<Set<string>>(
     new Set()
   );
@@ -91,13 +92,22 @@ export function OrganizationModuleManager({
     try {
       setProcessingModules((prev) => new Set(prev).add(orgModuleId));
       setError(null);
+      setSuccessMessage(null);
 
+      let response;
       if (currentState) {
         // Désactiver
-        await organizationModuleService.disable(orgModuleId);
+        response = await organizationModuleService.disable(orgModuleId);
       } else {
         // Activer
-        await organizationModuleService.enable(orgModuleId);
+        response = await organizationModuleService.enable(orgModuleId);
+      }
+
+      // Afficher le message de succès
+      if (response && response.message) {
+        setSuccessMessage(response.message);
+        // Effacer le message après 5 secondes
+        setTimeout(() => setSuccessMessage(null), 5000);
       }
 
       // Recharger les données
@@ -137,6 +147,7 @@ export function OrganizationModuleManager({
   return (
     <div className="space-y-6">
       {error && <Alert variant="error">{error}</Alert>}
+      {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
       {/* Header */}
       <div className="flex items-center justify-between">

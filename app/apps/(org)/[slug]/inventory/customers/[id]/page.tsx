@@ -21,6 +21,7 @@ import {
   Mail,
   MapPin,
   Phone,
+  RefreshCw,
   ShoppingCart,
   TrendingUp,
   User,
@@ -41,14 +42,34 @@ export default function CustomerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"info" | "sales" | "credit">("info");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     loadData();
   }, [customerId]);
 
-  const loadData = async () => {
+  // Auto-refresh when user comes back to the page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && customer) {
+        console.log('🔄 Page visible, refreshing customer data...');
+        loadData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [customer]);
+
+  const loadData = async (isManualRefresh = false) => {
     try {
-      setLoading(true);
+      if (isManualRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       const [customerData, salesData, creditData] = await Promise.all([
         getCustomer(customerId),
@@ -61,8 +82,16 @@ export default function CustomerDetailPage() {
     } catch (err: any) {
       setError(err.message || "Erreur lors du chargement du client");
     } finally {
-      setLoading(false);
+      if (isManualRefresh) {
+        setIsRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
+  };
+
+  const handleManualRefresh = () => {
+    loadData(true);
   };
 
   if (loading) {
@@ -144,14 +173,26 @@ export default function CustomerDetailPage() {
                   )}
                 </div>
               </div>
-              <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_CUSTOMERS}>
-                <Button variant="outline" asChild>
-                  <Link href={`/apps/${slug}/inventory/customers/${customerId}/edit`}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Modifier
-                  </Link>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleManualRefresh}
+                  disabled={isRefreshing}
+                  className="gap-2"
+                >
+                  <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                  {isRefreshing ? "Actualisation..." : "Actualiser"}
                 </Button>
-              </Can>
+                <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_CUSTOMERS}>
+                  <Button variant="outline" asChild>
+                    <Link href={`/apps/${slug}/inventory/customers/${customerId}/edit`}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Modifier
+                    </Link>
+                  </Button>
+                </Can>
+              </div>
             </div>
           </div>
         </div>
@@ -161,62 +202,54 @@ export default function CustomerDetailPage() {
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="p-4 hover:shadow-sm transition-shadow">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center">
-                    <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Ventes</p>
-                    <p className="text-xl font-bold">{totalSalesCount}</p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
+                  <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">Ventes</p>
+                  <p className="text-xl font-bold">{totalSalesCount}</p>
                 </div>
               </div>
             </Card>
 
             <Card className="p-4 hover:shadow-sm transition-shadow">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-950/50 flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Chiffre d'affaires</p>
-                    <p className="text-lg font-bold">{formatCurrency(totalSalesAmount)}</p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-950/50 flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">Chiffre d'affaires</p>
+                  <p className="text-base font-bold break-words">{formatCurrency(totalSalesAmount)}</p>
                 </div>
               </div>
             </Card>
 
             <Card className="p-4 hover:shadow-sm transition-shadow">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-950/50 flex items-center justify-center">
-                    <CreditCard className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Dette actuelle</p>
-                    <p className={cn(
-                      "text-lg font-bold",
-                      (customer.total_debt || 0) > customer.credit_limit && "text-red-600"
-                    )}>
-                      {formatCurrency(customer.total_debt || 0)}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-950/50 flex items-center justify-center shrink-0">
+                  <CreditCard className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">Dette actuelle</p>
+                  <p className={cn(
+                    "text-base font-bold break-words",
+                    (customer.total_debt || 0) > customer.credit_limit && "text-red-600"
+                  )}>
+                    {formatCurrency(customer.total_debt || 0)}
+                  </p>
                 </div>
               </div>
             </Card>
 
             <Card className="p-4 hover:shadow-sm transition-shadow">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Limite crédit</p>
-                    <p className="text-lg font-bold">{formatCurrency(customer.credit_limit)}</p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center shrink-0">
+                  <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">Limite crédit</p>
+                  <p className="text-base font-bold break-words">{formatCurrency(customer.credit_limit)}</p>
                 </div>
               </div>
             </Card>
@@ -646,7 +679,7 @@ export default function CustomerDetailPage() {
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{creditHistory.length} crédit(s) en cours</span>
                     <span className="font-medium text-orange-600">
-                      Reste à payer: {formatCurrency(creditHistory.reduce((acc, credit) => acc + credit.remaining_amount, 0))}
+                      Reste à payer: {formatCurrency(creditHistory.reduce((acc, credit) => acc + (credit.remaining_amount || 0), 0))}
                     </span>
                   </div>
                 </div>

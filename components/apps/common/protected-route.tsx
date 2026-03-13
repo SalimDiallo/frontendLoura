@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import React, { PropsWithChildren } from 'react';
 import { HiOutlineShieldExclamation } from 'react-icons/hi2';
 import { usePermissionContext } from './permission-provider';
+import { useModules } from '@/lib/contexts';
 
 // ============================================
 // Types
@@ -89,6 +90,12 @@ interface CanProps extends PropsWithChildren {
   anyPermissions?: string[];
   /** Permissions à vérifier (AND logic) - toutes doivent être présentes */
   allPermissions?: string[];
+  /** Code de module unique requis (ex: 'hr.payroll', 'inventory.products') */
+  requiredModule?: string;
+  /** Modules requis (AND logic) - tous doivent être actifs */
+  requiredModules?: string[];
+  /** Modules requis (OR logic) - au moins un doit être actif */
+  anyRequiredModules?: string[];
   /** Contenu à afficher si la permission n'est pas accordée */
   fallback?: React.ReactNode;
   /** Afficher un message d'accès refusé */
@@ -98,7 +105,7 @@ interface CanProps extends PropsWithChildren {
 }
 
 /**
- * Composant pour afficher conditionnellement du contenu basé sur les permissions
+ * Composant pour afficher conditionnellement du contenu basé sur les permissions ET les modules actifs
  *
  * @example
  * ```tsx
@@ -117,6 +124,21 @@ interface CanProps extends PropsWithChildren {
  *   <EditButton />
  * </Can>
  *
+ * // Module requis
+ * <Can requiredModule="hr.payroll">
+ *   <PayrollSection />
+ * </Can>
+ *
+ * // Permission ET module
+ * <Can permission={PERMISSIONS.HR.VIEW_PAYROLL} requiredModule="hr.payroll">
+ *   <PayrollDetails />
+ * </Can>
+ *
+ * // Au moins un module (OR)
+ * <Can anyRequiredModules={["inventory.products", "inventory.sales"]}>
+ *   <InventoryDashboard />
+ * </Can>
+ *
  * // Admin seulement
  * <Can adminOnly>
  *   <AdminPanel />
@@ -128,36 +150,61 @@ export function Can({
   permission,
   anyPermissions,
   allPermissions,
+  requiredModule,
+  requiredModules,
+  anyRequiredModules,
   fallback = null,
   showMessage = false,
   adminOnly = false,
 }: CanProps) {
   const router = useRouter();
-  const { hasPermission, isAdmin, isLoading } = usePermissionContext();
+  const { hasPermission, isAdmin, isLoading: permissionsLoading } = usePermissionContext();
+  const { isModuleActive, loading: modulesLoading } = useModules();
 
   // Pendant le chargement, ne rien afficher
-  if (isLoading) {
+  if (permissionsLoading || modulesLoading) {
     return null;
   }
 
-  let hasAccess = true;
+  let hasPermissionAccess = true;
+  let hasModuleAccess = true;
+
+  // ===== VÉRIFICATION DES PERMISSIONS =====
 
   // Vérifier si admin seulement
   if (adminOnly) {
-    hasAccess = isAdmin;
+    hasPermissionAccess = isAdmin;
   }
   // Vérifier une permission unique
   else if (permission) {
-    hasAccess = isAdmin || hasPermission(permission);
+    hasPermissionAccess = isAdmin || hasPermission(permission);
   }
   // Vérifier au moins une permission (OR)
   else if (anyPermissions && anyPermissions.length > 0) {
-    hasAccess = isAdmin || anyPermissions.some((perm) => hasPermission(perm));
+    hasPermissionAccess = isAdmin || anyPermissions.some((perm) => hasPermission(perm));
   }
   // Vérifier toutes les permissions (AND)
   else if (allPermissions && allPermissions.length > 0) {
-    hasAccess = isAdmin || allPermissions.every((perm) => hasPermission(perm));
+    hasPermissionAccess = isAdmin || allPermissions.every((perm) => hasPermission(perm));
   }
+
+  // ===== VÉRIFICATION DES MODULES =====
+
+  // Vérifier un module unique requis
+  if (requiredModule) {
+    hasModuleAccess = isModuleActive(requiredModule);
+  }
+  // Vérifier tous les modules requis (AND)
+  else if (requiredModules && requiredModules.length > 0) {
+    hasModuleAccess = requiredModules.every((mod) => isModuleActive(mod));
+  }
+  // Vérifier au moins un module requis (OR)
+  else if (anyRequiredModules && anyRequiredModules.length > 0) {
+    hasModuleAccess = anyRequiredModules.some((mod) => isModuleActive(mod));
+  }
+
+  // L'accès est accordé seulement si PERMISSIONS ET MODULES sont OK
+  const hasAccess = hasPermissionAccess && hasModuleAccess;
 
   if (!hasAccess) {
     // Afficher le fallback personnalisé
@@ -167,15 +214,26 @@ export function Can({
 
     // Afficher un message d'accès refusé
     if (showMessage) {
+      // Déterminer le message en fonction de la raison du refus
+      let denialReason = "Vous n'avez pas les autorisations nécessaires pour accéder à cette section.";
+
+      if (!hasModuleAccess && hasPermissionAccess) {
+        denialReason = "Cette fonctionnalité n'est pas disponible. Le module requis n'est pas activé pour votre organisation.";
+      } else if (hasModuleAccess && !hasPermissionAccess) {
+        denialReason = "Vous n'avez pas les permissions nécessaires pour accéder à cette section.";
+      } else if (!hasModuleAccess && !hasPermissionAccess) {
+        denialReason = "Accès refusé : module non activé et permissions insuffisantes.";
+      }
+
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] w-full bg-background">
-          <div className="flex flex-col items-center border border-neutral-200 shadow-md rounded-lg px-8 py-12">
+          <div className="flex flex-col items-center border border-neutral-200 shadow-md rounded-lg px-8 py-12 max-w-md">
             <div className="mb-5 flex items-center justify-center">
               <HiOutlineShieldExclamation className="h-12 w-12 text-muted-foreground" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">Accès refusé</h3>
             <p className="text-sm text-muted-foreground mb-6 text-center">
-              Vous n’avez pas les autorisations nécessaires pour accéder à cette section.
+              {denialReason}
             </p>
             <Button
               variant="outline"

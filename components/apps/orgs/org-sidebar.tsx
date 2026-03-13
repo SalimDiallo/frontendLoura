@@ -67,6 +67,7 @@ import { usePermissions } from "@/lib/hooks/use-permissions";
 import { authService, CurrentUser } from "@/lib/services/auth/auth.service";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn } from "@/lib/utils";
+import { useModules } from "@/lib/contexts";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
@@ -75,12 +76,14 @@ interface MenuItem {
   title: string;
   url: string;
   icon: React.ComponentType<{ className?: string }>;
+  module?: string; // Code du module requis (ex: 'hr.payroll', 'inventory.products')
 }
 
 interface MenuGroup {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   children: MenuItem[];
+  module?: string; // Code du module requis pour tout le groupe
 }
 
 // Fonction utilitaire pour nettoyer les tableaux de menu (retirer les null / undefined / false)
@@ -94,6 +97,7 @@ export function OrganisationSideBar() {
   const router = useRouter();
   const { state } = useSidebar();
   const { hasPermission, hasAnyPermission, hasAllPermissions } = usePermissions();
+  const { isModuleActive, loading: modulesLoading } = useModules();
   const isCollapsed = state === "collapsed";
   const orgSlug = params.slug as string;
 
@@ -194,11 +198,33 @@ export function OrganisationSideBar() {
   const hasInventoryPermission =
     inventoryRequiredPermissions.some((perm) => hasPermission(perm));
 
+  // Fonction pour filtrer les éléments de menu en fonction des modules actifs
+  const filterByModule = (items: MenuItem[]): MenuItem[] => {
+    if (modulesLoading) {
+      console.log('⏳ filterByModule: Modules en cours de chargement, affichage de tous les items');
+      return items;
+    }
+
+    const filtered = items.filter((item) => {
+      // Si l'élément n'a pas de module défini, il est toujours visible
+      if (!item.module) return true;
+      // Sinon, vérifier si le module est actif
+      const isActive = isModuleActive(item.module);
+      if (!isActive) {
+        console.log(`🚫 filterByModule: ${item.title} masqué (module ${item.module} inactif)`);
+      }
+      return isActive;
+    });
+
+    console.log(`✅ filterByModule: ${filtered.length}/${items.length} items visibles`);
+    return filtered;
+  };
+
   // If user does NOT have HR permissions, RH menus are all hidden (there won't even be "Paie", etc.)
   // If user does NOT have inventory permissions, inventory menus are all hidden.
 
   // Compose HR menu group only if hasHRPermission
-  const hrMenuGroups: MenuGroup[] = [
+  const hrMenuGroupsRaw: MenuGroup[] = [
         {
           title: "RH",
           icon: HiOutlineUsers,
@@ -211,6 +237,7 @@ export function OrganisationSideBar() {
               title: "Vue d'ensemble",
               url: `/apps/${orgSlug}/hr`,
               icon: HiOutlineSquares2X2,
+              module: 'hr.employees',
             },
             hasAnyPermission([
               COMMON_PERMISSIONS.HR.VIEW_DEPARTMENTS,
@@ -219,94 +246,213 @@ export function OrganisationSideBar() {
               title: "Départements & Postes",
               url: `/apps/${orgSlug}/hr/departments`,
               icon: Building2,
+              module: 'hr.employees',
             },
             hasPermission(COMMON_PERMISSIONS.HR.VIEW_EMPLOYEES) && {
               title: "Employés",
               url: `/apps/${orgSlug}/hr/employees`,
               icon: HiOutlineUsers,
+              module: 'hr.employees',
             },
             hasPermission(COMMON_PERMISSIONS.HR.VIEW_ROLES) && {
               title: "Rôles",
               url: `/apps/${orgSlug}/hr/roles`,
               icon: HiOutlineBriefcase,
+              module: 'hr.permissions',
             },
-            { title: "Paie", url: `/apps/${orgSlug}/hr/payroll/`, icon: HiOutlineDocumentCurrencyDollar },
+            {
+              title: "Paie",
+              url: `/apps/${orgSlug}/hr/payroll/`,
+              icon: HiOutlineDocumentCurrencyDollar,
+              module: 'hr.payroll',
+            },
             hasPermission(COMMON_PERMISSIONS.HR.VIEW_CONTRACTS) && {
               title: "Contrats",
               url: `/apps/${orgSlug}/hr/contracts`,
               icon: HiOutlineIdentification,
+              module: 'hr.contracts',
             },
-            { title: "Congés", url: `/apps/${orgSlug}/hr/leaves`, icon: HiOutlineBriefcase },
-            { title: "Pointage", url: `/apps/${orgSlug}/hr/attendance`, icon: HiOutlineClock },
+            {
+              title: "Congés",
+              url: `/apps/${orgSlug}/hr/leaves`,
+              icon: HiOutlineBriefcase,
+              module: 'hr.leave',
+            },
+            {
+              title: "Pointage",
+              url: `/apps/${orgSlug}/hr/attendance`,
+              icon: HiOutlineClock,
+              module: 'hr.attendance',
+            },
           ]),
         },
       ];
 
   // Compose Inventory menu group only if hasInventoryPermission
-  const inventoryMenuGroups: MenuGroup[] = !hasInventoryPermission
+  const inventoryMenuGroupsRaw: MenuGroup[] = !hasInventoryPermission
     ? []
     : [
         {
           title: "Gestion des stocks",
           icon: HiOutlineCube,
           children: filterNotNull([
-            { title: "Tableau de bord", url: `/apps/${orgSlug}/inventory`, icon: HiOutlineSquares2X2 },
+            {
+              title: "Tableau de bord",
+              url: `/apps/${orgSlug}/inventory`,
+              icon: HiOutlineSquares2X2,
+              module: 'inventory.products',
+            },
             hasPermission(COMMON_PERMISSIONS.INVENTORY.CREATE_SALES)
-              ? { title: "Caisse", url: `/apps/${orgSlug}/inventory/sales/quick`, icon: HiOutlineShoppingCart }
+              ? {
+                  title: "Caisse",
+                  url: `/apps/${orgSlug}/inventory/sales/quick`,
+                  icon: HiOutlineShoppingCart,
+                  module: 'inventory.sales',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES)
-              ? { title: "Ventes", url: `/apps/${orgSlug}/inventory/sales`, icon: HiOutlineReceiptPercent }
+              ? {
+                  title: "Ventes",
+                  url: `/apps/${orgSlug}/inventory/sales`,
+                  icon: HiOutlineReceiptPercent,
+                  module: 'inventory.sales',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES)
-              ? { title: "Créances", url: `/apps/${orgSlug}/inventory/credit-sales`, icon: HiOutlineBanknotes }
+              ? {
+                  title: "Créances",
+                  url: `/apps/${orgSlug}/inventory/credit-sales`,
+                  icon: HiOutlineBanknotes,
+                  module: 'inventory.sales',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_ORDERS)
-              ? { title: "Approvisionnement", url: `/apps/${orgSlug}/inventory/orders`, icon: HiOutlineTruck }
+              ? {
+                  title: "Approvisionnement",
+                  url: `/apps/${orgSlug}/inventory/orders`,
+                  icon: HiOutlineTruck,
+                  module: 'inventory.purchases',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_EXPENSES)
-              ? { title: "Dépenses", url: `/apps/${orgSlug}/inventory/expenses`, icon: HiOutlineCurrencyDollar }
+              ? {
+                  title: "Dépenses",
+                  url: `/apps/${orgSlug}/inventory/expenses`,
+                  icon: HiOutlineCurrencyDollar,
+                  module: 'inventory.purchases',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_PRODUCTS)
-              ? { title: "Produits", url: `/apps/${orgSlug}/inventory/products`, icon: HiOutlineCube }
+              ? {
+                  title: "Produits",
+                  url: `/apps/${orgSlug}/inventory/products`,
+                  icon: HiOutlineCube,
+                  module: 'inventory.products',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_CATEGORIES)
-              ? { title: "Catégories", url: `/apps/${orgSlug}/inventory/categories`, icon: HiOutlineTag }
+              ? {
+                  title: "Catégories",
+                  url: `/apps/${orgSlug}/inventory/categories`,
+                  icon: HiOutlineTag,
+                  module: 'inventory.products',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_WAREHOUSES)
-              ? { title: "Entrepôts", url: `/apps/${orgSlug}/inventory/warehouses`, icon: HiOutlineArchiveBox }
+              ? {
+                  title: "Entrepôts",
+                  url: `/apps/${orgSlug}/inventory/warehouses`,
+                  icon: HiOutlineArchiveBox,
+                  module: 'inventory.warehouses',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK)
-              ? { title: "Mouvements Stocks", url: `/apps/${orgSlug}/inventory/movements`, icon: HiOutlineArrowPath }
+              ? {
+                  title: "Mouvements Stocks",
+                  url: `/apps/${orgSlug}/inventory/movements`,
+                  icon: HiOutlineArrowPath,
+                  module: 'inventory.movements',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_CUSTOMERS)
-              ? { title: "Clients", url: `/apps/${orgSlug}/inventory/customers`, icon: HiOutlineUsers }
+              ? {
+                  title: "Clients",
+                  url: `/apps/${orgSlug}/inventory/customers`,
+                  icon: HiOutlineUsers,
+                  module: 'inventory.sales',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SUPPLIERS)
-              ? { title: "Fournisseurs", url: `/apps/${orgSlug}/inventory/suppliers`, icon: HiOutlineBriefcase }
+              ? {
+                  title: "Fournisseurs",
+                  url: `/apps/${orgSlug}/inventory/suppliers`,
+                  icon: HiOutlineBriefcase,
+                  module: 'inventory.purchases',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.MANAGE_DOCUMENTS)
-              ? { title: "Documents", url: `/apps/${orgSlug}/inventory/documents`, icon: HiOutlineDocumentText }
+              ? {
+                  title: "Documents",
+                  url: `/apps/${orgSlug}/inventory/documents`,
+                  icon: HiOutlineDocumentText,
+                  module: 'inventory.sales',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_SALES) && {
               title: "Bons de livraison",
               url: `/apps/${orgSlug}/inventory/documents/delivery-notes`,
               icon: HiOutlineTruck,
+              module: 'inventory.sales',
             },
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK_COUNTS)
-              ? { title: "Inventaire", url: `/apps/${orgSlug}/inventory/stock-counts`, icon: HiOutlineDocumentText }
+              ? {
+                  title: "Inventaire",
+                  url: `/apps/${orgSlug}/inventory/stock-counts`,
+                  icon: HiOutlineDocumentText,
+                  module: 'inventory.movements',
+                }
               : null,
             hasAllPermissions([
               COMMON_PERMISSIONS.INVENTORY.VIEW_STOCK,
               COMMON_PERMISSIONS.INVENTORY.VIEW_SALES,
             ])
-              ? { title: "Alertes", url: `/apps/${orgSlug}/inventory/alerts`, icon: HiOutlineExclamationTriangle }
+              ? {
+                  title: "Alertes",
+                  url: `/apps/${orgSlug}/inventory/alerts`,
+                  icon: HiOutlineExclamationTriangle,
+                  module: 'inventory.reports',
+                }
               : null,
             hasPermission(COMMON_PERMISSIONS.INVENTORY.VIEW_REPORTS)
-              ? { title: "Rapports", url: `/apps/${orgSlug}/inventory/reports`, icon: HiOutlineChartBar }
+              ? {
+                  title: "Rapports",
+                  url: `/apps/${orgSlug}/inventory/reports`,
+                  icon: HiOutlineChartBar,
+                  module: 'inventory.reports',
+                }
               : null,
           ]),
         },
       ];
+
+  // Appliquer le filtrage par module aux groupes de menus
+  const hrMenuGroups: MenuGroup[] = hrMenuGroupsRaw.map((group) => {
+    const filtered = filterByModule(group.children);
+    console.log(`📋 Groupe RH "${group.title}": ${filtered.length}/${group.children.length} items visibles`);
+    return {
+      ...group,
+      children: filtered,
+    };
+  });
+
+  const inventoryMenuGroups: MenuGroup[] = inventoryMenuGroupsRaw.map((group) => {
+    const filtered = filterByModule(group.children);
+    console.log(`📋 Groupe Inventaire "${group.title}": ${filtered.length}/${group.children.length} items visibles`);
+    return {
+      ...group,
+      children: filtered,
+    };
+  });
 
   const isGroupActive = (group: MenuGroup) =>
     group.children.some((child) => pathname.startsWith(child.url));
