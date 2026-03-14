@@ -31,19 +31,22 @@ import { cn } from "@/lib/utils"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "17rem"
+const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "4.5rem"
-const SIDEBAR_KEYBOARD_SHORTCUT = "b"
+const SIDEBAR_WIDTH_ICON = "5rem"
+const SIDEBAR_KEYBOARD_SHORTCUT = "s"
+const SIDEBAR_MARGIN = "1rem" // Marge pour détacher la sidebar
 
 type SidebarContextProps = {
-  state: "expanded" | "collapsed"
+  state: "expanded" | "icon" | "collapsed"
   open: boolean
   setOpen: (open: boolean) => void
   openMobile: boolean
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  viewMode: "expanded" | "icon" | "collapsed"
+  setViewMode: (mode: "expanded" | "icon" | "collapsed") => void
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -71,6 +74,7 @@ function SidebarProvider({
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
+  const [viewMode, setViewMode] = React.useState<"expanded" | "icon" | "collapsed">("expanded")
 
   const [_open, _setOpen] = React.useState(defaultOpen)
   const open = openProp ?? _open
@@ -88,8 +92,17 @@ function SidebarProvider({
   )
 
   const toggleSidebar = React.useCallback(() => {
-    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
-  }, [isMobile, setOpen, setOpenMobile])
+    if (isMobile) {
+      setOpenMobile((open) => !open)
+    } else {
+      // Cycle entre les 3 états: expanded -> icon -> collapsed -> expanded
+      setViewMode((current) => {
+        if (current === "expanded") return "icon"
+        if (current === "icon") return "collapsed"
+        return "expanded"
+      })
+    }
+  }, [isMobile])
 
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -106,7 +119,7 @@ function SidebarProvider({
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [toggleSidebar])
 
-  const state = open ? "expanded" : "collapsed"
+  const state = viewMode
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({
@@ -117,8 +130,10 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      viewMode,
+      setViewMode,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, viewMode]
   )
 
   return (
@@ -130,6 +145,7 @@ function SidebarProvider({
             {
               "--sidebar-width": SIDEBAR_WIDTH,
               "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
+              "--sidebar-margin": SIDEBAR_MARGIN,
               ...style,
             } as React.CSSProperties
           }
@@ -167,7 +183,7 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state, openMobile, setOpenMobile, viewMode } = useSidebar()
 
   if (collapsible === "none") {
     return (
@@ -226,7 +242,7 @@ function Sidebar({
         SIDEBAR_STYLES.text,
       )}
       data-state={state}
-      data-collapsible={state === "collapsed" ? collapsible : ""}
+      data-collapsible={state === "collapsed" ? collapsible : state === "icon" ? "icon" : ""}
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
@@ -234,28 +250,31 @@ function Sidebar({
       <div
         data-slot="sidebar-gap"
         className={cn(
-          "relative w-(--sidebar-width) transition-[width] duration-300 ease-out bg-transparent",
-          "group-data-[collapsible=offcanvas]:w-0",
-          "group-data-[side=right]:rotate-180",
-          variant === "floating" || variant === "inset"
-            ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
-            : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)"
+          "relative bg-transparent",
+          // État expanded
+          "w-[calc(var(--sidebar-width)+var(--sidebar-margin)*2)]",
+          // État icon
+          "group-data-[state=icon]:w-[calc(var(--sidebar-width-icon)+var(--sidebar-margin)*2)]",
+          // État collapsed (complètement caché)
+          "group-data-[state=collapsed]:w-0",
+          "group-data-[side=right]:rotate-180"
         )}
       />
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) md:flex",
-          "transition-[left,right,width] duration-300 ease-out",
+          "fixed z-10 hidden md:flex",
+          // Positionnement avec marges
+          "inset-y-(--sidebar-margin)",
           side === "left"
-            ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
-            : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
-          variant === "floating" || variant === "inset"
-            ? "p-3 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-            : cn(
-                "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
-                SIDEBAR_STYLES.border
-              ),
+            ? "left-(--sidebar-margin)"
+            : "right-(--sidebar-margin)",
+          // Largeur selon l'état
+          "w-(--sidebar-width)",
+          "group-data-[state=icon]:w-(--sidebar-width-icon)",
+          "group-data-[state=collapsed]:w-0 group-data-[state=collapsed]:opacity-0",
+          // Transitions
+          "transition-all duration-300 ease-out",
           className
         )}
         {...props}
@@ -264,13 +283,16 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
           className={cn(
-            "flex h-full w-full flex-col",
+            "flex h-full w-full flex-col overflow-hidden",
             SIDEBAR_STYLES.bg,
             SIDEBAR_STYLES.backdrop,
             SIDEBAR_STYLES.innerBorder,
-            // Floating variant
-            "group-data-[variant=floating]:rounded-xl",
-            "group-data-[variant=floating]:border-2 group-data-[variant=floating]:border-slate-100 dark:group-data-[variant=floating]:border-slate-900"
+            // Design détaché avec bordures arrondies
+            "rounded-xl",
+            "border-2 border-slate-100 dark:border-slate-900",
+            // Padding interne
+            "p-3",
+            "group-data-[state=icon]:p-2"
           )}
         >
           {children}
@@ -285,7 +307,7 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar, open } = useSidebar()
+  const { toggleSidebar, viewMode } = useSidebar()
 
   return (
     <Button
@@ -294,10 +316,12 @@ function SidebarTrigger({
       variant="ghost"
       size="icon"
       className={cn(
-        "size-8 rounded-md",
+        "size-8 rounded-md shrink-0",
         "text-slate-600 dark:text-slate-400",
         "hover:bg-slate-100 hover:text-slate-900",
         "dark:hover:bg-slate-900 dark:hover:text-slate-100",
+        "transition-transform duration-200",
+        viewMode === "icon" && "scale-90",
         className
       )}
       onClick={(event) => {
@@ -306,12 +330,14 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      {open ? (
-        <ChevronsLeft className="size-5" />
+      {viewMode === "expanded" ? (
+        <ChevronsLeft className="size-4" />
+      ) : viewMode === "icon" ? (
+        <ChevronsLeft className="size-4 opacity-50" />
       ) : (
-        <ChevronsRight className="size-5" />
+        <ChevronsRight className="size-4" />
       )}
-      <span className="sr-only">Toggle Sidebar</span>
+      <span className="sr-only">Toggle Sidebar (Expanded → Icons → Collapsed)</span>
     </Button>
   )
 }
@@ -360,6 +386,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
         "md:peer-data-[variant=inset]:m-3 md:peer-data-[variant=inset]:ml-0",
         "md:peer-data-[variant=inset]:rounded-xl",
         "md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-3",
+        "md:peer-data-[variant=inset]:peer-data-[state=icon]:ml-0",
         "md:peer-data-[variant=inset]:border-2 md:peer-data-[variant=inset]:border-slate-100",
         "md:peer-data-[variant=inset]:dark:border-slate-900",
         className
@@ -386,6 +413,7 @@ function SidebarInput({
         "placeholder:text-slate-400 dark:placeholder:text-slate-500",
         "focus-visible:outline-none focus-visible:border-slate-900 dark:focus-visible:border-slate-100",
         "focus-visible:bg-slate-100 dark:focus-visible:bg-slate-900",
+        "group-data-[state=icon]:hidden",
         className
       )}
       {...props}
@@ -399,13 +427,18 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="sidebar-header"
       data-sidebar="header"
       className={cn(
-        "flex flex-col gap-4 px-4 py-6",
-        // Bordure gauche accent
+        "flex flex-col gap-4 px-3 py-5",
+        // Bordure gauche accent + fond
         "relative",
         "border-b border-slate-100 dark:border-slate-900",
-        "before:absolute before:left-0 before:top-6 before:bottom-6",
+        "bg-gradient-to-br from-slate-50/50 to-transparent dark:from-slate-900/30 dark:to-transparent",
+        "before:absolute before:left-0 before:top-4 before:bottom-4",
         "before:w-[3px] before:bg-slate-900 dark:before:bg-slate-100",
         "before:rounded-r-full",
+        // Mode icon - logo centré
+        "group-data-[state=icon]:px-0 group-data-[state=icon]:py-4 group-data-[state=icon]:justify-center group-data-[state=icon]:items-center",
+        "group-data-[state=icon]:before:hidden",
+        "group-data-[state=icon]:bg-gradient-to-br group-data-[state=icon]:from-slate-100 dark:group-data-[state=icon]:from-slate-900/50",
         className
       )}
       {...props}
@@ -419,10 +452,13 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="sidebar-footer"
       data-sidebar="footer"
       className={cn(
-        "flex flex-col gap-4 px-4 py-6 mt-auto",
+        "flex flex-col gap-3 px-3 py-4 mt-auto",
         // Bordure haut
         "relative",
         "border-t border-slate-100 dark:border-slate-900",
+        "bg-gradient-to-tr from-slate-50/30 to-transparent dark:from-slate-900/20 dark:to-transparent",
+        // Mode icon
+        "group-data-[state=icon]:px-0 group-data-[state=icon]:py-3 group-data-[state=icon]:items-center",
         className
       )}
       {...props}
@@ -439,8 +475,9 @@ function SidebarSeparator({
       data-slot="sidebar-separator"
       data-sidebar="separator"
       className={cn(
-        "mx-4 w-auto h-px",
+        "mx-2 w-auto h-px my-1",
         "bg-slate-100 dark:bg-slate-900",
+        "group-data-[state=icon]:mx-1",
         className
       )}
       {...props}
@@ -454,8 +491,9 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="sidebar-content"
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto py-3",
-        "group-data-[collapsible=icon]:overflow-hidden",
+        "flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto py-2 px-1",
+        "group-data-[state=icon]:overflow-y-auto group-data-[state=icon]:overflow-x-hidden",
+        "group-data-[state=icon]:px-0",
         // Custom scrollbar minimaliste
         "scrollbar-thin scrollbar-track-transparent",
         "scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800",
@@ -471,7 +509,11 @@ function SidebarGroup({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="sidebar-group"
       data-sidebar="group"
-      className={cn("relative flex w-full min-w-0 flex-col px-3 py-1.5", className)}
+      className={cn(
+        "relative flex w-full min-w-0 flex-col px-2 py-1.5",
+        "group-data-[state=icon]:px-0 group-data-[state=icon]:items-center",
+        className
+      )}
       {...props}
     />
   )
@@ -489,12 +531,12 @@ function SidebarGroupLabel({
       data-slot="sidebar-group-label"
       data-sidebar="group-label"
       className={cn(
-        "flex h-7 shrink-0 items-center px-3 mb-1",
+        "flex h-7 shrink-0 items-center px-2 mb-1.5 mt-0.5",
         "text-[11px] font-bold uppercase tracking-wide",
         "text-slate-400 dark:text-slate-500",
         "outline-hidden",
         "[&>svg]:size-3.5 [&>svg]:shrink-0 [&>svg]:mr-2",
-        "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
+        "group-data-[state=icon]:hidden",
         className
       )}
       {...props}
@@ -514,7 +556,7 @@ function SidebarGroupAction({
       data-slot="sidebar-group-action"
       data-sidebar="group-action"
       className={cn(
-        "absolute top-1.5 right-2 flex aspect-square w-6 items-center justify-center",
+        "absolute top-1.5 right-1 flex aspect-square w-6 items-center justify-center",
         "rounded-md p-0",
         "text-slate-400 dark:text-slate-500",
         "outline-hidden",
@@ -522,7 +564,7 @@ function SidebarGroupAction({
         "dark:hover:bg-slate-900 dark:hover:text-slate-100",
         "[&>svg]:size-3.5 [&>svg]:shrink-0",
         "after:absolute after:-inset-2 md:after:hidden",
-        "group-data-[collapsible=icon]:hidden",
+        "group-data-[state=icon]:hidden",
         className
       )}
       {...props}
@@ -549,7 +591,11 @@ function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
     <ul
       data-slot="sidebar-menu"
       data-sidebar="menu"
-      className={cn("flex w-full min-w-0 flex-col gap-1", className)}
+      className={cn(
+        "flex w-full min-w-0 flex-col gap-0.5",
+        "group-data-[state=icon]:gap-1",
+        className
+      )}
       {...props}
     />
   )
@@ -571,7 +617,7 @@ const sidebarMenuButtonVariants = cva(
   [
     // Base avec bordure gauche pour l'indicateur
     "peer/menu-button relative flex w-full items-center gap-2.5 overflow-hidden",
-    "mx-1 px-3 py-2 rounded-md",
+    "mx-0 px-3 py-2 rounded-md",
     "text-left text-[13px] font-medium outline-hidden",
     // Bordure latérale indicatrice (invisible par défaut)
     "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2",
@@ -582,12 +628,17 @@ const sidebarMenuButtonVariants = cva(
     "aria-disabled:pointer-events-none aria-disabled:opacity-40",
     // Menu action
     "group-has-data-[sidebar=menu-action]/menu-item:pr-9",
-    // Icon mode
-    "group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:p-2!",
-    "group-data-[collapsible=icon]:justify-center",
+    // Icon mode - seulement icônes, IMPORTANT: les icônes SVG restent visibles
+    "group-data-[state=icon]:!w-10 group-data-[state=icon]:!h-10 group-data-[state=icon]:min-w-10",
+    "group-data-[state=icon]:mx-auto group-data-[state=icon]:!p-2",
+    "group-data-[state=icon]:justify-center group-data-[state=icon]:items-center",
+    "group-data-[state=icon]:[&>span:not(.sr-only)]:!hidden",
+    "group-data-[state=icon]:before:hidden",
+    // Icon en mode icon - plus grand
+    "group-data-[state=icon]:[&>svg]:!size-5",
     // Text and icons
     "[&>span:last-child]:truncate",
-    "[&>svg]:size-[18px] [&>svg]:shrink-0",
+    "[&>svg]:size-[18px] [&>svg]:shrink-0 [&>svg]:flex-shrink-0",
     "[&>svg]:text-slate-500 dark:[&>svg]:text-slate-400",
     // Default text color
     "text-slate-600 dark:text-slate-400",
@@ -640,7 +691,7 @@ function SidebarMenuButton({
   tooltip?: string | React.ComponentProps<typeof TooltipContent>
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const Comp = asChild ? Slot : "button"
-  const { isMobile, state } = useSidebar()
+  const { isMobile, state, viewMode } = useSidebar()
 
   const button = (
     <Comp
@@ -663,13 +714,15 @@ function SidebarMenuButton({
     }
   }
 
+  // == REWRITE TOOLTIP TRIGGER/COLLAPSE LOGIC HERE:
+  // Show tooltip when only icon is visible (viewMode === "icon"), not when fully expanded or mobile.
   return (
     <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
       <TooltipContent
         side="right"
         align="center"
-        hidden={state !== "collapsed" || isMobile}
+        hidden={viewMode !== "icon" || isMobile}
         {...tooltip}
       />
     </Tooltip>
@@ -692,7 +745,7 @@ function SidebarMenuAction({
       data-slot="sidebar-menu-action"
       data-sidebar="menu-action"
       className={cn(
-        "absolute top-1/2 -translate-y-1/2 right-2 flex aspect-square w-6 items-center justify-center",
+        "absolute top-1/2 -translate-y-1/2 right-1 flex aspect-square w-6 items-center justify-center",
         "rounded-md p-0",
         "text-slate-400 dark:text-slate-500",
         "outline-hidden",
@@ -701,7 +754,7 @@ function SidebarMenuAction({
         "peer-hover/menu-button:text-slate-600 dark:peer-hover/menu-button:text-slate-400",
         "[&>svg]:size-3.5 [&>svg]:shrink-0",
         "after:absolute after:-inset-2 md:after:hidden",
-        "group-data-[collapsible=icon]:hidden",
+        "group-data-[state=icon]:hidden",
         showOnHover &&
           "peer-data-[active=true]/menu-button:text-slate-900 dark:peer-data-[active=true]/menu-button:text-slate-50 group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 md:opacity-0",
         className
@@ -720,7 +773,7 @@ function SidebarMenuBadge({
       data-slot="sidebar-menu-badge"
       data-sidebar="menu-badge"
       className={cn(
-        "pointer-events-none absolute top-1/2 -translate-y-1/2 right-2",
+        "pointer-events-none absolute top-1/2 -translate-y-1/2 right-1.5",
         "flex h-5 min-w-5 items-center justify-center",
         "rounded-md px-1.5",
         "text-[10px] font-bold tabular-nums",
@@ -729,7 +782,7 @@ function SidebarMenuBadge({
         "select-none",
         "peer-data-[active=true]/menu-button:bg-slate-900 peer-data-[active=true]/menu-button:text-white",
         "dark:peer-data-[active=true]/menu-button:bg-slate-100 dark:peer-data-[active=true]/menu-button:text-slate-900",
-        "group-data-[collapsible=icon]:hidden",
+        "group-data-[state=icon]:hidden",
         className
       )}
       {...props}
@@ -774,14 +827,45 @@ function SidebarMenuSkeleton({
   )
 }
 
+function SidebarLogo({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="sidebar-logo"
+      data-sidebar="logo"
+      className={cn(
+        "flex items-center justify-center gap-3 px-2 py-1 mb-2",
+        "font-bold text-base",
+        "text-slate-900 dark:text-slate-50",
+        // Mode expanded - logo + texte
+        "group-data-[state=expanded]:justify-start",
+        // Mode icon - logo seul centré, plus grand
+        "group-data-[state=icon]:justify-center",
+        "group-data-[state=icon]:[&>span:not(.sr-only)]:!hidden",
+        "group-data-[state=icon]:[&>svg]:!size-8",
+        "group-data-[state=icon]:mb-0",
+        // Icône
+        "[&>svg]:size-6 [&>svg]:shrink-0",
+        "[&>svg]:text-slate-900 dark:[&>svg]:text-slate-100",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
 function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
+  // Trick: show submenus only if NOT in icon mode. This disables hiding in icon mode.
+  // Remove "group-data-[state=icon]:hidden" so dropdown works in icon-only mode.
   return (
     <ul
       data-slot="sidebar-menu-sub"
       data-sidebar="menu-sub"
       className={cn(
         "flex min-w-0 flex-col gap-0.5 pl-8 pr-2 py-1",
-        "group-data-[collapsible=icon]:hidden",
+        // Intentionally NOT hiding in icon-only view to allow dropdowns
         className
       )}
       {...props}
@@ -815,7 +899,8 @@ function SidebarMenuSubButton({
   isActive?: boolean
 }) {
   const Comp = asChild ? Slot : "a"
-
+  const { viewMode } = useSidebar()
+  // Only hide in collapsed, not in icon mode
   return (
     <Comp
       data-slot="sidebar-menu-sub-button"
@@ -845,7 +930,7 @@ function SidebarMenuSubButton({
         "dark:data-[active=true]:bg-slate-900 dark:data-[active=true]:text-slate-50",
         "dark:data-[active=true]:before:bg-slate-100",
         size === "sm" && "text-[11px] min-h-[1.625rem]",
-        "group-data-[collapsible=icon]:hidden",
+        viewMode === "collapsed" && "hidden",
         className
       )}
       {...props}
@@ -864,6 +949,7 @@ export {
   SidebarHeader,
   SidebarInput,
   SidebarInset,
+  SidebarLogo,
   SidebarMenu,
   SidebarMenuAction,
   SidebarMenuBadge,
