@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Alert, Badge } from '@/components/ui';
 import {
   moduleService,
@@ -61,9 +61,16 @@ export function OrganizationModuleManager({
     new Set()
   );
 
+  console.log('🔄 OrganizationModuleManager render', {
+    organizationId,
+    orgModulesCount: orgModules.length,
+    loading
+  });
+
   useEffect(() => {
     loadData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organizationId]);
 
   const loadData = async () => {
     try {
@@ -72,11 +79,22 @@ export function OrganizationModuleManager({
 
       const [modules, orgModulesData] = await Promise.all([
         moduleService.getAll(),
-        organizationModuleService.getAll(),
+        organizationModuleService.getByOrganization(organizationId),
       ]);
 
+      // Dédupliquer les modules par ID
+      const uniqueOrgModules = Array.from(
+        new Map(orgModulesData.map(om => [om.id, om])).values()
+      );
+
+      console.log('📦 Modules chargés:', {
+        total: orgModulesData.length,
+        unique: uniqueOrgModules.length,
+        duplicates: orgModulesData.length - uniqueOrgModules.length
+      });
+
       setAllModules(modules);
-      setOrgModules(orgModulesData);
+      setOrgModules(uniqueOrgModules);
     } catch (err) {
       console.error('Erreur lors du chargement des modules:', err);
       setError('Erreur lors du chargement des modules');
@@ -140,225 +158,182 @@ export function OrganizationModuleManager({
     );
   }
 
-  // Grouper les modules par état
-  const activeModules = orgModules.filter((om) => om.is_enabled);
-  const inactiveModules = orgModules.filter((om) => !om.is_enabled);
+  // Grouper les modules par catégorie et état
+  const groupedModules = orgModules.reduce((acc, om) => {
+    const category = om.module_details.category || 'Autres';
+    if (!acc[category]) {
+      acc[category] = { active: [], inactive: [] };
+    }
+    if (om.is_enabled) {
+      acc[category].active.push(om);
+    } else {
+      acc[category].inactive.push(om);
+    }
+    return acc;
+  }, {} as Record<string, { active: OrganizationModule[]; inactive: OrganizationModule[] }>);
+
+  const totalActive = orgModules.filter((om) => om.is_enabled).length;
+
+  console.log('📊 Modules groupés:', {
+    categories: Object.keys(groupedModules),
+    details: Object.entries(groupedModules).map(([cat, mods]) => ({
+      category: cat,
+      active: mods.active.length,
+      inactive: mods.inactive.length,
+      activeModules: mods.active.map(m => m.module_details.name),
+      inactiveModules: mods.inactive.map(m => m.module_details.name)
+    }))
+  });
 
   return (
     <div className="space-y-6">
       {error && <Alert variant="error">{error}</Alert>}
       {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground">
-            Modules fonctionnels
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gérez les modules activés pour cette organisation
-          </p>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle className="w-4 h-4 text-emerald-600" />
+            <span className="text-xs font-medium text-emerald-900 dark:text-emerald-100">Actifs</span>
+          </div>
+          <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{totalActive}</p>
         </div>
-        <Badge variant="outline" className="text-xs">
-          {activeModules.length} / {orgModules.length} activés
-        </Badge>
+        <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+          <div className="flex items-center gap-2 mb-1">
+            <XCircle className="w-4 h-4 text-slate-600" />
+            <span className="text-xs font-medium text-slate-900 dark:text-slate-100">Inactifs</span>
+          </div>
+          <p className="text-2xl font-bold text-slate-700 dark:text-slate-400">{orgModules.length - totalActive}</p>
+        </div>
+        <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-center gap-2 mb-1">
+            <Package className="w-4 h-4 text-blue-600" />
+            <span className="text-xs font-medium text-blue-900 dark:text-blue-100">Total</span>
+          </div>
+          <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{orgModules.length}</p>
+        </div>
       </div>
 
-      {/* Active Modules */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <CheckCircle className="w-4 h-4 text-emerald-600" />
-          <h4 className="text-sm font-semibold text-foreground">
-            Modules actifs ({activeModules.length})
-          </h4>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3">
-          {activeModules.length === 0 ? (
-            <div className="p-4 bg-muted/30 border border-border rounded-lg text-center">
-              <p className="text-sm text-muted-foreground">
-                Aucun module actif
-              </p>
+      {/* Modules groupés par catégorie */}
+      <div className="space-y-6">
+        {Object.entries(groupedModules).map(([category, { active, inactive }]) => (
+          <div key={category} className="space-y-3">
+            {/* Category Header */}
+            <div className="flex items-center gap-3 pb-2 border-b border-border">
+              <h4 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                {category}
+              </h4>
+              <Badge variant="outline" className="text-xs">
+                {active.length + inactive.length} module{active.length + inactive.length > 1 ? 's' : ''}
+              </Badge>
             </div>
-          ) : (
-            activeModules.map((orgModule) => {
-              const module = orgModule.module_details;
-              const Icon = iconMap[module.icon] || Package;
-              const isProcessing = processingModules.has(orgModule.id);
 
-              return (
-                <div
-                  key={orgModule.id}
-                  className="group relative p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-200 dark:border-emerald-800 rounded-lg transition-all hover:shadow-md"
-                >
-                  {/* Module Info */}
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-emerald-100 dark:bg-emerald-900 rounded-lg">
-                      <Icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                    </div>
+            {/* Active Modules in Category */}
+            {active.length > 0 && (
+              <div className="grid grid-cols-1 gap-2">
+                {active.map((orgModule) => {
+                  const module = orgModule.module_details;
+                  const Icon = iconMap[module.icon] || Package;
+                  const isProcessing = processingModules.has(orgModule.id);
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h5 className="font-semibold text-foreground">
-                          {module.name}
-                        </h5>
-                        {module.is_core && (
-                          <Badge variant="outline" className="text-xs">
-                            Core
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {module.description}
-                      </p>
-
-                      {/* Dependencies */}
-                      {module.depends_on && module.depends_on.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {module.depends_on.map((dep) => {
-                            const depModule = allModules.find(
-                              (m) => m.code === dep
-                            );
-                            return (
-                              <Badge
-                                key={dep}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                Requiert: {depModule?.name || dep}
-                              </Badge>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Action Button */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleToggleModule(orgModule.id, orgModule.is_enabled)
-                      }
-                      disabled={module.is_core || isProcessing}
-                      className={`
-                        flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all
-                        ${
-                          module.is_core
-                            ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
-                            : 'bg-white dark:bg-slate-800 text-destructive border border-destructive/20 hover:bg-destructive/10'
-                        }
-                        ${isProcessing ? 'opacity-50 cursor-wait' : ''}
-                      `}
-                      title={
-                        module.is_core
-                          ? 'Ce module ne peut pas être désactivé'
-                          : 'Désactiver ce module'
-                      }
+                  return (
+                    <div
+                      key={orgModule.id}
+                      className="group relative p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg transition-all hover:shadow-sm"
                     >
-                      {isProcessing ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <PowerOff className="w-3 h-3" />
-                      )}
-                      {module.is_core
-                        ? 'Obligatoire'
-                        : isProcessing
-                        ? 'Traitement...'
-                        : 'Désactiver'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900 rounded-lg shrink-0">
+                          <Icon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h5 className="font-medium text-sm text-foreground">{module.name}</h5>
+                            {module.is_core && (
+                              <Badge variant="outline" className="text-xs">Core</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-1">{module.description}</p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggleModule(orgModule.id, orgModule.is_enabled)}
+                          disabled={module.is_core || isProcessing}
+                          className={`
+                            flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all shrink-0
+                            ${
+                              module.is_core
+                                ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                                : 'bg-white dark:bg-slate-800 text-red-600 border border-red-200 hover:bg-red-50'
+                            }
+                            ${isProcessing ? 'opacity-50 cursor-wait' : ''}
+                          `}
+                        >
+                          {isProcessing ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <PowerOff className="w-3 h-3" />
+                          )}
+                          {module.is_core ? 'Core' : 'Désactiver'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Inactive Modules in Category */}
+            {inactive.length > 0 && (
+              <div className="grid grid-cols-1 gap-2">
+                {inactive.map((orgModule) => {
+                  const module = orgModule.module_details;
+                  const Icon = iconMap[module.icon] || Package;
+                  const isProcessing = processingModules.has(orgModule.id);
+
+                  return (
+                    <div
+                      key={orgModule.id}
+                      className="group relative p-3 bg-muted/30 border border-border rounded-lg transition-all hover:border-primary/50 hover:shadow-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-muted rounded-lg shrink-0">
+                          <Icon className="w-4 h-4 text-muted-foreground" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <h5 className="font-medium text-sm text-muted-foreground">{module.name}</h5>
+                          <p className="text-xs text-muted-foreground/70 line-clamp-1">{module.description}</p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggleModule(orgModule.id, orgModule.is_enabled)}
+                          disabled={isProcessing}
+                          className={`
+                            flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all shrink-0
+                            bg-primary text-primary-foreground hover:bg-primary/90
+                            ${isProcessing ? 'opacity-50 cursor-wait' : ''}
+                          `}
+                        >
+                          {isProcessing ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Power className="w-3 h-3" />
+                          )}
+                          Activer
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
-
-      {/* Inactive Modules */}
-      {inactiveModules.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <XCircle className="w-4 h-4 text-muted-foreground" />
-            <h4 className="text-sm font-semibold text-foreground">
-              Modules disponibles ({inactiveModules.length})
-            </h4>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3">
-            {inactiveModules.map((orgModule) => {
-              const module = orgModule.module_details;
-              const Icon = iconMap[module.icon] || Package;
-              const isProcessing = processingModules.has(orgModule.id);
-
-              return (
-                <div
-                  key={orgModule.id}
-                  className="group relative p-4 bg-muted/30 border border-border rounded-lg transition-all hover:border-primary/50 hover:shadow-sm"
-                >
-                  {/* Module Info */}
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-muted rounded-lg">
-                      <Icon className="w-5 h-5 text-muted-foreground" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h5 className="font-semibold text-muted-foreground">
-                          {module.name}
-                        </h5>
-                      </div>
-                      <p className="text-sm text-muted-foreground/70 line-clamp-2">
-                        {module.description}
-                      </p>
-
-                      {/* Dependencies */}
-                      {module.depends_on && module.depends_on.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {module.depends_on.map((dep) => {
-                            const depModule = allModules.find(
-                              (m) => m.code === dep
-                            );
-                            return (
-                              <Badge
-                                key={dep}
-                                variant="secondary"
-                                className="text-xs opacity-60"
-                              >
-                                Requiert: {depModule?.name || dep}
-                              </Badge>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Action Button */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleToggleModule(orgModule.id, orgModule.is_enabled)
-                      }
-                      disabled={isProcessing}
-                      className={`
-                        flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all
-                        bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm
-                        ${isProcessing ? 'opacity-50 cursor-wait' : ''}
-                      `}
-                    >
-                      {isProcessing ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Power className="w-3 h-3" />
-                      )}
-                      {isProcessing ? 'Activation...' : 'Activer'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Info Box */}
       <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">

@@ -8,10 +8,24 @@ import type { OrganizationModule } from '@/lib/types/core';
 
 export const organizationModuleService = {
   /**
-   * Récupérer tous les modules d'une organisation
+   * Récupérer tous les modules d'organisation (toutes organisations)
    */
   async getAll(): Promise<OrganizationModule[]> {
     const response = await apiClient.get<any>(API_ENDPOINTS.CORE.ORGANIZATION_MODULES.LIST);
+    // Handle Django pagination response
+    if (response && typeof response === 'object' && 'results' in response) {
+      return response.results || [];
+    }
+    return Array.isArray(response) ? response : [];
+  },
+
+  /**
+   * Récupérer tous les modules d'une organisation spécifique
+   */
+  async getByOrganization(organizationId: string): Promise<OrganizationModule[]> {
+    const response = await apiClient.get<any>(
+      `${API_ENDPOINTS.CORE.ORGANIZATION_MODULES.LIST}?organization=${organizationId}`
+    );
     // Handle Django pagination response
     if (response && typeof response === 'object' && 'results' in response) {
       return response.results || [];
