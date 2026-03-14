@@ -1,12 +1,10 @@
 "use client"
 
-import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 import { ChevronsLeft, ChevronsRight } from "lucide-react"
+import * as React from "react"
 
-import { useIsMobile } from "@/lib/hooks/use-mobile"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
@@ -24,6 +22,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useIsMobile } from "@/lib/hooks/use-mobile"
+import { cn } from "@/lib/utils"
 
 // ============================================
 // DESIGN PREMIUM SAAS - SIDEBAR PROFESSIONNELLE
@@ -877,5 +877,5 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
-  useSidebar,
+  useSidebar
 }
