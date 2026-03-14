@@ -183,7 +183,7 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state, openMobile, setOpenMobile, viewMode } = useSidebar()
 
   if (collapsible === "none") {
     return (
@@ -691,7 +691,7 @@ function SidebarMenuButton({
   tooltip?: string | React.ComponentProps<typeof TooltipContent>
 } & VariantProps<typeof sidebarMenuButtonVariants>) {
   const Comp = asChild ? Slot : "button"
-  const { isMobile, state } = useSidebar()
+  const { isMobile, state, viewMode } = useSidebar()
 
   const button = (
     <Comp
@@ -714,13 +714,15 @@ function SidebarMenuButton({
     }
   }
 
+  // == REWRITE TOOLTIP TRIGGER/COLLAPSE LOGIC HERE:
+  // Show tooltip when only icon is visible (viewMode === "icon"), not when fully expanded or mobile.
   return (
     <Tooltip>
       <TooltipTrigger asChild>{button}</TooltipTrigger>
       <TooltipContent
         side="right"
         align="center"
-        hidden={state === "expanded" || isMobile}
+        hidden={viewMode !== "icon" || isMobile}
         {...tooltip}
       />
     </Tooltip>
@@ -855,13 +857,15 @@ function SidebarLogo({
 }
 
 function SidebarMenuSub({ className, ...props }: React.ComponentProps<"ul">) {
+  // Trick: show submenus only if NOT in icon mode. This disables hiding in icon mode.
+  // Remove "group-data-[state=icon]:hidden" so dropdown works in icon-only mode.
   return (
     <ul
       data-slot="sidebar-menu-sub"
       data-sidebar="menu-sub"
       className={cn(
         "flex min-w-0 flex-col gap-0.5 pl-8 pr-2 py-1",
-        "group-data-[state=icon]:hidden",
+        // Intentionally NOT hiding in icon-only view to allow dropdowns
         className
       )}
       {...props}
@@ -895,7 +899,8 @@ function SidebarMenuSubButton({
   isActive?: boolean
 }) {
   const Comp = asChild ? Slot : "a"
-
+  const { viewMode } = useSidebar()
+  // Only hide in collapsed, not in icon mode
   return (
     <Comp
       data-slot="sidebar-menu-sub-button"
@@ -925,7 +930,7 @@ function SidebarMenuSubButton({
         "dark:data-[active=true]:bg-slate-900 dark:data-[active=true]:text-slate-50",
         "dark:data-[active=true]:before:bg-slate-100",
         size === "sm" && "text-[11px] min-h-[1.625rem]",
-        "group-data-[state=icon]:hidden",
+        viewMode === "collapsed" && "hidden",
         className
       )}
       {...props}
