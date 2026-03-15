@@ -63,11 +63,11 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useModules } from "@/lib/contexts";
 import { usePermissions } from "@/lib/hooks/use-permissions";
 import { authService, CurrentUser } from "@/lib/services/auth/auth.service";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn } from "@/lib/utils";
-import { useModules } from "@/lib/contexts";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
@@ -576,7 +576,7 @@ export function OrganisationSideBar() {
             >
               <Link href={`/apps/${orgSlug}/dashboard`} className="gap-2">
                 {/* logo sera ici de lentreprise  */}
-                <Image src={"/images/logo.png"} alt="logo de lentreprise" width={20} height={20} />
+                <Image src={"/images/logo-icon.png"} alt="logo de lentreprise" width={20} height={20} />
                 {!isCollapsed && (
                   <div className="grid flex-1 text-left leading-tight hover:text-primary">
                     <span className="truncate font-bold text-xs capitalize hover:text-primary">

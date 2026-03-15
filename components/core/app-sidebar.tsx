@@ -1,22 +1,29 @@
 "use client";
 
+import {
+  ChevronUp,
+  LayoutDashboard,
+  LogOut,
+  Settings,
+  User,
+  Users
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   HiOutlineBuildingOffice2,
   HiOutlineCog6Tooth,
 } from "react-icons/hi2";
-import {
-  ChevronUp,
-  LogOut,
-  Settings,
-  Sparkles,
-  LayoutDashboard,
-  Users,
-  User,
-} from "lucide-react";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -31,16 +38,9 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { authService, CurrentUser } from "@/lib/services/core";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 // Types
 interface MenuItem {
@@ -149,14 +149,7 @@ export function AppSidebar() {
               className="hover:bg-transparent active:bg-transparent px-2"
             >
               <Link href="/core/dashboard" className="gap-3">
-                <div className={cn(
-                  "flex aspect-square items-center justify-center rounded-xl font-bold text-sm transition-all",
-                  "bg-linear-to-br from-primary via-primary to-primary/80 text-primary-foreground",
-                  "shadow-lg shadow-primary/20",
-                  isCollapsed ? "size-10" : "size-10"
-                )}>
-                  L
-                </div>
+              <Image src={"/images/logo-icon.png"} alt="logo de lentreprise" width={20} height={20} />
                 {!isCollapsed && (
                   <div className="grid flex-1 text-left leading-tight">
                     <span className="truncate font-bold text-base tracking-tight">
