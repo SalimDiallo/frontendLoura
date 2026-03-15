@@ -23,3 +23,8 @@ export * from "./usePDF";
 
 // Ré-export des endpoints PDF pour faciliter l'utilisation
 export { PDFEndpoints } from '../services/pdf.service';
+
+// Hooks offline et PWA
+export * from './useOnlineStatus';
+export * from './useSyncStatus';
+export * from './useServiceWorker';

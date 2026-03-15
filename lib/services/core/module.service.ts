@@ -2,16 +2,28 @@
  * Service de gestion des modules - Module Core
  */
 
-import { apiClient } from '@/lib/api/client';
+import { cacheManager } from '@/lib/offline';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import type { Module, DefaultModulesResponse } from '@/lib/types/core';
+
+// Les modules sont relativement statiques
+const CACHE_TTL = {
+  LIST: 30 * 60 * 1000,     // 30 minutes pour la liste
+  DETAIL: 30 * 60 * 1000,   // 30 minutes pour les détails
+  DEFAULTS: 30 * 60 * 1000, // 30 minutes pour les defaults
+  BY_CATEGORY: 30 * 60 * 1000, // 30 minutes pour par catégorie
+  ACTIVE: 5 * 60 * 1000,    // 5 minutes pour les modules actifs
+};
 
 export const moduleService = {
   /**
    * Récupérer tous les modules disponibles
    */
   async getAll(): Promise<Module[]> {
-    const response = await apiClient.get<any>(API_ENDPOINTS.CORE.MODULES.LIST);
+    const response = await cacheManager.get<any>(
+      API_ENDPOINTS.CORE.MODULES.LIST,
+      { ttl: CACHE_TTL.LIST }
+    );
     // Handle Django pagination response { count: number, results: [...] }
     if (response && typeof response === 'object' && 'results' in response) {
       return response.results || [];
@@ -24,7 +36,10 @@ export const moduleService = {
    * Récupérer un module par son ID
    */
   async getById(id: string): Promise<Module> {
-    return apiClient.get<Module>(API_ENDPOINTS.CORE.MODULES.DETAIL(id));
+    return cacheManager.get<Module>(
+      API_ENDPOINTS.CORE.MODULES.DETAIL(id),
+      { ttl: CACHE_TTL.DETAIL }
+    );
   },
 
   /**
@@ -44,15 +59,16 @@ export const moduleService = {
     }
 
     const url = `${API_ENDPOINTS.CORE.MODULES.DEFAULTS}?${queryParams.toString()}`;
-    return apiClient.get<DefaultModulesResponse>(url);
+    return cacheManager.get<DefaultModulesResponse>(url, { ttl: CACHE_TTL.DEFAULTS });
   },
 
   /**
    * Récupérer les modules groupés par catégorie
    */
   async getByCategory(): Promise<Record<string, Module[]>> {
-    return apiClient.get<Record<string, Module[]>>(
-      API_ENDPOINTS.CORE.MODULES.BY_CATEGORY
+    return cacheManager.get<Record<string, Module[]>>(
+      API_ENDPOINTS.CORE.MODULES.BY_CATEGORY,
+      { ttl: CACHE_TTL.BY_CATEGORY }
     );
   },
 
@@ -68,6 +84,6 @@ export const moduleService = {
     const url = organizationSubdomain
       ? `${API_ENDPOINTS.CORE.MODULES.LIST}active_for_user/?organization_subdomain=${organizationSubdomain}`
       : `${API_ENDPOINTS.CORE.MODULES.LIST}active_for_user/`;
-    return apiClient.get(url);
+    return cacheManager.get(url, { ttl: CACHE_TTL.ACTIVE });
   },
 };

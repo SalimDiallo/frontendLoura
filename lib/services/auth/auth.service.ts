@@ -7,9 +7,13 @@
 
 import { apiClient, tokenManager } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
+import { cacheManager } from '@/lib/offline';
 import { useAuthStore, usePermissionsStore, User } from '@/lib/store';
-import type { AdminUser } from '@/lib/types/core';
-import type { Employee } from '@/lib/types/hr';
+
+// TTL pour les données d'authentification
+const CACHE_TTL = {
+  CURRENT_USER: 2 * 60 * 1000, // 2 minutes pour l'utilisateur courant
+};
 
 // ============================================================================
 // TYPES
@@ -201,10 +205,11 @@ export const authService = {
    * Récupérer l'utilisateur courant
    */
   async getCurrentUser(): Promise<UnifiedUser> {
-    const response = await apiClient.get<UnifiedUser>(
-      API_ENDPOINTS.AUTH.ME
+    const response = await cacheManager.get<UnifiedUser>(
+      API_ENDPOINTS.AUTH.ME,
+      { ttl: CACHE_TTL.CURRENT_USER }
     );
-    
+
     tokenManager.saveUser({ ...response, userType: response.user_type });
     useAuthStore.getState().setUser(response, response.user_type);
 
@@ -220,17 +225,21 @@ export const authService = {
    * Mettre à jour le profil
    */
   async updateProfile(data: Partial<UnifiedUser>): Promise<UnifiedUser> {
-    const response = await apiClient.patch<{ user: UnifiedUser; message: string }>(
+    const response = await cacheManager.patch<{ user: UnifiedUser; message: string }>(
       API_ENDPOINTS.AUTH.UPDATE_PROFILE,
-      data
+      data,
+      {
+        invalidateCache: [API_ENDPOINTS.AUTH.ME],
+        requiresOnline: true, // Mise à jour de profil nécessite une connexion
+      }
     );
-    
+
     const storedUser = tokenManager.getUser();
     const userType = storedUser?.userType || 'admin';
-    
+
     tokenManager.saveUser({ ...response.user, userType });
     useAuthStore.getState().setUser(response.user as User, userType);
-    
+
     return response.user;
   },
 

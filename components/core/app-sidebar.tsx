@@ -38,6 +38,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { OfflineIndicator } from "@/components/ui/offline-indicator";
 import { authService, CurrentUser } from "@/lib/services/core";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -168,6 +169,13 @@ export function AppSidebar() {
 
       {/* Content */}
       <SidebarContent className="px-2 py-4">
+        {/* Offline Indicator */}
+        {!isCollapsed && (
+          <div className="px-3 mb-4">
+            <OfflineIndicator />
+          </div>
+        )}
+
         {/* Menu Principal */}
         <SidebarGroup className="px-0">
           {!isCollapsed && (

@@ -7,8 +7,8 @@ import { API_ENDPOINTS } from '@/lib/api/config';
 import type {
   Employee,
   EmployeeCreate,
-  EmployeeUpdate,
   EmployeeListResponse,
+  EmployeeUpdate,
 } from '@/lib/types/hr';
 
 /**

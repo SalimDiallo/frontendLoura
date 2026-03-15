@@ -1,8 +1,13 @@
 /**
- * Service de gestion des organisations - Module Core
+ * Service de gestion des organisations avec cache - Module Core
+ *
+ * Ce service étend organizationService avec un système de cache pour:
+ * - Réduire les appels API
+ * - Fonctionner en mode offline
+ * - Synchroniser automatiquement les changements
  */
 
-import { API_ENDPOINTS, API_CONFIG } from '@/lib/api/config';
+import { API_ENDPOINTS } from '@/lib/api/config';
 import { cacheManager } from '@/lib/offline';
 import type {
   Organization,
@@ -10,36 +15,43 @@ import type {
   OrganizationUpdateData,
 } from '@/lib/types/core';
 
-// TTL configurés pour les organisations
+// TTL personnalisés par type de requête
 const CACHE_TTL = {
-  LIST: 2 * 60 * 1000,    // 2 minutes pour la liste
-  DETAIL: 5 * 60 * 1000,  // 5 minutes pour les détails
+  LIST: 2 * 60 * 1000,      // 2 minutes pour la liste
+  DETAIL: 5 * 60 * 1000,    // 5 minutes pour les détails
+  STATS: 1 * 60 * 1000,     // 1 minute pour les stats
 };
 
-export const organizationService = {
+export const organizationCachedService = {
   /**
-   * Récupérer toutes les organisations de l'utilisateur
+   * Récupérer toutes les organisations de l'utilisateur (avec cache)
    */
-  async getAll(): Promise<Organization[]> {
+  async getAll(options?: { forceRefresh?: boolean }): Promise<Organization[]> {
     const response = await cacheManager.get<{ count: number; results: Organization[] }>(
       API_ENDPOINTS.CORE.ORGANIZATIONS.LIST,
-      { ttl: CACHE_TTL.LIST }
+      {
+        ttl: CACHE_TTL.LIST,
+        forceRefresh: options?.forceRefresh,
+      }
     );
     return response.results || [];
   },
 
   /**
-   * Récupérer une organisation par son ID
+   * Récupérer une organisation par son ID (avec cache)
    */
-  async getById(id: string): Promise<Organization> {
+  async getById(id: string, options?: { forceRefresh?: boolean }): Promise<Organization> {
     return cacheManager.get<Organization>(
       API_ENDPOINTS.CORE.ORGANIZATIONS.DETAIL(id),
-      { ttl: CACHE_TTL.DETAIL }
+      {
+        ttl: CACHE_TTL.DETAIL,
+        forceRefresh: options?.forceRefresh,
+      }
     );
   },
 
   /**
-   * Récupérer une organisation par son subdomain/slug
+   * Récupérer une organisation par son subdomain/slug (avec cache)
    */
   async getBySlug(slug: string): Promise<Organization | null> {
     const organizations = await this.getAll();
@@ -48,19 +60,23 @@ export const organizationService = {
 
   /**
    * Créer une nouvelle organisation
+   * Invalide le cache de la liste après création
    */
   async create(data: OrganizationCreateData): Promise<Organization> {
     return cacheManager.post<Organization>(
       API_ENDPOINTS.CORE.ORGANIZATIONS.CREATE,
       data,
       {
-        invalidateCache: [API_ENDPOINTS.CORE.ORGANIZATIONS.LIST],
+        invalidateCache: [
+          API_ENDPOINTS.CORE.ORGANIZATIONS.LIST,
+        ],
       }
     );
   },
 
   /**
    * Mettre à jour une organisation (PATCH - partiel)
+   * Invalide le cache de la liste et du détail après mise à jour
    */
   async update(
     id: string,
@@ -145,43 +161,16 @@ export const organizationService = {
   },
 
   /**
-   * Uploader le logo d'une organisation
+   * Force le rafraîchissement du cache
    */
-  async uploadLogo(id: string, file: File): Promise<{ message: string; organization: Organization }> {
-    const formData = new FormData();
-    formData.append('logo', file);
-    
-    // Use fetch directly because apiClient does JSON.stringify which breaks FormData
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-    
-    const response = await fetch(`${API_CONFIG.baseURL}${API_ENDPOINTS.CORE.ORGANIZATIONS.UPLOAD_LOGO(id)}`, {
-      method: 'POST',
-      headers: {
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      },
-      body: formData,
-    });
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Erreur upload' }));
-      throw new Error(error.error || error.message || 'Erreur lors de l\'upload');
-    }
-    
-    return response.json();
+  async refreshCache(): Promise<void> {
+    await this.getAll({ forceRefresh: true });
   },
 
   /**
-   * Supprimer le logo d'une organisation
+   * Vide le cache des organisations
    */
-  async deleteLogo(id: string): Promise<{ message: string }> {
-    return cacheManager.delete(
-      API_ENDPOINTS.CORE.ORGANIZATIONS.UPLOAD_LOGO(id),
-      {
-        invalidateCache: [
-          API_ENDPOINTS.CORE.ORGANIZATIONS.LIST,
-          API_ENDPOINTS.CORE.ORGANIZATIONS.DETAIL(id),
-        ],
-      }
-    );
+  async clearCache(): Promise<void> {
+    await cacheManager.invalidateCache(API_ENDPOINTS.CORE.ORGANIZATIONS.LIST);
   },
 };

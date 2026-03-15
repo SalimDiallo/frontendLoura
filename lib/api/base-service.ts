@@ -1,7 +1,7 @@
 /**
  * Service de base abstrait pour les opérations CRUD
  * Facilite la création de nouveaux services avec des méthodes standardisées
- * 
+ *
  * @template T - Type de l'entité
  * @template TCreate - Type pour la création
  * @template TUpdate - Type pour la mise à jour
@@ -9,7 +9,13 @@
  */
 
 import type { FilterParams, PaginatedResponse } from '@/lib/types/shared';
-import { apiClient } from './client';
+import { cacheManager } from '@/lib/offline';
+
+// Configuration du cache pour BaseService
+const CACHE_TTL = {
+  LIST: 5 * 60 * 1000,    // 5 minutes pour les listes
+  DETAIL: 10 * 60 * 1000, // 10 minutes pour les détails
+};
 
 /**
  * Configuration d'un endpoint CRUD
@@ -46,35 +52,41 @@ export abstract class BaseService<
     const endpoint = queryParams
       ? `${this.endpoints.LIST}?${queryParams}`
       : this.endpoints.LIST;
-    return apiClient.get<PaginatedResponse<T>>(endpoint);
+    return cacheManager.get<PaginatedResponse<T>>(endpoint, { ttl: CACHE_TTL.LIST });
   }
 
   /**
    * Récupère une entité par son ID
    */
   async getById(id: string): Promise<T> {
-    return apiClient.get<T>(this.endpoints.DETAIL(id));
+    return cacheManager.get<T>(this.endpoints.DETAIL(id), { ttl: CACHE_TTL.DETAIL });
   }
 
   /**
    * Crée une nouvelle entité
    */
   async create(data: TCreate): Promise<T> {
-    return apiClient.post<T>(this.endpoints.CREATE, data);
+    return cacheManager.post<T>(this.endpoints.CREATE, data, {
+      invalidateCache: [this.endpoints.LIST],
+    });
   }
 
   /**
    * Met à jour une entité existante
    */
   async update(id: string, data: TUpdate): Promise<T> {
-    return apiClient.patch<T>(this.endpoints.UPDATE(id), data);
+    return cacheManager.patch<T>(this.endpoints.UPDATE(id), data, {
+      invalidateCache: [this.endpoints.LIST, this.endpoints.DETAIL(id)],
+    });
   }
 
   /**
    * Supprime une entité
    */
   async delete(id: string): Promise<void> {
-    return apiClient.delete(this.endpoints.DELETE(id));
+    return cacheManager.delete(this.endpoints.DELETE(id), {
+      invalidateCache: [this.endpoints.LIST, this.endpoints.DETAIL(id)],
+    });
   }
 
   /**
@@ -133,14 +145,18 @@ export abstract class ActivatableService<
    * Active une entité
    */
   async activate(id: string): Promise<T> {
-    return apiClient.post<T>(this.endpoints.ACTIVATE(id));
+    return cacheManager.post<T>(this.endpoints.ACTIVATE(id), undefined, {
+      invalidateCache: [this.endpoints.LIST, this.endpoints.DETAIL(id)],
+    });
   }
 
   /**
    * Désactive une entité
    */
   async deactivate(id: string): Promise<T> {
-    return apiClient.post<T>(this.endpoints.DEACTIVATE(id));
+    return cacheManager.post<T>(this.endpoints.DEACTIVATE(id), undefined, {
+      invalidateCache: [this.endpoints.LIST, this.endpoints.DETAIL(id)],
+    });
   }
 
   /**

@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
-import { Space_Grotesk, JetBrains_Mono, Host_Grotesk, Hanken_Grotesk, Familjen_Grotesk, Darker_Grotesque, Playfair_Display } from "next/font/google";
+import { ServiceWorkerProvider } from "@/components/providers/sw-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import type { Metadata, Viewport } from "next";
+import { JetBrains_Mono, Playfair_Display, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 // Police principale : Space Grotesk depuis next/google-fonts
@@ -29,6 +30,34 @@ const playfairDisplay = Playfair_Display({
 export const metadata: Metadata = {
   title: "Loura - Gestion d'entreprise",
   description: "Plateforme de gestion multi-tenant pour votre entreprise",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Loura",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Loura",
+    title: "Loura - Gestion d'entreprise",
+    description: "Plateforme de gestion multi-tenant pour votre entreprise",
+  },
+  twitter: {
+    card: "summary",
+    title: "Loura - Gestion d'entreprise",
+    description: "Plateforme de gestion multi-tenant pour votre entreprise",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#667eea",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -38,11 +67,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
+      <head>
+        <link rel="apple-touch-icon" href="/images/logo-icon.png" />
+      </head>
       <body
         className={`${spaceGrotesk.className} ${spaceGrotesk.variable} ${jetbrainsMono.variable}   ${playfairDisplay.variable} font-sans antialiased`}
       >
         <ThemeProvider defaultTheme="system" storageKey="loura-ui-theme">
-          {children}
+          <ServiceWorkerProvider>
+            {children}
+          </ServiceWorkerProvider>
         </ThemeProvider>
       </body>
     </html>
