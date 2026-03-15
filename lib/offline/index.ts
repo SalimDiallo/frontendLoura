@@ -36,3 +36,10 @@ export {
   enrichDynamicParams,
 } from './api-discovery';
 export type { DataCacheProgress, ApiEndpointConfig } from './api-discovery';
+
+export {
+  enrichCacheWithDynamicData,
+  resetDynamicEnrichment,
+  isDynamicEnrichmentComplete,
+} from './dynamic-enrichment';
+export type { DynamicEnrichmentProgress } from './dynamic-enrichment';

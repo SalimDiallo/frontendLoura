@@ -29,8 +29,7 @@ const PRECACHE_ASSETS = [
   '/images/logo-icon.png',
   '/manifest.json',
   // Routes critiques à pré-cacher
-  '/auth/admin',
-  '/auth/employee',
+  '/auth',
   '/core/dashboard',
   // Next.js génère des noms de fichiers avec hash, on les cachera dynamiquement
 ];
@@ -49,8 +48,8 @@ const NETWORK_FIRST_PATTERNS = [
 
 // Durée de vie du cache
 const CACHE_MAX_AGE = {
-  static: 7 * 24 * 60 * 60 * 1000,      // 7 jours pour les assets
-  dynamic: 24 * 60 * 60 * 1000,         // 24 heures pour les pages
+  static: 30 * 24 * 60 * 60 * 1000,     // 1 mois pour les assets
+  dynamic: 7 * 24 * 60 * 60 * 1000,     // 7 jours pour les pages
 };
 
 /**

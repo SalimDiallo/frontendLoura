@@ -1,29 +1,27 @@
 "use client";
 
-import { PropsWithChildren, useState, useEffect, useRef } from "react";
 import { NotificationPanel } from "@/components/core/notification-panel";
 import { useNotifications } from "@/lib/hooks/use-notifications";
 import { useSSE } from "@/lib/hooks/use-sse";
-import { usePathname, useRouter } from "next/navigation";
 import {
-  Sparkles,
   Bell,
-  Search,
   Command,
+  Search
 } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { PropsWithChildren, useEffect, useRef, useState } from "react";
 
+import { AppSidebar } from "@/components/core/app-sidebar";
+import { ThemeToggle } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { AppSidebar } from "@/components/core/app-sidebar";
-import { ChatSidebar } from "@/components/core/chat-sidebar";
-import { ThemeToggle } from "@/components/ui";
-import { cn } from "@/lib/utils";
-import { useUser } from "@/lib/hooks";
 import { ModuleProvider } from "@/lib/contexts";
+import { useUser } from "@/lib/hooks";
+import { cn } from "@/lib/utils";
 
 export default function DashboardCoreLayout({ children }: PropsWithChildren) {
   const pathname = usePathname();
@@ -191,7 +189,7 @@ export default function DashboardCoreLayout({ children }: PropsWithChildren) {
             <div className="h-6 w-px bg-border/60 mx-1" />
 
             {/* AI Assistant button */}
-            <Button
+            {/* <Button
               variant={chatOpen ? "default" : "outline"}
               size="sm"
               onClick={() => setChatOpen((prev) => !prev)}
@@ -220,7 +218,7 @@ export default function DashboardCoreLayout({ children }: PropsWithChildren) {
                   <span className="relative inline-flex rounded-full size-2 bg-white" />
                 </span>
               )}
-            </Button>
+            </Button> */}
           </div>
         </header>
 
@@ -237,7 +235,7 @@ export default function DashboardCoreLayout({ children }: PropsWithChildren) {
             <div className="mx-auto max-w-7xl">{children}</div>
           </main>
 
-          <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} />
+          {/* <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} /> */}
         </div>
       </SidebarInset>
       </SidebarProvider>

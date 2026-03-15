@@ -7,7 +7,7 @@
 
 'use client';
 
-import { cacheManager } from './cache-manager';
+import { indexedDBManager } from './indexeddb';
 
 export interface DataCacheProgress {
   total: number;
@@ -30,30 +30,33 @@ const DATA_CACHE_PROGRESS_KEY = 'loura_data_cache_progress';
 /**
  * Configuration des endpoints API à pré-cacher
  * Organisé par priorité pour optimiser le chargement
+ *
+ * NOTE: Les endpoints sont relatifs au baseURL de l'API
+ * Ne PAS inclure /api au début (c'est dans baseURL)
  */
 const API_ENDPOINTS: ApiEndpointConfig[] = [
   // ==========================================
   // PRIORITÉ HAUTE - Données critiques
   // ==========================================
   {
-    endpoint: '/api/core/auth/me',
+    endpoint: '/auth/me/',
     ttl: 5 * 60 * 1000, // 5 minutes
     priority: 'high',
     requiresAuth: true,
   },
   {
-    endpoint: '/api/core/organizations',
+    endpoint: '/core/organizations/',
     ttl: 10 * 60 * 1000, // 10 minutes
     priority: 'high',
     requiresAuth: true,
   },
   {
-    endpoint: '/api/core/categories',
+    endpoint: '/core/categories/',
     ttl: 30 * 60 * 1000, // 30 minutes
     priority: 'high',
   },
   {
-    endpoint: '/api/core/modules',
+    endpoint: '/core/modules/',
     ttl: 30 * 60 * 1000,
     priority: 'high',
   },
@@ -64,25 +67,25 @@ const API_ENDPOINTS: ApiEndpointConfig[] = [
 
   // HR Module
   {
-    endpoint: '/api/hr/employees',
+    endpoint: '/hr/employees/',
     ttl: 10 * 60 * 1000,
     priority: 'medium',
     requiresAuth: true,
   },
   {
-    endpoint: '/api/hr/departments',
+    endpoint: '/hr/departments/',
     ttl: 15 * 60 * 1000,
     priority: 'medium',
     requiresAuth: true,
   },
   {
-    endpoint: '/api/hr/roles',
+    endpoint: '/hr/roles/',
     ttl: 30 * 60 * 1000,
     priority: 'medium',
     requiresAuth: true,
   },
   {
-    endpoint: '/api/hr/permissions',
+    endpoint: '/hr/permissions/',
     ttl: 30 * 60 * 1000,
     priority: 'medium',
     requiresAuth: true,
@@ -90,7 +93,7 @@ const API_ENDPOINTS: ApiEndpointConfig[] = [
 
   // Inventory Module
   {
-    endpoint: '/api/inventory/categories',
+    endpoint: '/inventory/categories/',
     ttl: 30 * 60 * 1000,
     priority: 'medium',
     requiresAuth: true,
@@ -102,7 +105,7 @@ const API_ENDPOINTS: ApiEndpointConfig[] = [
 
   // Calendrier
   {
-    endpoint: '/api/hr/calendar',
+    endpoint: '/hr/calendar/',
     ttl: 60 * 60 * 1000, // 1 heure
     priority: 'low',
     requiresAuth: true,
@@ -180,37 +183,113 @@ async function precacheApiEndpoint(
 ): Promise<{ success: boolean; status?: number; error?: string }> {
   const { endpoint, ttl, requiresAuth } = config;
 
+  // Construire l'URL complète
+  const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  const fullUrl = `${baseURL}${endpoint}`;
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      // Utiliser cacheManager pour charger et cacher les données
-      await cacheManager.get(endpoint, {
-        ttl: ttl || 10 * 60 * 1000, // 10 min par défaut
-        forceRefresh: true, // Force le chargement depuis l'API
+      // Vérifier si on est en ligne
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        return {
+          success: false,
+          status: 0,
+          error: 'Offline - skip precache'
+        };
+      }
+
+      // Récupérer le token d'authentification
+      const accessToken = typeof window !== 'undefined'
+        ? localStorage.getItem('access_token')
+        : null;
+
+      // Préparer les headers
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      };
+
+      // Ajouter le token si disponible et auth requise
+      if (accessToken && requiresAuth) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+
+      // Faire la requête directement via fetch pour plus de contrôle
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        credentials: 'include', // Inclure les cookies pour auth
+        headers,
       });
 
-      return { success: true, status: 200 };
+      const status = response.status;
 
-    } catch (error: any) {
-      const status = error.status || error.response?.status;
+      // Succès (200-299)
+      if (response.ok) {
+        try {
+          const data = await response.json();
 
-      // Si auth requise et pas authentifié, considérer comme succès
-      // (les données seront chargées quand l'user se connectera)
+          // Stocker dans IndexedDB via indexedDBManager
+          try {
+            await indexedDBManager.setCache(
+              endpoint,
+              data,
+              ttl || 10 * 60 * 1000
+            );
+          } catch (cacheError) {
+            console.warn(`[DataCache] Erreur stockage cache pour ${endpoint}:`, cacheError);
+          }
+
+          return { success: true, status };
+        } catch (jsonError) {
+          // Si la réponse n'est pas du JSON valide, ignorer
+          console.warn(`[DataCache] Réponse non-JSON pour ${endpoint}`);
+          return { success: false, status, error: 'Invalid JSON response' };
+        }
+      }
+
+      // Auth requise (401/403) - Considérer comme succès
+      // Les données seront chargées après connexion
       if (requiresAuth && (status === 401 || status === 403)) {
-        console.log(`[DataCache] ℹ️ ${endpoint} (${status} - Auth requise)`);
         return { success: true, status };
       }
 
-      // Retry avec backoff exponentiel
-      if (attempt < maxRetries) {
-        console.log(`[DataCache] ⚠️ ${endpoint} - Retry ${attempt + 1}/${maxRetries}`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      // 404 - Endpoint n'existe pas, skip sans retry
+      if (status === 404) {
+        return {
+          success: false,
+          status,
+          error: 'Endpoint not found'
+        };
+      }
+
+      // Autres erreurs - Retry seulement pour 5xx
+      if (status >= 500 && attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
         continue;
       }
 
       return {
         success: false,
         status,
-        error: error.message || 'Unknown error'
+        error: `HTTP ${status}`
+      };
+
+    } catch (error: any) {
+      // Erreur réseau (timeout, CORS, etc.)
+
+      // Si auth requise, ne pas considérer comme un échec critique
+      if (requiresAuth) {
+        return { success: true, status: 401, error: 'Auth required - will load after login' };
+      }
+      // Retry seulement pour erreurs réseau temporaires
+      if (attempt < maxRetries && (error.name === 'TypeError' || error.name === 'NetworkError')) {
+        await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+        continue;
+      }
+
+      return {
+        success: false,
+        error: error.message || 'Network error'
       };
     }
   }
@@ -224,33 +303,41 @@ async function precacheApiEndpoint(
 export async function precacheAllApiData(
   onProgress?: (progress: DataCacheProgress) => void
 ): Promise<void> {
-  console.log('[DataCache] 🗄️ Démarrage du pré-cache des données API...\n');
+  try {
+    console.log('[DataCache] 🗄️ Démarrage du pré-cache des données API...');
 
-  const endpoints = getAllApiEndpoints();
+    // Vérifier que nous sommes côté client
+    if (typeof window === 'undefined') {
+      console.warn('[DataCache] Skipping - SSR environment');
+      return;
+    }
 
-  const progress: DataCacheProgress = {
-    total: endpoints.length,
-    cached: 0,
-    failed: 0,
-    inProgress: true,
-    endpoints: [],
-  };
+    const endpoints = getAllApiEndpoints();
+    console.log(`[DataCache] 📋 ${endpoints.length} endpoints à pré-cacher\n`);
 
-  // Statistiques détaillées
-  const stats = {
-    success: 0,
-    authRequired: 0,
-    failed: 0,
-    errors: [] as Array<{ endpoint: string; status?: number; error?: string }>
-  };
+    const progress: DataCacheProgress = {
+      total: endpoints.length,
+      cached: 0,
+      failed: 0,
+      inProgress: true,
+      endpoints: [],
+    };
 
-  // Notifier du démarrage
-  onProgress?.(progress);
+    // Statistiques détaillées
+    const stats = {
+      success: 0,
+      authRequired: 0,
+      failed: 0,
+      errors: [] as Array<{ endpoint: string; status?: number; error?: string }>
+    };
+
+    // Notifier du démarrage
+    onProgress?.(progress);
 
   // Pré-cacher endpoint par endpoint
   for (let i = 0; i < endpoints.length; i++) {
     const config = endpoints[i];
-    const { endpoint, priority } = config;
+    const { endpoint } = config;
 
     const result = await precacheApiEndpoint(config);
 
@@ -260,10 +347,10 @@ export async function precacheAllApiData(
 
       if (result.status === 401 || result.status === 403) {
         stats.authRequired++;
-        console.log(`[DataCache] 🔒 ${endpoint} (Auth requise) [${progress.cached}/${endpoints.length}]`);
+        console.log(`[DataCache] 🔒 ${endpoint} (${result.status} - Auth requise) [${progress.cached}/${endpoints.length}]`);
       } else {
         stats.success++;
-        console.log(`[DataCache] ✅ ${endpoint} (${priority}) [${progress.cached}/${endpoints.length}]`);
+        console.log(`[DataCache] ✅ ${endpoint} (${result.status || 200}) [${progress.cached}/${endpoints.length}]`);
       }
     } else {
       progress.failed++;
@@ -273,18 +360,20 @@ export async function precacheAllApiData(
         status: result.status,
         error: result.error
       });
-      console.error(`[DataCache] ❌ ${endpoint} (${result.status || 'ERR'}: ${result.error})`);
+      console.warn(`[DataCache] ⚠️  ${endpoint} (${result.status || 'ERR'}: ${result.error}) [${progress.failed} échecs]`);
     }
 
     // Notifier de la progression
     onProgress?.({ ...progress });
 
     // Sauvegarder la progression
-    localStorage.setItem(DATA_CACHE_PROGRESS_KEY, JSON.stringify(progress));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(DATA_CACHE_PROGRESS_KEY, JSON.stringify(progress));
+    }
 
-    // Délai entre chaque endpoint (75ms - équilibré)
+    // Délai entre chaque endpoint (50ms - rapide)
     if (i < endpoints.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 75));
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
   }
 
@@ -310,9 +399,24 @@ export async function precacheAllApiData(
     });
   }
 
-  // Sauvegarder les erreurs
-  if (stats.errors.length > 0) {
-    localStorage.setItem('loura_data_cache_errors', JSON.stringify(stats.errors));
+    // Sauvegarder les erreurs
+    if (stats.errors.length > 0) {
+      localStorage.setItem('loura_data_cache_errors', JSON.stringify(stats.errors));
+    }
+
+  } catch (globalError: any) {
+    console.error('[DataCache] ❌ Erreur globale lors du pré-cache:', globalError);
+
+    // Notifier de l'échec
+    if (onProgress) {
+      onProgress({
+        total: 0,
+        cached: 0,
+        failed: 1,
+        inProgress: false,
+        endpoints: [],
+      });
+    }
   }
 }
 
