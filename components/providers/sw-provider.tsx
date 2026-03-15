@@ -7,9 +7,8 @@
 
 'use client';
 
-import { useServiceWorker } from '@/lib/hooks/useServiceWorker';
 import { ServiceWorkerUpdatePrompt } from '@/components/ui/sw-update-prompt';
-import { CacheProgressIndicator } from '@/components/ui/cache-progress-indicator';
+import { useServiceWorker } from '@/lib/hooks/useServiceWorker';
 import { enrichCacheWithDynamicData, isDynamicEnrichmentComplete } from '@/lib/offline';
 import { useEffect } from 'react';
 
@@ -42,7 +41,7 @@ export function ServiceWorkerProvider({ children }: { children: React.ReactNode 
     <>
       {children}
       <ServiceWorkerUpdatePrompt />
-      <CacheProgressIndicator />
+      {/* <CacheProgressIndicator /> */}
     </>
   );
 }
