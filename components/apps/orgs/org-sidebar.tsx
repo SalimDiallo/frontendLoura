@@ -667,15 +667,15 @@ export function OrganisationSideBar() {
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild
-                      isActive={pathname === `/apps/${orgSlug}/settings`}
+                      isActive={pathname === `/apps/${orgSlug}/dashboard/settings`}
                       tooltip="Paramètres"
                       className={cn(isCollapsed && "justify-center", "h-9 min-h-9")}
                     >
-                      <Link href={`/apps/${orgSlug}/settings`} className="gap-2">
+                      <Link href={`/apps/${orgSlug}/dashboard/settings`} className="gap-2">
                         <HiOutlineCog6Tooth
                           className={cn(
                             "size-4",
-                            pathname === `/apps/${orgSlug}/settings` && "text-primary"
+                            pathname === `/apps/${orgSlug}/dashboard/settings` && "text-primary"
                           )}
                         />
                         {!isCollapsed && (

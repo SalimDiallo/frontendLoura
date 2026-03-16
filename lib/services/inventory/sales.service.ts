@@ -2,7 +2,7 @@
  * Sales Service - Gestion des ventes avec remises
  */
 
-import { apiClient } from '@/lib/api/client';
+import { cacheManager } from '@/lib/offline';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { addOrganizationToData } from '@/lib/utils/organization';
 import type {
@@ -34,7 +34,7 @@ export async function getSales(params?: {
   const queryString = searchParams.toString();
   const url = queryString ? `${API_ENDPOINTS.INVENTORY.SALES.LIST}?${queryString}` : API_ENDPOINTS.INVENTORY.SALES.LIST;
 
-  const response = await apiClient.get<{ count: number; results: SaleList[] }>(url);
+  const response = await cacheManager.get<{ count: number; results: SaleList[] }>(url, { ttl: 3 * 60 * 1000 });
   return response.results || response as unknown as SaleList[];
 }
 
@@ -42,7 +42,7 @@ export async function getSales(params?: {
  * Get a single sale
  */
 export async function getSale(id: string): Promise<Sale> {
-  return apiClient.get<Sale>(API_ENDPOINTS.INVENTORY.SALES.DETAIL(id));
+  return cacheManager.get<Sale>(API_ENDPOINTS.INVENTORY.SALES.DETAIL(id), { ttl: 5 * 60 * 1000 });
 }
 
 /**
@@ -52,21 +52,27 @@ export async function createSale(data: SaleCreate): Promise<Sale> {
   console.log(data);
   
   const dataWithOrg = addOrganizationToData(data);
-  return apiClient.post<Sale>(API_ENDPOINTS.INVENTORY.SALES.CREATE, dataWithOrg);
+  return cacheManager.post<Sale>(API_ENDPOINTS.INVENTORY.SALES.CREATE, dataWithOrg, {
+    invalidateCache: [API_ENDPOINTS.INVENTORY.SALES.LIST, API_ENDPOINTS.INVENTORY.STOCKS.LIST, API_ENDPOINTS.INVENTORY.PRODUCTS.LIST],
+  });
 }
 
 /**
  * Update a sale
  */
 export async function updateSale(id: string, data: SaleUpdate): Promise<Sale> {
-  return apiClient.patch<Sale>(API_ENDPOINTS.INVENTORY.SALES.UPDATE(id), data);
+  return cacheManager.patch<Sale>(API_ENDPOINTS.INVENTORY.SALES.UPDATE(id), data, {
+    invalidateCache: [API_ENDPOINTS.INVENTORY.SALES.LIST, API_ENDPOINTS.INVENTORY.SALES.DETAIL(id)],
+  });
 }
 
 /**
  * Delete a sale
  */
 export async function deleteSale(id: string): Promise<void> {
-  return apiClient.delete<void>(API_ENDPOINTS.INVENTORY.SALES.DELETE(id));
+  return cacheManager.delete(API_ENDPOINTS.INVENTORY.SALES.DELETE(id), {
+    invalidateCache: [API_ENDPOINTS.INVENTORY.SALES.LIST],
+  });
 }
 
 /**
@@ -76,9 +82,10 @@ export async function addPaymentToSale(
   saleId: string,
   data: { amount: number; payment_method?: string; reference?: string; notes?: string }
 ): Promise<{ payment: Payment; sale: Sale }> {
-  return apiClient.post<{ payment: Payment; sale: Sale }>(
+  return cacheManager.post<{ payment: Payment; sale: Sale }>(
     API_ENDPOINTS.INVENTORY.SALES.ADD_PAYMENT(saleId),
-    data
+    data,
+    { invalidateCache: [API_ENDPOINTS.INVENTORY.SALES.LIST, API_ENDPOINTS.INVENTORY.SALES.DETAIL(saleId)] }
   );
 }
 
@@ -125,7 +132,9 @@ export function getSaleReceiptUrl(saleId: string): string {
  * Cancel a sale
  */
 export async function cancelSale(saleId: string): Promise<Sale> {
-  return apiClient.post<Sale>(API_ENDPOINTS.INVENTORY.SALES.CANCEL(saleId), {});
+  return cacheManager.post<Sale>(API_ENDPOINTS.INVENTORY.SALES.CANCEL(saleId), {}, {
+    invalidateCache: [API_ENDPOINTS.INVENTORY.SALES.LIST, API_ENDPOINTS.INVENTORY.SALES.DETAIL(saleId), API_ENDPOINTS.INVENTORY.STOCKS.LIST],
+  });
 }
 
 /**

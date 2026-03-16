@@ -3,18 +3,11 @@
 import {
   ChevronUp,
   LayoutDashboard,
-  LogOut,
-  Settings,
-  User,
-  Users
+  LogOut
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  HiOutlineBuildingOffice2,
-  HiOutlineCog6Tooth,
-} from "react-icons/hi2";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -24,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { OfflineIndicator } from "@/components/ui/offline-indicator";
 import {
   Sidebar,
   SidebarContent,
@@ -38,7 +32,6 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { OfflineIndicator } from "@/components/ui/offline-indicator";
 import { authService, CurrentUser } from "@/lib/services/core";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -58,25 +51,25 @@ const mainMenuItems: MenuItem[] = [
     url: "/core/dashboard",
     icon: LayoutDashboard,
   },
-  {
-    title: "Organisations",
-    url: "/core/dashboard/organizations",
-    icon: HiOutlineBuildingOffice2,
-  },
+  // {
+  //   title: "Organisations",
+  //   url: "/core/dashboard/organizations",
+  //   icon: HiOutlineBuildingOffice2,
+  // },
 ];
 
 // Menu de gestion
 const managementMenuItems: MenuItem[] = [
-  {
-    title: "Utilisateurs",
-    url: "/core/dashboard/users",
-    icon: Users,
-  },
-  {
-    title: "Paramètres",
-    url: "/core/dashboard/settings",
-    icon: HiOutlineCog6Tooth,
-  },
+  // {
+  //   title: "Utilisateurs",
+  //   url: "/core/dashboard/users",
+  //   icon: Users,
+  // },
+  // {
+  //   title: "Paramètres",
+  //   url: "/core/dashboard/settings",
+  //   icon: HiOutlineCog6Tooth,
+  // },
 ];
 
 export function AppSidebar() {
@@ -320,18 +313,18 @@ export function AppSidebar() {
                   <p className="text-xs text-muted-foreground mt-0.5">{getDisplayEmail(user)}</p>
                 </div>
                 <div className="p-1">
-                  <DropdownMenuItem asChild>
-                    <Link href="/core/dashboard/profile" className="cursor-pointer gap-3 py-2">
+                  {/* <DropdownMenuItem asChild> */}
+                    {/* <Link href="/core/dashboard/profile" className="cursor-pointer gap-3 py-2">
                       <User className="size-4" />
                       Mon profil
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
+                    </Link> */}
+                  {/* </DropdownMenuItem> */}
+                  {/* <DropdownMenuItem asChild>
                     <Link href="/core/dashboard/settings" className="cursor-pointer gap-3 py-2">
                       <Settings className="size-4" />
                       Paramètres du compte
                     </Link>
-                  </DropdownMenuItem>
+                  </DropdownMenuItem> */}
                 </div>
                 <DropdownMenuSeparator />
                 <div className="p-1">

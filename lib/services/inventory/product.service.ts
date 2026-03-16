@@ -4,7 +4,7 @@
  */
 
 import { BaseService, type CrudEndpoints } from '@/lib/api/base-service';
-import { apiClient } from '@/lib/api/client';
+import { cacheManager } from '@/lib/offline';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import { addOrganizationToData } from '@/lib/utils/organization';
 import type { Product, ProductCreate, ProductUpdate, ProductList, Stock, Movement } from '@/lib/types/inventory';
@@ -45,14 +45,14 @@ class ProductService extends BaseService<Product, ProductCreate, ProductUpdate, 
    * Récupère les stocks par entrepôt pour un produit
    */
   async getProductStockByWarehouse(id: string): Promise<Stock[]> {
-    return apiClient.get<Stock[]>(API_ENDPOINTS.INVENTORY.PRODUCTS.STOCK_BY_WAREHOUSE(id));
+    return cacheManager.get<Stock[]>(API_ENDPOINTS.INVENTORY.PRODUCTS.STOCK_BY_WAREHOUSE(id), { ttl: 5 * 60 * 1000 });
   }
 
   /**
    * Récupère l'historique des mouvements d'un produit
    */
   async getProductMovements(id: string): Promise<Movement[]> {
-    return apiClient.get<Movement[]>(API_ENDPOINTS.INVENTORY.PRODUCTS.MOVEMENTS(id));
+    return cacheManager.get<Movement[]>(API_ENDPOINTS.INVENTORY.PRODUCTS.MOVEMENTS(id), { ttl: 5 * 60 * 1000 });
   }
 }
 

@@ -178,6 +178,11 @@ export const authService = {
       } else if (response.user_type === 'admin' && response.user.organizations?.[0]) {
         localStorage.setItem('current_organization_slug', response.user.organizations[0].subdomain);
       }
+
+      // Déclencher le warmup offline-first
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('loura:login'));
+      }
     }
 
     return response;

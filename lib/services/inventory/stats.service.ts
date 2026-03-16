@@ -2,7 +2,7 @@
  * Service pour les statistiques d'inventaire et rapports
  */
 
-import { apiClient } from '@/lib/api/client';
+import { cacheManager } from '@/lib/offline';
 import { API_CONFIG, API_ENDPOINTS, STORAGE_KEYS } from '@/lib/api/config';
 import type {
   InventoryStats,
@@ -22,36 +22,37 @@ import type {
  * Récupère les statistiques générales de l'inventaire
  */
 export async function getInventoryOverview(): Promise<InventoryStats> {
-  return apiClient.get<InventoryStats>(API_ENDPOINTS.INVENTORY.STATS.OVERVIEW);
+  return cacheManager.get<InventoryStats>(API_ENDPOINTS.INVENTORY.STATS.OVERVIEW, { ttl: 10 * 60 * 1000 });
 }
 
 /**
  * Récupère les produits avec la plus grande valeur de stock
  */
 export async function getTopProducts(): Promise<TopProduct[]> {
-  return apiClient.get<TopProduct[]>(API_ENDPOINTS.INVENTORY.STATS.TOP_PRODUCTS);
+  return cacheManager.get<TopProduct[]>(API_ENDPOINTS.INVENTORY.STATS.TOP_PRODUCTS, { ttl: 15 * 60 * 1000 });
 }
 
 /**
  * Récupère la répartition du stock par entrepôt
  */
 export async function getStockByWarehouse(): Promise<WarehouseStockReport[]> {
-  return apiClient.get<WarehouseStockReport[]>(API_ENDPOINTS.INVENTORY.STATS.STOCK_BY_WAREHOUSE);
+  return cacheManager.get<WarehouseStockReport[]>(API_ENDPOINTS.INVENTORY.STATS.STOCK_BY_WAREHOUSE, { ttl: 15 * 60 * 1000 });
 }
 
 /**
  * Récupère la répartition du stock par catégorie
  */
 export async function getStockByCategory(): Promise<CategoryStockReport[]> {
-  return apiClient.get<CategoryStockReport[]>(API_ENDPOINTS.INVENTORY.STATS.STOCK_BY_CATEGORY);
+  return cacheManager.get<CategoryStockReport[]>(API_ENDPOINTS.INVENTORY.STATS.STOCK_BY_CATEGORY, { ttl: 15 * 60 * 1000 });
 }
 
 /**
  * Récupère l'historique des mouvements agrégé par jour
  */
 export async function getMovementHistory(days: number = 30): Promise<MovementHistoryResponse> {
-  return apiClient.get<MovementHistoryResponse>(
-    `${API_ENDPOINTS.INVENTORY.STATS.MOVEMENT_HISTORY}?days=${days}`
+  return cacheManager.get<MovementHistoryResponse>(
+    `${API_ENDPOINTS.INVENTORY.STATS.MOVEMENT_HISTORY}?days=${days}`,
+    { ttl: 10 * 60 * 1000 }
   );
 }
 
@@ -62,8 +63,9 @@ export async function getLowRotationProducts(
   days: number = 90, 
   limit: number = 20
 ): Promise<LowRotationProductsResponse> {
-  return apiClient.get<LowRotationProductsResponse>(
-    `${API_ENDPOINTS.INVENTORY.STATS.LOW_ROTATION_PRODUCTS}?days=${days}&limit=${limit}`
+  return cacheManager.get<LowRotationProductsResponse>(
+    `${API_ENDPOINTS.INVENTORY.STATS.LOW_ROTATION_PRODUCTS}?days=${days}&limit=${limit}`,
+    { ttl: 30 * 60 * 1000 }
   );
 }
 
@@ -73,8 +75,9 @@ export async function getLowRotationProducts(
 export async function getStockCountsSummary(
   limit: number = 10
 ): Promise<StockCountsSummaryResponse> {
-  return apiClient.get<StockCountsSummaryResponse>(
-    `${API_ENDPOINTS.INVENTORY.STATS.STOCK_COUNTS_SUMMARY}?limit=${limit}`
+  return cacheManager.get<StockCountsSummaryResponse>(
+    `${API_ENDPOINTS.INVENTORY.STATS.STOCK_COUNTS_SUMMARY}?limit=${limit}`,
+    { ttl: 15 * 60 * 1000 }
   );
 }
 
@@ -376,8 +379,9 @@ export async function generateInvoicePdf(invoiceData: InvoiceData): Promise<void
  * Récupère l'analyse financière détaillée
  */
 export async function getFinancialAnalysis(days: number = 30): Promise<FinancialAnalysisResponse> {
-  return apiClient.get<FinancialAnalysisResponse>(
-    `${API_ENDPOINTS.INVENTORY.STATS.FINANCIAL_ANALYSIS}?days=${days}`
+  return cacheManager.get<FinancialAnalysisResponse>(
+    `${API_ENDPOINTS.INVENTORY.STATS.FINANCIAL_ANALYSIS}?days=${days}`,
+    { ttl: 15 * 60 * 1000 }
   );
 }
 
@@ -385,8 +389,9 @@ export async function getFinancialAnalysis(days: number = 30): Promise<Financial
  * Récupère l'analyse ABC/Pareto des produits
  */
 export async function getABCAnalysis(days: number = 90): Promise<ABCAnalysisResponse> {
-  return apiClient.get<ABCAnalysisResponse>(
-    `${API_ENDPOINTS.INVENTORY.STATS.ABC_ANALYSIS}?days=${days}`
+  return cacheManager.get<ABCAnalysisResponse>(
+    `${API_ENDPOINTS.INVENTORY.STATS.ABC_ANALYSIS}?days=${days}`,
+    { ttl: 30 * 60 * 1000 }
   );
 }
 
@@ -394,8 +399,9 @@ export async function getABCAnalysis(days: number = 90): Promise<ABCAnalysisResp
  * Récupère le rapport détaillé des crédits et créances
  */
 export async function getCreditsReport(): Promise<CreditsReportResponse> {
-  return apiClient.get<CreditsReportResponse>(
-    API_ENDPOINTS.INVENTORY.STATS.CREDITS_REPORT
+  return cacheManager.get<CreditsReportResponse>(
+    API_ENDPOINTS.INVENTORY.STATS.CREDITS_REPORT,
+    { ttl: 10 * 60 * 1000 }
   );
 }
 
@@ -403,8 +409,9 @@ export async function getCreditsReport(): Promise<CreditsReportResponse> {
  * Récupère l'analyse de performance des ventes
  */
 export async function getSalesPerformance(days: number = 30): Promise<SalesPerformanceResponse> {
-  return apiClient.get<SalesPerformanceResponse>(
-    `${API_ENDPOINTS.INVENTORY.STATS.SALES_PERFORMANCE}?days=${days}`
+  return cacheManager.get<SalesPerformanceResponse>(
+    `${API_ENDPOINTS.INVENTORY.STATS.SALES_PERFORMANCE}?days=${days}`,
+    { ttl: 10 * 60 * 1000 }
   );
 }
 

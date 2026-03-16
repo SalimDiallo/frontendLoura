@@ -5,6 +5,7 @@
  * - indexedDBManager: Gestion du cache et des mutations dans IndexedDB
  * - cacheManager: Couche de cache pour les requêtes API
  * - syncManager: Gestion de la synchronisation des mutations
+ * - dataWarmup: Téléchargement initial de toutes les données pour offline-first
  * - route-discovery: Découverte et pré-cache des routes (pages)
  * - api-discovery: Découverte et pré-cache des données API
  */
@@ -17,6 +18,9 @@ export type { CacheOptions, MutationOptions } from './cache-manager';
 
 export { syncManager } from './sync-manager';
 export type { SyncStatus, SyncState } from './sync-manager';
+
+export { dataWarmup } from './data-warmup';
+export type { WarmupProgress } from './data-warmup';
 
 export {
   precacheAllRoutes,
@@ -43,3 +47,4 @@ export {
   isDynamicEnrichmentComplete,
 } from './dynamic-enrichment';
 export type { DynamicEnrichmentProgress } from './dynamic-enrichment';
+

@@ -2,7 +2,7 @@
  * Service pour la gestion des congés
  */
 
-import { apiClient } from '@/lib/api/client';
+import { cacheManager } from '@/lib/offline';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import type {
   LeaveRequest,
@@ -42,7 +42,7 @@ export async function getLeaveRequests(params?: {
   const queryString = searchParams.toString();
   const url = queryString ? `${API_ENDPOINTS.HR.LEAVE_REQUESTS.LIST}?${queryString}` : API_ENDPOINTS.HR.LEAVE_REQUESTS.LIST;
 
-  return apiClient.get<LeaveRequestListResponse>(url);
+  return cacheManager.get<LeaveRequestListResponse>(url, { ttl: 3 * 60 * 1000 });
 }
 
 /**
@@ -74,7 +74,7 @@ export async function getLeaveRequestsHistory(params?: {
     ? `${API_ENDPOINTS.HR.LEAVE_REQUESTS.HISTORY}?${queryString}`
     : API_ENDPOINTS.HR.LEAVE_REQUESTS.HISTORY;
 
-  return apiClient.get<{ results: LeaveRequestHistoryApiResponse[]; count: number; next?: string | null; previous?: string | null }>(url);
+  return cacheManager.get<{ results: LeaveRequestHistoryApiResponse[]; count: number; next?: string | null; previous?: string | null }>(url, { ttl: 5 * 60 * 1000 });
 }
 
 
@@ -82,42 +82,52 @@ export async function getLeaveRequestsHistory(params?: {
  * Récupère les détails d'une demande de congé
  */
 export async function getLeaveRequest(id: string): Promise<LeaveRequest> {
-  return apiClient.get<LeaveRequest>(API_ENDPOINTS.HR.LEAVE_REQUESTS.DETAIL(id));
+  return cacheManager.get<LeaveRequest>(API_ENDPOINTS.HR.LEAVE_REQUESTS.DETAIL(id), { ttl: 5 * 60 * 1000 });
 }
 
 /**
  * Crée une nouvelle demande de congé
  */
 export async function createLeaveRequest(data: LeaveRequestCreate): Promise<LeaveRequest> {
-  return apiClient.post<LeaveRequest>(API_ENDPOINTS.HR.LEAVE_REQUESTS.CREATE, data);
+  return cacheManager.post<LeaveRequest>(API_ENDPOINTS.HR.LEAVE_REQUESTS.CREATE, data, {
+    invalidateCache: [API_ENDPOINTS.HR.LEAVE_REQUESTS.LIST, API_ENDPOINTS.HR.LEAVE_REQUESTS.HISTORY, API_ENDPOINTS.HR.LEAVE_REQUESTS.MY_BALANCES],
+  });
 }
 
 /**
  * Met à jour une demande de congé (PATCH)
  */
 export async function updateLeaveRequest(id: string, data: LeaveRequestUpdate): Promise<LeaveRequest> {
-  return apiClient.patch<LeaveRequest>(API_ENDPOINTS.HR.LEAVE_REQUESTS.UPDATE(id), data);
+  return cacheManager.patch<LeaveRequest>(API_ENDPOINTS.HR.LEAVE_REQUESTS.UPDATE(id), data, {
+    invalidateCache: [API_ENDPOINTS.HR.LEAVE_REQUESTS.LIST, API_ENDPOINTS.HR.LEAVE_REQUESTS.HISTORY, API_ENDPOINTS.HR.LEAVE_REQUESTS.DETAIL(id)],
+  });
 }
 
 /**
  * Approuve une demande de congé
  */
 export async function approveLeaveRequest(id: string, data?: { approval_notes?: string }): Promise<LeaveRequest> {
-  return apiClient.post<LeaveRequest>(API_ENDPOINTS.HR.LEAVE_REQUESTS.APPROVE(id), data || {});
+  return cacheManager.post<LeaveRequest>(API_ENDPOINTS.HR.LEAVE_REQUESTS.APPROVE(id), data || {}, {
+    invalidateCache: [API_ENDPOINTS.HR.LEAVE_REQUESTS.LIST, API_ENDPOINTS.HR.LEAVE_REQUESTS.HISTORY, API_ENDPOINTS.HR.LEAVE_REQUESTS.DETAIL(id)],
+  });
 }
 
 /**
  * Rejette une demande de congé
  */
 export async function rejectLeaveRequest(id: string, data?: { approval_notes?: string }): Promise<LeaveRequest> {
-  return apiClient.post<LeaveRequest>(API_ENDPOINTS.HR.LEAVE_REQUESTS.REJECT(id), data || {});
+  return cacheManager.post<LeaveRequest>(API_ENDPOINTS.HR.LEAVE_REQUESTS.REJECT(id), data || {}, {
+    invalidateCache: [API_ENDPOINTS.HR.LEAVE_REQUESTS.LIST, API_ENDPOINTS.HR.LEAVE_REQUESTS.HISTORY, API_ENDPOINTS.HR.LEAVE_REQUESTS.DETAIL(id)],
+  });
 }
 
 /**
  * Supprime une demande de congé
  */
 export async function deleteLeaveRequest(id: string): Promise<void> {
-  return apiClient.delete<void>(API_ENDPOINTS.HR.LEAVE_REQUESTS.DELETE(id));
+  return cacheManager.delete(API_ENDPOINTS.HR.LEAVE_REQUESTS.DELETE(id), {
+    invalidateCache: [API_ENDPOINTS.HR.LEAVE_REQUESTS.LIST, API_ENDPOINTS.HR.LEAVE_REQUESTS.HISTORY],
+  });
 }
 
 /**
@@ -134,7 +144,7 @@ export async function getMyLeaveBalances(year?: number): Promise<LeaveBalance[]>
     ? `${API_ENDPOINTS.HR.LEAVE_REQUESTS.MY_BALANCES}?${queryString}`
     : API_ENDPOINTS.HR.LEAVE_REQUESTS.MY_BALANCES;
 
-  return apiClient.get<LeaveBalance[]>(url);
+  return cacheManager.get<LeaveBalance[]>(url, { ttl: 5 * 60 * 1000 });
 }
 
 

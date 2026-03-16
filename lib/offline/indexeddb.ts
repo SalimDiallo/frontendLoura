@@ -202,6 +202,58 @@ class IndexedDBManager {
   }
 
   /**
+   * Récupère une entrée du cache en IGNORANT le TTL
+   * Essentiel pour le mode offline - retourne les données même expirées
+   */
+  async getCacheRaw(endpoint: string, params?: Record<string, any>): Promise<any | null> {
+    const db = await this.init();
+    const key = this.generateCacheKey(endpoint, params);
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['cache'], 'readonly');
+      const store = transaction.objectStore('cache');
+      const request = store.get(key);
+
+      request.onsuccess = () => {
+        const entry = request.result as CacheEntry | undefined;
+        resolve(entry ? entry.data : null);
+      };
+
+      request.onerror = () => reject(new Error('Erreur lors de la lecture du cache raw'));
+    });
+  }
+
+  /**
+   * Invalide le cache pour tous les endpoints qui commencent par un préfixe
+   * Ex: prefix '/hr/employees/' supprimera le cache de '/hr/employees/1/', '/hr/employees/2/', etc.
+   */
+  async invalidateCacheByPrefix(prefix: string): Promise<void> {
+    const db = await this.init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['cache'], 'readwrite');
+      const store = transaction.objectStore('cache');
+      const index = store.index('endpoint');
+      const request = index.openCursor();
+
+      request.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest).result;
+        if (cursor) {
+          const entry = cursor.value as CacheEntry;
+          if (entry.endpoint.startsWith(prefix)) {
+            cursor.delete();
+          }
+          cursor.continue();
+        } else {
+          resolve();
+        }
+      };
+
+      request.onerror = () => reject(new Error('Erreur lors de l\'invalidation par préfixe'));
+    });
+  }
+
+  /**
    * Ajoute une mutation à la queue
    */
   async addMutation(mutation: Omit<MutationEntry, 'id' | 'timestamp' | 'retryCount'>): Promise<string> {

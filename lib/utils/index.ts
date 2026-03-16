@@ -19,7 +19,6 @@ export * from './error-handler';
 // Autres utils existants
 export * from './attendance-permissions';
 export * from './leave';
-export * from './pdf-export';
 
 // Générateur PDF unifié
 export * from './pdf-generator';

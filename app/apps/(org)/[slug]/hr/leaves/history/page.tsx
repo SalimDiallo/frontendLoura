@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { Alert, Badge, Button, Card, Input, PDFPreviewWrapper } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -10,11 +10,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useUser } from "@/lib/hooks";
+import { PDFEndpoints, usePDF, useUser } from "@/lib/hooks";
 import { getLeaveTypes } from "@/lib/services/hr/leave-type.service";
 import { getLeaveRequestsHistory } from "@/lib/services/hr/leave.service";
 import type { LeaveRequestHistoryApiResponse, LeaveType } from "@/lib/types/hr";
-import { exportLeaveRequestToPDF } from "@/lib/utils/pdf-export";
+import { Download } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -23,11 +23,10 @@ import {
   HiOutlineCalendar,
   HiOutlineCheckCircle,
   HiOutlineClock,
-  HiOutlineDocumentText,
   HiOutlineEye,
   HiOutlineMagnifyingGlass,
   HiOutlinePlus,
-  HiOutlineXCircle,
+  HiOutlineXCircle
 } from "react-icons/hi2";
 
 export default function LeaveHistoryPage() {
@@ -41,6 +40,13 @@ export default function LeaveHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [success, setSuccess] = useState<string>("")
+
+  const { preview, previewState, closePreview } = usePDF({
+    onSuccess: () => setSuccess('PDF chargé avec succès'),
+    onError: (err) => setError(err),
+  });
+
 
   const [search, setSearch] = useState("");
 
@@ -55,6 +61,20 @@ export default function LeaveHistoryPage() {
     loadData();
     // eslint-disable-next-line
   }, [user]);
+
+  const handlePreviewPDF = async (leave:LeaveRequestHistoryApiResponse) => {
+    if (!leave) return;
+    try {
+      await preview(
+        PDFEndpoints.leaveRequest(leave.id),
+        `Demande de Congé - ${leave.employee_name}`,
+        `Conge_${leave.employee_name}_${leave.id}.pdf`
+      );
+    } catch (err) {
+      setError('Erreur lors du chargement du PDF');
+    }
+  };
+
 
   const loadData = async () => {
     try {
@@ -327,16 +347,10 @@ export default function LeaveHistoryPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() =>
-                            exportLeaveRequestToPDF({
-                              ...request,
-                              total_days: Number(request.total_days),
-                              attachment_url: request.attachment_url ?? undefined,
-                            })
-                          }
                           title="Télécharger la demande"
+                          onClick={()=>handlePreviewPDF(request)}
                         >
-                          <HiOutlineDocumentText className="size-4" />
+                          <Download className="size-4" />
                         </Button>
                       
                         <button
@@ -394,6 +408,9 @@ export default function LeaveHistoryPage() {
           </div>
         </Card>
       )}
+
+          {/* PDF Preview Modal */}
+          <PDFPreviewWrapper previewState={previewState} onClose={closePreview} />
     </div>
   );
 }

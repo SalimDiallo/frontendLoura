@@ -2,7 +2,7 @@
  * Service pour la gestion des employés
  */
 
-import { apiClient } from '@/lib/api/client';
+import { cacheManager } from '@/lib/offline';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import type {
   Employee,
@@ -46,7 +46,7 @@ export async function getEmployees(
     const url = `${API_ENDPOINTS.HR.EMPLOYEES.LIST}?${queryString}`;
 
     console.log('Fetching employees for organization:', organizationSlug);
-    return await apiClient.get<EmployeeListResponse>(url);
+    return await cacheManager.get<EmployeeListResponse>(url, { ttl: 5 * 60 * 1000 });
   } catch (error) {
     console.error('Error fetching employees:', error);
     // Retourner une réponse vide en cas d'erreur
@@ -63,54 +63,66 @@ export async function getEmployees(
  * Récupère les détails d'un employé
  */
 export async function getEmployee(id: string): Promise<Employee> {
-  return apiClient.get<Employee>(API_ENDPOINTS.HR.EMPLOYEES.DETAIL(id));
+  return cacheManager.get<Employee>(API_ENDPOINTS.HR.EMPLOYEES.DETAIL(id), { ttl: 10 * 60 * 1000 });
 }
 
 /**
  * Crée un nouveau employé
  */
 export async function createEmployee(data: EmployeeCreate): Promise<Employee> {
-  return apiClient.post<Employee>(API_ENDPOINTS.HR.EMPLOYEES.CREATE, data);
+  return cacheManager.post<Employee>(API_ENDPOINTS.HR.EMPLOYEES.CREATE, data, {
+    invalidateCache: [API_ENDPOINTS.HR.EMPLOYEES.LIST],
+  });
 }
 
 /**
  * Met à jour un employé (PUT)
  */
 export async function updateEmployee(id: string, data: EmployeeCreate): Promise<Employee> {
-  return apiClient.put<Employee>(API_ENDPOINTS.HR.EMPLOYEES.UPDATE(id), data);
+  return cacheManager.put<Employee>(API_ENDPOINTS.HR.EMPLOYEES.UPDATE(id), data, {
+    invalidateCache: [API_ENDPOINTS.HR.EMPLOYEES.LIST, API_ENDPOINTS.HR.EMPLOYEES.DETAIL(id)],
+  });
 }
 
 /**
  * Met à jour partiellement un employé (PATCH)
  */
 export async function patchEmployee(id: string, data: EmployeeUpdate): Promise<Employee> {
-  return apiClient.patch<Employee>(API_ENDPOINTS.HR.EMPLOYEES.UPDATE(id), data);
+  return cacheManager.patch<Employee>(API_ENDPOINTS.HR.EMPLOYEES.UPDATE(id), data, {
+    invalidateCache: [API_ENDPOINTS.HR.EMPLOYEES.LIST, API_ENDPOINTS.HR.EMPLOYEES.DETAIL(id)],
+  });
 }
 
 /**
  * Active un employé
  */
 export async function activateEmployee(id: string): Promise<Employee> {
-  return apiClient.post<Employee>(API_ENDPOINTS.HR.EMPLOYEES.ACTIVATE(id));
+  return cacheManager.post<Employee>(API_ENDPOINTS.HR.EMPLOYEES.ACTIVATE(id), undefined, {
+    invalidateCache: [API_ENDPOINTS.HR.EMPLOYEES.LIST, API_ENDPOINTS.HR.EMPLOYEES.DETAIL(id)],
+  });
 }
 
 /**
  * Désactive un employé
  */
 export async function deactivateEmployee(id: string): Promise<Employee> {
-  return apiClient.post<Employee>(API_ENDPOINTS.HR.EMPLOYEES.DEACTIVATE(id));
+  return cacheManager.post<Employee>(API_ENDPOINTS.HR.EMPLOYEES.DEACTIVATE(id), undefined, {
+    invalidateCache: [API_ENDPOINTS.HR.EMPLOYEES.LIST, API_ENDPOINTS.HR.EMPLOYEES.DETAIL(id)],
+  });
 }
 
 /**
  * Supprime un employé (soft delete)
  */
 export async function deleteEmployee(id: string): Promise<void> {
-  return apiClient.delete<void>(API_ENDPOINTS.HR.EMPLOYEES.DELETE(id));
+  return cacheManager.delete(API_ENDPOINTS.HR.EMPLOYEES.DELETE(id), {
+    invalidateCache: [API_ENDPOINTS.HR.EMPLOYEES.LIST],
+  });
 }
 
 /**
  * Récupère les informations de l'employé actuellement connecté
  */
 export async function getCurrentEmployee(): Promise<Employee> {
-  return apiClient.get<Employee>(API_ENDPOINTS.AUTH.ME);
+  return cacheManager.get<Employee>(API_ENDPOINTS.AUTH.ME, { ttl: 2 * 60 * 1000 });
 }

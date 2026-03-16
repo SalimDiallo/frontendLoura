@@ -2,8 +2,14 @@
  * Cache Manager - Couche de cache pour les requêtes API
  *
  * Stratégie:
- * - GET: Cache-first avec fallback réseau
+ * - GET: Cache-first avec fallback réseau, cache expiré en dernier recours
  * - POST/PUT/PATCH/DELETE: Network-first avec queue offline
+ *
+ * Améliorations offline-first:
+ * - Cache expiré TOUJOURS retourné en mode offline (jamais de throw)
+ * - getCache "raw" qui ignore le TTL pour garantir le fonctionnement hors ligne
+ * - Invalidation par préfixe pour les routes dynamiques
+ * - Stale-while-revalidate en arrière-plan quand online
  */
 
 import { apiClient, ApiError } from '@/lib/api/client';
@@ -13,15 +19,18 @@ export interface CacheOptions {
   ttl?: number; // Time to live en millisecondes (défaut: 5 minutes)
   forceRefresh?: boolean; // Forcer un rafraîchissement depuis le réseau
   skipCache?: boolean; // Ne pas utiliser le cache du tout
+  staleWhileRevalidate?: boolean; // Retourner le cache et rafraîchir en arrière-plan
 }
 
 export interface MutationOptions {
   invalidateCache?: string[]; // Endpoints à invalider après la mutation
+  invalidatePrefixes?: string[]; // Préfixes à invalider (ex: '/hr/employees/' invalidera tous les détails)
   requiresOnline?: boolean; // Si true, échoue immédiatement si offline
 }
 
 class CacheManager {
   private defaultTTL = 5 * 60 * 1000; // 5 minutes par défaut
+  private revalidatingSet = new Set<string>(); // Éviter les revalidations en double
 
   /**
    * Vérifie si on est en ligne
@@ -31,16 +40,32 @@ class CacheManager {
   }
 
   /**
-   * Requête GET avec cache
+   * Requête GET avec cache - stratégie offline-first
+   *
+   * 1. Si cache valide → retourne le cache
+   * 2. Si online → requête réseau, stocke dans le cache
+   * 3. Si offline/erreur réseau → retourne le cache même expiré
+   * 4. Si rien en cache et offline → throw
    */
   async get<T>(
     endpoint: string,
     options: CacheOptions = {}
   ): Promise<T> {
-    const { ttl = this.defaultTTL, forceRefresh = false, skipCache = false } = options;
+    const {
+      ttl = this.defaultTTL,
+      forceRefresh = false,
+      skipCache = false,
+      staleWhileRevalidate = false,
+    } = options;
 
     // Si on ne veut pas de cache, requête directe
     if (skipCache) {
+      if (!this.isOnline()) {
+        // Même avec skipCache, tenter le cache en offline
+        const fallback = await this.getRawCache<T>(endpoint);
+        if (fallback !== null) return fallback;
+        throw new ApiError('Mode hors ligne - pas de données en cache', 0);
+      }
       return apiClient.get<T>(endpoint);
     }
 
@@ -49,7 +74,10 @@ class CacheManager {
       try {
         const cachedData = await indexedDBManager.getCache(endpoint);
         if (cachedData !== null) {
-          console.log(`[Cache] Hit pour ${endpoint}`);
+          // Stale-while-revalidate: retourner le cache et rafraîchir en arrière-plan
+          if (staleWhileRevalidate && this.isOnline() && !this.revalidatingSet.has(endpoint)) {
+            this.revalidateInBackground(endpoint, ttl);
+          }
           return cachedData as T;
         }
       } catch (error) {
@@ -57,36 +85,66 @@ class CacheManager {
       }
     }
 
-    // Pas de cache ou force refresh: requête réseau
+    // Si on est offline, essayer le cache même expiré avant de faire une requête réseau
+    if (!this.isOnline()) {
+      const staleData = await this.getRawCache<T>(endpoint);
+      if (staleData !== null) {
+        console.log(`[Cache] 📴 Offline → cache expiré pour ${endpoint}`);
+        return staleData;
+      }
+      throw new ApiError('Mode hors ligne - pas de données en cache', 0);
+    }
+
+    // Online: requête réseau
     try {
-      console.log(`[Cache] Miss pour ${endpoint}, fetch réseau...`);
       const data = await apiClient.get<T>(endpoint);
 
       // Stocker dans le cache
       try {
         await indexedDBManager.setCache(endpoint, data, ttl);
-        console.log(`[Cache] Données stockées pour ${endpoint}`);
       } catch (error) {
         console.warn('[Cache] Erreur écriture cache:', error);
       }
 
       return data;
     } catch (error) {
-      // Si offline ou erreur réseau, essayer le cache même expiré
-      if (!this.isOnline() || (error instanceof ApiError && error.status === 0)) {
-        console.warn('[Cache] Offline, tentative cache expiré...');
-        try {
-          const cachedData = await indexedDBManager.getCache(endpoint);
-          if (cachedData !== null) {
-            console.log('[Cache] Utilisation cache expiré en mode offline');
-            return cachedData as T;
-          }
-        } catch (cacheError) {
-          console.error('[Cache] Impossible de lire le cache:', cacheError);
+      // Si erreur réseau, essayer le cache même expiré
+      if (error instanceof ApiError && error.status === 0) {
+        const staleData = await this.getRawCache<T>(endpoint);
+        if (staleData !== null) {
+          console.log(`[Cache] 🔄 Erreur réseau → cache expiré pour ${endpoint}`);
+          return staleData;
         }
       }
 
       throw error;
+    }
+  }
+
+  /**
+   * Récupère les données du cache en ignorant le TTL
+   * Essentiel pour le mode offline
+   */
+  async getRawCache<T>(endpoint: string): Promise<T | null> {
+    try {
+      return await indexedDBManager.getCacheRaw(endpoint) as T | null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Revalidate en arrière-plan (stale-while-revalidate)
+   */
+  private async revalidateInBackground(endpoint: string, ttl: number): Promise<void> {
+    this.revalidatingSet.add(endpoint);
+    try {
+      const data = await apiClient.get(endpoint);
+      await indexedDBManager.setCache(endpoint, data, ttl);
+    } catch {
+      // Ignorer les erreurs de revalidation silencieusement
+    } finally {
+      this.revalidatingSet.delete(endpoint);
     }
   }
 
@@ -98,7 +156,7 @@ class CacheManager {
     data?: any,
     mutationOptions: MutationOptions = {}
   ): Promise<T> {
-    const { invalidateCache = [], requiresOnline = false } = mutationOptions;
+    const { invalidateCache = [], invalidatePrefixes = [], requiresOnline = false } = mutationOptions;
 
     // Si offline et qu'on requiert une connexion, échouer
     if (!this.isOnline() && requiresOnline) {
@@ -117,7 +175,7 @@ class CacheManager {
       });
 
       // Invalider le cache localement
-      await this.invalidateEndpoints(invalidateCache);
+      await this.invalidateAll(invalidateCache, invalidatePrefixes);
 
       // Retourner une réponse optimiste
       return { success: true, queued: true } as T;
@@ -128,7 +186,7 @@ class CacheManager {
       const result = await apiClient.post<T>(endpoint, data);
 
       // Invalider le cache après succès
-      await this.invalidateEndpoints(invalidateCache);
+      await this.invalidateAll(invalidateCache, invalidatePrefixes);
 
       return result;
     } catch (error) {
@@ -158,7 +216,7 @@ class CacheManager {
     data?: any,
     mutationOptions: MutationOptions = {}
   ): Promise<T> {
-    const { invalidateCache = [], requiresOnline = false } = mutationOptions;
+    const { invalidateCache = [], invalidatePrefixes = [], requiresOnline = false } = mutationOptions;
 
     if (!this.isOnline() && requiresOnline) {
       throw new ApiError('Cette action requiert une connexion internet', 0);
@@ -174,13 +232,13 @@ class CacheManager {
         organizationSlug: this.getCurrentOrgSlug(),
       });
 
-      await this.invalidateEndpoints(invalidateCache);
+      await this.invalidateAll(invalidateCache, invalidatePrefixes);
       return { success: true, queued: true } as T;
     }
 
     try {
       const result = await apiClient.put<T>(endpoint, data);
-      await this.invalidateEndpoints(invalidateCache);
+      await this.invalidateAll(invalidateCache, invalidatePrefixes);
       return result;
     } catch (error) {
       if (error instanceof ApiError && error.status === 0) {
@@ -207,7 +265,7 @@ class CacheManager {
     data?: any,
     mutationOptions: MutationOptions = {}
   ): Promise<T> {
-    const { invalidateCache = [], requiresOnline = false } = mutationOptions;
+    const { invalidateCache = [], invalidatePrefixes = [], requiresOnline = false } = mutationOptions;
 
     if (!this.isOnline() && requiresOnline) {
       throw new ApiError('Cette action requiert une connexion internet', 0);
@@ -223,13 +281,13 @@ class CacheManager {
         organizationSlug: this.getCurrentOrgSlug(),
       });
 
-      await this.invalidateEndpoints(invalidateCache);
+      await this.invalidateAll(invalidateCache, invalidatePrefixes);
       return { success: true, queued: true } as T;
     }
 
     try {
       const result = await apiClient.patch<T>(endpoint, data);
-      await this.invalidateEndpoints(invalidateCache);
+      await this.invalidateAll(invalidateCache, invalidatePrefixes);
       return result;
     } catch (error) {
       if (error instanceof ApiError && error.status === 0) {
@@ -255,7 +313,7 @@ class CacheManager {
     endpoint: string,
     mutationOptions: MutationOptions = {}
   ): Promise<T> {
-    const { invalidateCache = [], requiresOnline = false } = mutationOptions;
+    const { invalidateCache = [], invalidatePrefixes = [], requiresOnline = false } = mutationOptions;
 
     if (!this.isOnline() && requiresOnline) {
       throw new ApiError('Cette action requiert une connexion internet', 0);
@@ -270,13 +328,13 @@ class CacheManager {
         organizationSlug: this.getCurrentOrgSlug(),
       });
 
-      await this.invalidateEndpoints(invalidateCache);
+      await this.invalidateAll(invalidateCache, invalidatePrefixes);
       return { success: true, queued: true } as T;
     }
 
     try {
       const result = await apiClient.delete<T>(endpoint);
-      await this.invalidateEndpoints(invalidateCache);
+      await this.invalidateAll(invalidateCache, invalidatePrefixes);
       return result;
     } catch (error) {
       if (error instanceof ApiError && error.status === 0) {
@@ -295,15 +353,24 @@ class CacheManager {
   }
 
   /**
-   * Invalide les caches pour plusieurs endpoints
+   * Invalide les caches par endpoints exacts ET par préfixes
    */
-  private async invalidateEndpoints(endpoints: string[]): Promise<void> {
+  private async invalidateAll(endpoints: string[], prefixes: string[]): Promise<void> {
+    // Invalider les endpoints exacts
     for (const endpoint of endpoints) {
       try {
         await indexedDBManager.invalidateCacheByEndpoint(endpoint);
-        console.log(`[Cache] Invalidé: ${endpoint}`);
       } catch (error) {
         console.warn(`[Cache] Erreur invalidation ${endpoint}:`, error);
+      }
+    }
+
+    // Invalider par préfixes (ex: '/hr/employees/' supprime '/hr/employees/1/', '/hr/employees/2/', etc.)
+    for (const prefix of prefixes) {
+      try {
+        await indexedDBManager.invalidateCacheByPrefix(prefix);
+      } catch (error) {
+        console.warn(`[Cache] Erreur invalidation préfixe ${prefix}:`, error);
       }
     }
   }
@@ -321,6 +388,13 @@ class CacheManager {
    */
   async invalidateCache(endpoint: string): Promise<void> {
     await indexedDBManager.invalidateCacheByEndpoint(endpoint);
+  }
+
+  /**
+   * Invalide manuellement par préfixe
+   */
+  async invalidateCacheByPrefix(prefix: string): Promise<void> {
+    await indexedDBManager.invalidateCacheByPrefix(prefix);
   }
 
   /**
