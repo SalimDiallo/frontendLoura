@@ -2,10 +2,10 @@
 
 import createGlobe, { COBEOptions } from "cobe";
 import { useMotionValue, useSpring } from "framer-motion";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
+import { useTheme } from "@/components/providers/theme-provider";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/components/theme-provider";
 
 const MOVEMENT_DAMPING = 1400;
 

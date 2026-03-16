@@ -1,9 +1,9 @@
 "use client";
 
+import { useTheme } from "@/components/providers/theme-provider";
+import { Button } from "@/components/ui";
 import * as React from "react";
 import { HiOutlineMoon, HiOutlineSun } from "react-icons/hi2";
-import { useTheme } from "@/components/theme-provider";
-import { Button } from "@/components/ui";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();

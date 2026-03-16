@@ -128,7 +128,7 @@ export function MetricCard({
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
             {label}
           </p>
-          <p className={cn("font-semibold text-foreground", compact ? "text-2xl" : "text-3xl")}>
+          <p className={cn("font-semibold text-foreground", compact ? "text-xl" : "text-2xl")}>
             {value}
           </p>
           {subtitle && (
