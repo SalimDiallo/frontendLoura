@@ -1,5 +1,5 @@
 /**
- * Service pour l'assistant IA
+ * Service pour l'assistant IA - OpenAI GPT
  */
 
 import { apiClient } from '@/lib/api/client';
@@ -43,6 +43,7 @@ export interface AIConversationListItem {
 export interface ToolCall {
   tool: string;
   params: Record<string, unknown>;
+  is_write?: boolean;
 }
 
 export interface ToolResult {
@@ -55,7 +56,7 @@ export interface ToolResult {
 export interface ChatRequest {
   message: string;
   conversation_id?: string;
-  agent_mode?: boolean;
+  agent_mode?: boolean; // kept for backwards compat, always true
   model?: string;
 }
 
@@ -70,20 +71,36 @@ export interface ChatResponse {
   model: string;
 }
 
-export interface AIModelsResponse {
-  models: string[];
-  default: string;
-  ollama_available: boolean;
+export interface AIConfigResponse {
+  configured: boolean;
+  model: string;
+  provider: string;
+  tools_enabled: boolean;
 }
 
 export interface AITool {
   name: string;
   description: string;
+  category: string;
+  is_read_only: boolean;
   params: string[];
 }
 
 export interface AIToolsResponse {
   tools: AITool[];
+  total: number;
+}
+
+export interface ToolExecutingEvent {
+  tool_name: string;
+  tool_args: Record<string, unknown>;
+}
+
+export interface ConfirmationRequiredEvent {
+  tool_name: string;
+  tool_args: Record<string, unknown>;
+  tool_call_id: string;
+  description: string;
 }
 
 /**
@@ -99,7 +116,7 @@ export const aiService = {
   ): Promise<ChatResponse> {
     return apiClient.post<ChatResponse>(
       API_ENDPOINTS.AI.CHAT,
-      request,
+      { ...request, agent_mode: true },
       {
         headers: {
           'X-Organization-Subdomain': orgSubdomain,
@@ -118,11 +135,13 @@ export const aiService = {
     onToolResults?: (toolCalls: ToolCall[], toolResults: ToolResult[]) => void,
     onClear?: () => void,
     onError?: (error: string) => void,
-    onDone?: () => void
+    onDone?: (data: { conversation_id?: string; message_id?: string }) => void,
+    onToolExecuting?: (event: ToolExecutingEvent) => void,
+    onConfirmationRequired?: (event: ConfirmationRequiredEvent) => void,
   ): Promise<void> {
     const accessToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    
+
     const response = await fetch(`${baseUrl}${API_ENDPOINTS.AI.CHAT_STREAM}`, {
       method: 'POST',
       headers: {
@@ -130,7 +149,7 @@ export const aiService = {
         'Authorization': accessToken ? `Bearer ${accessToken}` : '',
         'X-Organization-Subdomain': orgSubdomain,
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify({ ...request, agent_mode: true }),
     });
 
     if (!response.ok) {
@@ -144,21 +163,40 @@ export const aiService = {
       throw new Error('No response body');
     }
 
+    let buffer = '';
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const text = decoder.decode(value);
-      const lines = text.split('\n');
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      
+      // Keep the last incomplete line in the buffer
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           try {
             const data = JSON.parse(line.slice(6));
-            
+
             switch (data.type) {
               case 'token':
                 onToken(data.content);
+                break;
+              case 'tool_executing':
+                onToolExecuting?.({
+                  tool_name: data.tool_name,
+                  tool_args: data.tool_args,
+                });
+                break;
+              case 'confirmation_required':
+                onConfirmationRequired?.({
+                  tool_name: data.tool_name,
+                  tool_args: data.tool_args,
+                  tool_call_id: data.tool_call_id,
+                  description: data.description,
+                });
                 break;
               case 'tools':
                 onToolResults?.(data.tool_calls, data.tool_results);
@@ -170,10 +208,13 @@ export const aiService = {
                 onError?.(data.error);
                 break;
               case 'done':
-                onDone?.();
+                onDone?.({
+                  conversation_id: data.conversation_id,
+                  message_id: data.message_id,
+                });
                 break;
             }
-          } catch (e) {
+          } catch {
             // Ignore parsing errors
           }
         }
@@ -270,10 +311,10 @@ export const aiService = {
   },
 
   /**
-   * Liste les modèles IA disponibles
+   * Récupère la configuration IA
    */
-  async getModels(): Promise<AIModelsResponse> {
-    return apiClient.get<AIModelsResponse>(API_ENDPOINTS.AI.MODELS);
+  async getConfig(): Promise<AIConfigResponse> {
+    return apiClient.get<AIConfigResponse>(API_ENDPOINTS.AI.CONFIG);
   },
 
   /**
@@ -281,6 +322,30 @@ export const aiService = {
    */
   async getTools(): Promise<AIToolsResponse> {
     return apiClient.get<AIToolsResponse>(API_ENDPOINTS.AI.TOOLS);
+  },
+
+  /**
+   * Exécute un outil après confirmation de l'utilisateur
+   */
+  async executeTool(
+    orgSubdomain: string,
+    toolName: string,
+    toolArgs: Record<string, unknown>,
+    conversationId?: string
+  ): Promise<{ success: boolean; tool: string; data?: unknown; error?: string }> {
+    return apiClient.post(
+      API_ENDPOINTS.AI.EXECUTE_TOOL,
+      {
+        tool_name: toolName,
+        tool_args: toolArgs,
+        conversation_id: conversationId,
+      },
+      {
+        headers: {
+          'X-Organization-Subdomain': orgSubdomain,
+        },
+      }
+    );
   },
 };
 

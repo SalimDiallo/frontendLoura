@@ -1,33 +1,33 @@
 "use client";
 
-import { PropsWithChildren, useState, useEffect, useCallback, useRef } from "react";
-import { NotificationPanel } from "@/components/core/notification-panel";
-import { useNotifications } from "@/lib/hooks/use-notifications";
-import { useSSE } from "@/lib/hooks/use-sse";
-import { useParams, usePathname, useRouter } from "next/navigation";
-import { NotificationProvider } from "@/lib/contexts/NotificationContext";
+import { OrgAccessGuard, PermissionProvider } from "@/components/apps/common";
+import { QRScanFAB } from "@/components/apps/hr";
+import { OrganisationSideBar } from "@/components/apps/orgs/org-sidebar";
 import { NotificationPermissionPrompt } from "@/components/common/NotificationPermissionPrompt";
+import { ChatSidebar } from "@/components/core/chat-sidebar";
+import { NotificationPanel } from "@/components/core/notification-panel";
+import { ThemeToggle } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import {
-  SidebarProvider,
   SidebarInset,
+  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { ChatSidebar } from "@/components/core/chat-sidebar";
-import {
-  Sparkles,
-  Bell,
-  Search,
-  Command,
-} from "lucide-react";
-import { OrganisationSideBar } from "@/components/apps/orgs/org-sidebar";
-import { PermissionProvider, OrgAccessGuard } from "@/components/apps/common";
-import { ThemeToggle } from "@/components/ui";
-import { QRScanFAB } from "@/components/apps/hr";
-import { cn } from "@/lib/utils";
-import { ArrowLeft, HelpCircle } from "lucide-react";
-import { organizationService } from "@/lib/services";
 import { ModuleProvider } from "@/lib/contexts";
+import { NotificationProvider } from "@/lib/contexts/NotificationContext";
+import { useNotifications } from "@/lib/hooks/use-notifications";
+import { useSSE } from "@/lib/hooks/use-sse";
+import { organizationService } from "@/lib/services";
+import { cn } from "@/lib/utils";
+import {
+  ArrowLeft,
+  Bell,
+  Command,
+  Search,
+  Sparkles,
+} from "lucide-react";
+import { useParams, usePathname, useRouter } from "next/navigation";
+import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
 
 
 export default function OrganizationLayout({ children }: PropsWithChildren) {
@@ -266,14 +266,14 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                 <div className="h-6 w-px bg-border/60 mx-1" />
 
                 {/* AI Assistant button */}
-                {/* <Button
+                <Button
                   variant={chatOpen ? "default" : "outline"}
                   size="sm"
                   onClick={() => setChatOpen((prev) => !prev)}
                   className={cn(
                     "gap-2 h-9 px-3 rounded-xl transition-all duration-200",
                     chatOpen
-                      ? "bg-gradient-to-r from-violet-600 to-purple-600 text-white border-0 shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30"
+                      ? "bg-gradient-to-r from-primary to-primary text-white border-0 shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30"
                       : "hover:bg-accent"
                   )}
                   type="button"
@@ -287,7 +287,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                     )}
                   />
                   <span className="hidden sm:inline text-sm font-medium">
-                    {chatOpen ? "IA Active" : "Assistant"}
+                    {chatOpen ? "IA Active" : "Loura AI"}
                   </span>
                   {chatOpen && (
                     <span className="relative flex size-2">
@@ -295,7 +295,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                       <span className="relative inline-flex rounded-full size-2 bg-white" />
                     </span>
                   )}
-                </Button> */}
+                </Button>
               </div>
             </header>
 
@@ -312,7 +312,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                 <div className="mx-auto max-w-7xl">{children}</div>
               </main>
 
-              {/* <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} /> */}
+              <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} />
             </div>
 
             {/* QR Scan Floating Action Button */}

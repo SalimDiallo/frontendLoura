@@ -1,45 +1,26 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, Dispatch, SetStateAction } from "react";
-import { useParams, useRouter, useRouter as UseRouterType } from "next/navigation";
-import Link from "next/link";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, Button, Card, Input, Badge } from "@/components/ui";
-import { getDepartments, deleteDepartment } from "@/lib/services/hr/department.service";
-import { getPositions, createPosition, deletePosition, updatePosition } from "@/lib/services/hr/position.service";
-import type { Department, Position } from "@/lib/types/hr";
-import {
-  HiOutlinePlusCircle,
-  HiOutlineMagnifyingGlass,
-  HiOutlineEye,
-  HiOutlinePencil,
-  HiOutlineTrash,
-  HiOutlineBriefcase,
-  HiOutlineXMark,
-  HiOutlineUserGroup,
-  HiOutlineQuestionMarkCircle,
-} from "react-icons/hi2";
 import { Can, usePermissionContext } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { cn } from "@/lib/utils";
-import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { ShortcutsHelpModal, KeyboardHint } from "@/components/ui/shortcuts-help";
 import { DepartmentsTable } from "@/components/hr/departements/DepartementsTable";
 import { ModalPosition, PositionsTable } from "@/components/hr/departements/PositionTable";
+import { Alert, Button, Card, Input } from "@/components/ui";
+import { KeyboardHint, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { commonShortcuts, KeyboardShortcut, useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
+import { deleteDepartment, getDepartments } from "@/lib/services/hr/department.service";
+import { createPosition, deletePosition, getPositions, updatePosition } from "@/lib/services/hr/position.service";
+import type { Department, Position } from "@/lib/types/hr";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  HiOutlineBriefcase,
+  HiOutlineMagnifyingGlass,
+  HiOutlinePlusCircle,
+  HiOutlineQuestionMarkCircle,
+  HiOutlineUserGroup
+} from "react-icons/hi2";
 
 
 

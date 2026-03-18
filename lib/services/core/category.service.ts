@@ -2,8 +2,8 @@
  * Service de gestion des catégories - Module Core
  */
 
-import { cacheManager } from '@/lib/offline';
 import { API_ENDPOINTS } from '@/lib/api/config';
+import { cacheManager } from '@/lib/offline';
 import type { Category } from '@/lib/types/core';
 
 // Les catégories sont relativement statiques

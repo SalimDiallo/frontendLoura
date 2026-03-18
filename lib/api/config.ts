@@ -451,8 +451,9 @@ export const API_ENDPOINTS = {
   AI: {
     CHAT: '/ai/chat/',
     CHAT_STREAM: '/ai/chat/stream/',
-    MODELS: '/ai/models/',
+    CONFIG: '/ai/config/',
     TOOLS: '/ai/tools/',
+    EXECUTE_TOOL: '/ai/execute-tool/',
     CONVERSATIONS: {
       LIST: '/ai/conversations/',
       CREATE: '/ai/conversations/',
