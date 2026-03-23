@@ -152,6 +152,7 @@ export const AVAILABLE_PERMISSIONS: PermissionItem[] = [
   { code: COMMON_PERMISSIONS.INVENTORY.VIEW_SALES, label: "Voir les ventes && créances", category: "Ventes && créances", module: "inventory", depends: [] },
   { code: COMMON_PERMISSIONS.INVENTORY.CREATE_SALES, label: "Créer des ventes && créances", category: "Ventes && créances", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_SALES] },
   { code: COMMON_PERMISSIONS.INVENTORY.UPDATE_SALES, label: "Modifier des ventes && créances (paiements)", category: "Ventes && créances", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_SALES] },
+  { code: COMMON_PERMISSIONS.INVENTORY.MODIFY_PAID_SALES, label: "Modifier des ventes payées (avec ajustement automatique des paiements)", category: "Ventes && créances", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.UPDATE_SALES] },
   { code: COMMON_PERMISSIONS.INVENTORY.DELETE_SALES, label: "Annuler des ventes && créances", category: "Ventes && créances", module: "inventory", depends: [COMMON_PERMISSIONS.INVENTORY.VIEW_SALES] },
 
   // === PAYMENTS ===

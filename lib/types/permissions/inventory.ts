@@ -63,6 +63,7 @@ export const INVENTORY_PERMISSIONS = {
   VIEW_SALES: 'inventory.view_sales',
   CREATE_SALES: 'inventory.create_sales',
   UPDATE_SALES: 'inventory.update_sales',
+  MODIFY_PAID_SALES: 'inventory.modify_paid_sales',
   DELETE_SALES: 'inventory.delete_sales',
 
   // === EXPENSES === 

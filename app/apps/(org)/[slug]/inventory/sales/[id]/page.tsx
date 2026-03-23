@@ -3,11 +3,14 @@
 import { Can } from "@/components/apps/common";
 import Etiquette from "@/components/landing/ui/Etiquette";
 import { Badge, Button, Card } from "@/components/ui";
+import { PDFPreviewWrapper } from "@/components/ui/pdf-preview";
 import { addPaymentToSale, getDeliveryNotes, getSale, getSaleInvoiceUrl, getSaleReceiptUrl } from "@/lib/services/inventory";
 import type { DeliveryNote, Sale } from "@/lib/types/inventory";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { COMMON_PERMISSIONS, INVENTORY_PERMISSIONS } from "@/lib/types/permissions";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getBadgeWIthOutIconAdLabel } from "@/lib/utils/BadgeStatus";
+import { usePDF } from "@/lib/hooks/usePDF";
+import { useHasPermission } from "@/lib/hooks/use-permissions";
 import {
   ArrowLeft,
   Banknote,
@@ -15,7 +18,12 @@ import {
   Clock,
   CreditCard,
   Download,
+  Edit,
+  Eye,
+  FileText,
+  FileTextIcon,
   Percent,
+  Receipt,
   ShoppingCart,
   Truck,
   User,
@@ -40,6 +48,15 @@ export default function SaleDetailPage() {
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [deliveryNotes, setDeliveryNotes] = useState<DeliveryNote[]>([]);
+
+  // Hook pour les PDFs avec prévisualisation
+  const { preview, download, closePreview, previewState } = usePDF({
+    onError: (err) => setError(err.message || "Erreur lors du chargement du PDF"),
+  });
+
+  // Vérifier la permission de modification des ventes payées
+  const canModifyPaidSales = useHasPermission(INVENTORY_PERMISSIONS.MODIFY_PAID_SALES);
+  const canUpdateSales = useHasPermission(INVENTORY_PERMISSIONS.UPDATE_SALES);
 
   useEffect(() => {
     loadSale();
@@ -99,6 +116,12 @@ export default function SaleDetailPage() {
   return (
    <Can permission={COMMON_PERMISSIONS.INVENTORY.VIEW_SALES} showMessage>
        <div className="p-6 space-y-6">
+      {/* PDF Preview Modal */}
+      <PDFPreviewWrapper
+        previewState={previewState}
+        onClose={closePreview}
+      />
+
       {/* Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -177,46 +200,116 @@ export default function SaleDetailPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Bouton Modifier - Affiché selon les permissions et le statut */}
+          {sale?.payment_status !== "cancelled" && (
+            <>
+              {/* Vente non payée - Permission UPDATE_SALES suffit */}
+              {sale?.payment_status === "pending" && canUpdateSales && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/apps/${slug}/inventory/sales/edit/${saleId}`}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Modifier
+                  </Link>
+                </Button>
+              )}
+
+              {/* Vente payée (partielle ou totale) - Nécessite MODIFY_PAID_SALES */}
+              {(sale?.payment_status === "partial" || sale?.payment_status === "paid") && canModifyPaidSales && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/apps/${slug}/inventory/sales/edit/${saleId}`}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Modifier
+                  </Link>
+                </Button>
+              )}
+            </>
+          )}
+
+          {/* Bouton Ajouter paiement */}
           {sale?.payment_status !== "paid" && sale?.payment_status !== "cancelled" && (
             <Can permission={COMMON_PERMISSIONS.INVENTORY.UPDATE_SALES}>
-              <Button onClick={() => setShowPaymentModal(true)} size={"sm"}>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Ajouter paiement
-            </Button>
+              <Button onClick={() => setShowPaymentModal(true)} size="sm">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Ajouter paiement
+              </Button>
             </Can>
           )}
-          <Button variant="outline" asChild size={"sm"}>
+
+          {/* Bon de livraison */}
+          <Button variant="outline" asChild size="sm">
             <Link href={`/apps/${slug}/inventory/documents/delivery-notes/new?sale=${saleId}`}>
               <Truck className="mr-2 h-4 w-4" />
-              Créer bon de livraison
+              Livraison
             </Link>
           </Button>
-          <Button variant="outline" asChild size={"sm"}>
-            <a href={getSaleReceiptUrl(saleId)} target="_blank">
-              <Download className="mr-2 h-4 w-4" />
-              Reçu
-            </a>
-          </Button>
-          <Button variant="outline" asChild size={"sm"}>
-            <a href={getSaleInvoiceUrl(saleId)} target="_blank">
-              <Download className="mr-2 h-4 w-4" />
-              Facture
-            </a>
-          </Button>
 
+          {/* Boutons PDF améliorés avec prévisualisation */}
+          <div className="flex items-center gap-2">
+            {/* Reçu */}
+            <div className="flex items-center border rounded-md">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  preview(
+                    `/inventory/sales/${saleId}/receipt/`,
+                    `Reçu - ${sale?.sale_number}`,
+                    `Recu_${sale?.sale_number}.pdf`
+                  )
+                }
+                title="Prévisualiser le reçu"
+                className="rounded-r-none border-r"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => download(`/inventory/sales/${saleId}/receipt/`, `Recu_${sale?.sale_number}.pdf`)}
+                title="Télécharger le reçu"
+                className="rounded-l-none"
+              >
+                <Receipt className="mr-1 h-4 w-4" />
+                Reçu
+              </Button>
+            </div>
+
+            {/* Facture */}
+            <div className="flex items-center border rounded-md">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  preview(
+                    `/inventory/sales/${saleId}/invoice/`,
+                    `Facture - ${sale?.sale_number}`,
+                    `Facture_${sale?.sale_number}.pdf`
+                  )
+                }
+                title="Prévisualiser la facture"
+                className="rounded-r-none border-r"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => download(`/inventory/sales/${saleId}/invoice/`, `Facture_${sale?.sale_number}.pdf`)}
+                title="Télécharger la facture"
+                className="rounded-l-none"
+              >
+                <FileText className="mr-1 h-4 w-4" />
+                Facture
+              </Button>
+            </div>
+          </div>
+
+          {/* Lien vers crédit si applicable */}
           {sale?.is_credit_sale && (
             <div className="flex flex-col items-center">
-              {/* Etiquette inclinée placée au-dessus du bouton, façon 'suspendu' */}
-              <Etiquette className="absolute">
-                 Vente à crédit
-              </Etiquette>
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-                className="mt-6"
-              >
+              <Etiquette className="absolute">Vente à crédit</Etiquette>
+              <Button variant="outline" size="sm" asChild className="mt-6">
                 <Link href={`/apps/${slug}/inventory/credit-sales/${sale.credit_id}`}>
                   <CreditCard className="mr-2 h-4 w-4" />
                   Voir crédit
@@ -438,33 +531,69 @@ export default function SaleDetailPage() {
                 </div>
               )}
             </dl>
-            {sale?.notes && (
-              <div className="mt-4 pt-4 border-t">
-                <dt className="text-xs text-muted-foreground mb-1">Notes</dt>
-                <dd className="text-sm whitespace-pre-wrap">
-                  {(() => {
-                    // Regex for "Converti depuis proforma <UUID>"
-                    const match = sale.notes.match(/Converti depuis proforma\s+([0-9a-fA-F-]{36})/i);
-                    if (match) {
-                      const proformaId = match[1];
-                      return (
-                        <>
-                          Converti depuis {" "}
-                          <Link
-                            href={`/apps/${slug}/inventory/documents/proformas/${proformaId}`}
-                            className="underline text-primary hover:text-primary/80"
-                          >
-                            une facture proforma
-                          </Link>
-                        </>
-                      );
-                    }
-                    return sale.notes;
-                  })()}
-                </dd>
-              </div>
-            )}
           </Card>
+
+          {/* Notes Section - Séparée et plus visible */}
+          {sale?.notes && (
+            <Card className="p-4 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+              <div className="flex items-start gap-3">
+                <FileTextIcon className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                    Notes
+                  </h3>
+                  <div className="text-sm text-amber-800 dark:text-amber-200 whitespace-pre-wrap">
+                    {(() => {
+                      // Regex for "Converti depuis proforma <UUID>"
+                      const proformaMatch = sale.notes.match(/Converti depuis proforma\s+([0-9a-fA-F-]{36})/i);
+                      if (proformaMatch) {
+                        const proformaId = proformaMatch[1];
+                        return (
+                          <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/50 rounded border border-blue-200 dark:border-blue-800">
+                            <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <span>
+                              Converti depuis{" "}
+                              <Link
+                                href={`/apps/${slug}/inventory/documents/proformas/${proformaId}`}
+                                className="underline font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                              >
+                                facture proforma
+                              </Link>
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      // Détecter les notes d'ajustement automatique de paiements
+                      const hasAutoAdjustment = sale.notes.includes("[Ajusté automatiquement");
+
+                      if (hasAutoAdjustment) {
+                        // Séparer les lignes et formatter les ajustements
+                        const lines = sale.notes.split('\n');
+                        return (
+                          <div className="space-y-2">
+                            {lines.map((line, index) => {
+                              if (line.includes("[Ajusté automatiquement")) {
+                                return (
+                                  <div key={index} className="flex items-start gap-2 p-2 bg-orange-50 dark:bg-orange-950/50 rounded border border-orange-200 dark:border-orange-800 text-xs">
+                                    <Clock className="h-3 w-3 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                                    <span className="text-orange-800 dark:text-orange-200">{line}</span>
+                                  </div>
+                                );
+                              }
+                              return line && <p key={index}>{line}</p>;
+                            })}
+                          </div>
+                        );
+                      }
+
+                      return sale.notes;
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Payments */}
           <Card className="p-4">
@@ -475,21 +604,60 @@ export default function SaleDetailPage() {
               </p>
             ) : (
               <div className="space-y-3">
-                {sale?.payments.map((payment) => (
-                  <div
-                    key={payment.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">{formatCurrency(payment.amount)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(payment.payment_date).toLocaleDateString("fr-FR")} •{" "}
-                        {payment.payment_method_display}
-                      </p>
+                {sale?.payments.map((payment, index) => {
+                  const hasAdjustment = payment.notes?.includes("[Ajusté automatiquement");
+
+                  return (
+                    <div
+                      key={payment.id}
+                      className={`p-3 rounded-lg border ${
+                        hasAdjustment
+                          ? "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800"
+                          : "bg-muted/50 border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{formatCurrency(payment.amount)}</p>
+                            {hasAdjustment && (
+                              <Badge variant="warning" size="sm" className="text-xs">
+                                Ajusté
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(payment.payment_date).toLocaleDateString("fr-FR")} •{" "}
+                            {payment.payment_method_display}
+                            {payment.receipt_number && ` • ${payment.receipt_number}`}
+                          </p>
+                        </div>
+                        <Badge variant="success" size="sm">
+                          Paiement #{index + 1}
+                        </Badge>
+                      </div>
+
+                      {/* Notes du paiement */}
+                      {payment.notes && (
+                        <div className="mt-2 pt-2 border-t border-muted">
+                          <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                            {payment.notes.split('\n').map((line, idx) => {
+                              if (line.includes("[Ajusté automatiquement")) {
+                                return (
+                                  <span key={idx} className="flex items-start gap-1 text-orange-600 dark:text-orange-400 font-medium">
+                                    <Clock className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                    {line}
+                                  </span>
+                                );
+                              }
+                              return line && <span key={idx} className="block">{line}</span>;
+                            })}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <Badge variant="success">Payé</Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>
