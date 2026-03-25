@@ -3,13 +3,13 @@ import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/config';
 import type {
   Attendance,
-  AttendanceCreate,
-  AttendanceUpdate,
+  AttendanceApproval,
   AttendanceCheckIn,
   AttendanceCheckOut,
-  AttendanceApproval,
-  AttendanceStats,
+  AttendanceCreate,
   AttendanceListResponse,
+  AttendanceStats,
+  AttendanceUpdate,
 } from '@/lib/types/hr';
 
 /**
@@ -74,7 +74,7 @@ export async function createAttendance(
   data: AttendanceCreate,
   orgSlug: string
 ): Promise<Attendance> {
-    return apiClient.post<Attendance>(`${API_ENDPOINTS.HR.ATTENDANCES.CREATE}`, data, {
+  return apiClient.post<Attendance>(`${API_ENDPOINTS.HR.ATTENDANCES.CREATE}`, data, {
     headers: {
       'X-Organization-Slug': orgSlug,
     }
@@ -189,7 +189,7 @@ export async function getAttendanceStats(
   if (params?.start_date) queryParams.append('start_date', params.start_date);
   if (params?.end_date) queryParams.append('end_date', params.end_date);
 
-    const url = queryParams.toString() ? `${API_ENDPOINTS.HR.ATTENDANCES.STATS}?${queryParams}` : `${API_ENDPOINTS.HR.ATTENDANCES.STATS}`;
+  const url = queryParams.toString() ? `${API_ENDPOINTS.HR.ATTENDANCES.STATS}?${queryParams}` : `${API_ENDPOINTS.HR.ATTENDANCES.STATS}`;
   return apiClient.get<AttendanceStats>(url, {
     headers: {
       'X-Organization-Slug': orgSlug,
