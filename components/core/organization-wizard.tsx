@@ -319,6 +319,9 @@ export function OrganizationWizard() {
 
   const currentStepIndex = getCurrentStepIndex();
 
+  console.log(allModules);
+  
+
   return (
     <div className="min-h-screen bg-background dark:bg-slate-950 py-8 transition-colors">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

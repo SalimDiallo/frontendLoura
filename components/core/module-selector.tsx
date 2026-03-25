@@ -3,20 +3,20 @@
 import { Badge } from '@/components/ui';
 import type { Module } from '@/lib/types/core';
 import {
-  Check,
-  Users,
-  DollarSign,
-  Calendar,
-  Clock,
-  FileText,
-  Shield,
-  Package,
-  Warehouse,
-  ShoppingCart,
-  TrendingUp,
   ArrowLeftRight,
   BarChart,
+  Calendar,
+  Check,
+  Clock,
+  DollarSign,
+  FileText,
   LucideIcon,
+  Package,
+  Shield,
+  ShoppingCart,
+  TrendingUp,
+  Users,
+  Warehouse,
 } from 'lucide-react';
 import { useState } from 'react';
 

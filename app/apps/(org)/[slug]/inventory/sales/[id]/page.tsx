@@ -4,20 +4,19 @@ import { Can } from "@/components/apps/common";
 import Etiquette from "@/components/landing/ui/Etiquette";
 import { Badge, Button, Card } from "@/components/ui";
 import { PDFPreviewWrapper } from "@/components/ui/pdf-preview";
-import { addPaymentToSale, getDeliveryNotes, getSale, getSaleInvoiceUrl, getSaleReceiptUrl } from "@/lib/services/inventory";
+import { useHasPermission } from "@/lib/hooks/use-permissions";
+import { usePDF } from "@/lib/hooks/usePDF";
+import { addPaymentToSale, getDeliveryNotes, getSale } from "@/lib/services/inventory";
 import type { DeliveryNote, Sale } from "@/lib/types/inventory";
 import { COMMON_PERMISSIONS, INVENTORY_PERMISSIONS } from "@/lib/types/permissions";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { getBadgeWIthOutIconAdLabel } from "@/lib/utils/BadgeStatus";
-import { usePDF } from "@/lib/hooks/usePDF";
-import { useHasPermission } from "@/lib/hooks/use-permissions";
 import {
   ArrowLeft,
   Banknote,
   Calendar,
   Clock,
   CreditCard,
-  Download,
   Edit,
   Eye,
   FileText,
@@ -51,7 +50,7 @@ export default function SaleDetailPage() {
 
   // Hook pour les PDFs avec prévisualisation
   const { preview, download, closePreview, previewState } = usePDF({
-    onError: (err) => setError(err.message || "Erreur lors du chargement du PDF"),
+    onError: (err) => setError("Erreur lors du chargement du PDF"),
   });
 
   // Vérifier la permission de modification des ventes payées
