@@ -1,6 +1,5 @@
 "use client";
 
-import { Can } from "@/components/apps/common";
 import { Alert, Badge, Button, Card } from "@/components/ui";
 import { usePermissions } from "@/lib/hooks";
 import { getSale, updateSale } from "@/lib/services/inventory";
@@ -436,7 +435,9 @@ export default function EditSalePage() {
               <div
                 key={payment.id}
                 className={`flex items-center justify-between p-3 rounded-lg ${
-                  willAdjustPayments && index >= sale.payments.length - Math.ceil((totalPaid - newTotal) / payment.amount)
+                  willAdjustPayments &&
+                  !!sale.payments &&
+                  index >= sale.payments.length - Math.ceil((totalPaid - newTotal) / (payment.amount || 1))
                     ? "bg-red-100 dark:bg-red-950 border border-red-300 dark:border-red-800"
                     : "bg-muted/50"
                 }`}
@@ -452,7 +453,7 @@ export default function EditSalePage() {
                   <Badge variant="success" size="sm">
                     Paiement #{index + 1}
                   </Badge>
-                  {willAdjustPayments && index >= sale.payments.length - Math.ceil((totalPaid - newTotal) / payment.amount) && (
+                  {willAdjustPayments && !!sale?.payments && index >= sale.payments.length - Math.ceil((totalPaid - newTotal) / payment.amount) && (
                     <Badge variant="error" size="sm">
                       Sera ajusté
                     </Badge>
