@@ -366,7 +366,7 @@ export function ChatSidebar({ open, onClose, className, orgSlug }: ChatSidebarPr
             setConversations((prev) =>
               prev.map((conv) =>
                 conv.id === activeConversationId
-                  ? { ...conv, id: data.conversation_id }
+                  ? { ...conv, id: data.conversation_id! }
                   : conv
               )
             );

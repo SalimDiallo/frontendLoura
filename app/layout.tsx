@@ -72,6 +72,7 @@ export default function RootLayout({
       </head>
       <body
         className={`${spaceGrotesk.className} ${spaceGrotesk.variable} ${jetbrainsMono.variable}   ${playfairDisplay.variable} font-sans antialiased`}
+        suppressHydrationWarning
       >
         <ThemeProvider defaultTheme="system" storageKey="loura-ui-theme">
           <ServiceWorkerProvider>

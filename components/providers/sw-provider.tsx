@@ -10,8 +10,9 @@
 
 'use client';
 
+import { ReactNode } from 'react';
 
-export function ServiceWorkerProvider({ children }: { children: React.ReactNode }) {
+export function ServiceWorkerProvider({ children }: { children: ReactNode }) {
   // const { isSupported, isRegistered } = useServiceWorker();
   // const warmupStarted = useRef(false);
 
