@@ -4,7 +4,7 @@ import { Can } from "@/components/apps/common/protected-route";
 import { Alert, Badge, Button, Card, Input } from "@/components/ui";
 import { KeyboardHint, ShortcutBadge, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
 import { KeyboardShortcut, commonShortcuts, useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { supplierService, deleteSupplier } from "@/lib/services/inventory";
+import { deleteSupplier, supplierService } from "@/lib/services/inventory";
 import type { Supplier } from "@/lib/types/inventory";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -23,12 +23,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // Importer DeleteConfirmation du composant de confirmation générique
 import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
-import { useListData } from "@/lib/hooks/use-list-data";
 import { Pagination } from "@/components/common/pagination";
+import { useListData } from "@/lib/hooks/use-list-data";
 
 export default function SuppliersPage() {
   const params = useParams();
@@ -72,10 +72,10 @@ export default function SuppliersPage() {
   // Convertir searchTerm en filtre server-side avec debounce
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setFilter('search', searchTerm || undefined);
+      // setFilter('search', searchTerm || undefined);
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, setFilter]);
+  }, [searchTerm]);
 
   // Nouvelle fonction de suppression avec le dialogue
   const handleDelete = (supplier: Supplier) => {

@@ -1,21 +1,23 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
 import {
+  AlertTriangle,
   Bell,
   Check,
   CheckCircle2,
-  Trash2,
-  Clock,
-  AlertTriangle,
-  Info,
-  User2,
-  Settings,
   ChevronRight,
+  Clock,
   Inbox,
+  Info,
+  Mail,
+  Settings,
+  Smartphone,
+  Trash2,
+  User2,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   Sheet,
@@ -24,10 +26,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
-import { useNotificationStore } from "@/lib/store/notification-store";
 import { useNotifications } from "@/lib/hooks/use-notifications";
+import { useNotificationStore } from "@/lib/store/notification-store";
 import type { Notification, NotificationType } from "@/lib/types/notifications";
+import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -296,7 +298,7 @@ export function NotificationPanel({
         <div
           className={cn(
             "overflow-hidden transition-all duration-200",
-            showPrefs ? "max-h-40" : "max-h-0"
+            showPrefs ? "max-h-80" : "max-h-0"
           )}
         >
           {preferences && (
@@ -405,31 +407,62 @@ function PreferencesBlock({
     data: import("@/lib/types/notifications").NotificationPreferenceUpdate
   ) => Promise<any>;
 }) {
-  const items = [
+  const typeItems = [
     { key: "receive_alerts" as const, label: "Alertes stock", icon: AlertTriangle },
     { key: "receive_system" as const, label: "Système", icon: Info },
     { key: "receive_user" as const, label: "Utilisateurs", icon: User2 },
   ];
 
+  const channelItems = [
+    { key: "email_enabled" as const, label: "Email", icon: Mail },
+    { key: "sms_enabled" as const, label: "SMS", icon: Smartphone },
+    { key: "push_enabled" as const, label: "Push", icon: Bell },
+  ];
+
   return (
-    <div className="mx-4 my-3 p-3 rounded-lg bg-muted/40 border border-border/40">
-      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2.5">
-        Recevoir les notifications
-      </p>
-      <div className="space-y-2">
-        {items.map(({ key, label, icon: Icon }) => (
-          <div key={key} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Icon className="size-3.5 text-muted-foreground" />
-              <span className="text-xs text-foreground">{label}</span>
+    <div className="mx-4 my-3 space-y-3">
+      {/* Type filters */}
+      <div className="p-3 rounded-lg bg-muted/40 border border-border/40">
+        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2.5">
+          Recevoir les notifications
+        </p>
+        <div className="space-y-2">
+          {typeItems.map(({ key, label, icon: Icon }) => (
+            <div key={key} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Icon className="size-3.5 text-muted-foreground" />
+                <span className="text-xs text-foreground">{label}</span>
+              </div>
+              <Switch
+                checked={preferences[key]}
+                onCheckedChange={(checked) => onSave({ [key]: checked })}
+                className="scale-[0.85]"
+              />
             </div>
-            <Switch
-              checked={preferences[key]}
-              onCheckedChange={(checked) => onSave({ [key]: checked })}
-              className="scale-[0.85]"
-            />
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      {/* Channel preferences (Novu multi-canal) */}
+      <div className="p-3 rounded-lg bg-muted/40 border border-border/40">
+        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2.5">
+          Canaux de livraison
+        </p>
+        <div className="space-y-2">
+          {channelItems.map(({ key, label, icon: Icon }) => (
+            <div key={key} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Icon className="size-3.5 text-muted-foreground" />
+                <span className="text-xs text-foreground">{label}</span>
+              </div>
+              <Switch
+                checked={preferences[key]}
+                onCheckedChange={(checked) => onSave({ [key]: checked })}
+                className="scale-[0.85]"
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

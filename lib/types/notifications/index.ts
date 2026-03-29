@@ -63,6 +63,11 @@ export interface NotificationPreference {
   receive_system: boolean;
   receive_user: boolean;
   min_priority: NotificationPriority;
+  // Canaux de livraison (Novu multi-canal)
+  email_enabled: boolean;
+  sms_enabled: boolean;
+  push_enabled: boolean;
+  phone_number: string;
   created_at: string;
   updated_at: string;
 }
@@ -72,6 +77,11 @@ export interface NotificationPreferenceUpdate {
   receive_system?: boolean;
   receive_user?: boolean;
   min_priority?: NotificationPriority;
+  // Canaux de livraison (Novu multi-canal)
+  email_enabled?: boolean;
+  sms_enabled?: boolean;
+  push_enabled?: boolean;
+  phone_number?: string;
 }
 
 // --- Filtres pour la liste ---------------------------------------------
