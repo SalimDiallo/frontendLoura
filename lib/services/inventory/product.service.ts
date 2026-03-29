@@ -4,11 +4,11 @@
  */
 
 import { BaseService, type CrudEndpoints } from '@/lib/api/base-service';
-import { cacheManager } from '@/lib/offline';
 import { API_ENDPOINTS } from '@/lib/api/config';
-import { addOrganizationToData } from '@/lib/utils/organization';
-import type { Product, ProductCreate, ProductUpdate, ProductList, Stock, Movement } from '@/lib/types/inventory';
+import { cacheManager } from '@/lib/offline';
+import type { Movement, Product, ProductCreate, ProductList, ProductUpdate, Stock } from '@/lib/types/inventory';
 import type { FilterParams } from '@/lib/types/shared';
+import { addOrganizationToData } from '@/lib/utils/organization';
 
 /**
  * Paramètres de filtrage pour les produits
@@ -17,6 +17,7 @@ interface ProductFilters extends FilterParams {
   category?: string;
   is_active?: boolean;
   low_stock?: boolean;
+  warehouse?: string;
 }
 
 /**

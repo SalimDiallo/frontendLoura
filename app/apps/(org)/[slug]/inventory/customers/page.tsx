@@ -2,7 +2,7 @@
 
 import { Can } from "@/components/apps/common";
 import { Alert, Badge, Button, Card, Input } from "@/components/ui";
-import { deleteCustomer, getCustomers } from "@/lib/services/inventory";
+import { customerService, deleteCustomer } from "@/lib/services/inventory";
 import type { Customer } from "@/lib/types/inventory";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -30,6 +30,8 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useListData } from "@/lib/hooks/use-list-data";
+import { Pagination } from "@/components/common/pagination";
 
 type SortField = "name" | "total_purchases" | "total_debt";
 type SortOrder = "asc" | "desc";
@@ -40,14 +42,43 @@ export default function CustomersPage() {
   const router = useRouter();
   const slug = params.slug as string;
 
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Hook de pagination avec filtres
+  const {
+    data: customers,
+    totalCount,
+    currentPage,
+    pageSize,
+    hasNext,
+    hasPrevious,
+    setPage,
+    loading,
+    error: fetchError,
+    reload,
+    filters,
+    setFilter,
+  } = useListData<Customer, any>({
+    fetchFn: (params) => customerService.list(params),
+    initialFilters: {},
+    pageSize: 10,
+    deps: [slug],
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Convertir searchTerm en filtre server-side avec debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setFilter('search', searchTerm || undefined);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, setFilter]);
+
+  // Extraire le filtre pour compatibilité UI
+  const filterActive = filters.is_active as boolean | undefined;
 
   // Nouveaux états pour les filtres avancés
   const [sortField, setSortField] = useState<SortField>("total_purchases");
@@ -59,10 +90,6 @@ export default function CustomersPage() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLTableSectionElement>(null);
-
-  useEffect(() => {
-    loadCustomers();
-  }, [slug, filterActive]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -142,24 +169,11 @@ export default function CustomersPage() {
     }
   }, [selectedIndex]);
 
-  const loadCustomers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getCustomers({ is_active: filterActive });
-      setCustomers(data);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement des clients");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     try {
       await deleteCustomer(id);
       setDeleteConfirmId(null);
-      loadCustomers();
+      await reload();
     } catch (err: any) {
       setError(err.message || "Erreur lors de la suppression");
     }
@@ -197,16 +211,8 @@ export default function CustomersPage() {
     return true;
   };
 
-  // Filtrer et trier les clients
+  // Filtrer et trier les clients (search est server-side via debounce)
   const filteredAndSortedCustomers = customers
-    .filter((customer) =>
-      searchTerm === ""
-        ? true
-        : customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          customer.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          customer.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
     .filter(filterByPeriod)
     .sort((a, b) => {
       let aValue: any = a[sortField] || 0;
@@ -331,12 +337,12 @@ export default function CustomersPage() {
         </div>
 
         {/* Error */}
-        {error && (
+        {(error || fetchError) && (
           <Alert variant="error">
             <AlertTriangle className="h-4 w-4" />
             <div>
               <h3 className="font-semibold">Erreur</h3>
-              <p className="text-sm">{error}</p>
+              <p className="text-sm">{error || fetchError}</p>
             </div>
           </Alert>
         )}
@@ -469,21 +475,21 @@ export default function CustomersPage() {
                 <Button
                   size="sm"
                   variant={filterActive === undefined ? "default" : "outline"}
-                  onClick={() => setFilterActive(undefined)}
+                  onClick={() => setFilter('is_active', undefined)}
                 >
                   Tous
                 </Button>
                 <Button
                   size="sm"
                   variant={filterActive === true ? "default" : "outline"}
-                  onClick={() => setFilterActive(filterActive === true ? undefined : true)}
+                  onClick={() => setFilter('is_active', filterActive === true ? undefined : true)}
                 >
                   Actifs
                 </Button>
                 <Button
                   size="sm"
                   variant={filterActive === false ? "default" : "outline"}
-                  onClick={() => setFilterActive(filterActive === false ? undefined : false)}
+                  onClick={() => setFilter('is_active', filterActive === false ? undefined : false)}
                 >
                   Inactifs
                 </Button>
@@ -761,10 +767,23 @@ export default function CustomersPage() {
           </div>
         </Card>
 
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          hasNext={hasNext}
+          hasPrevious={hasPrevious}
+          loading={loading}
+          itemLabel="clients"
+          variant="default"
+        />
+
         {/* Summary */}
         <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
           <p>
-            {filteredAndSortedCustomers.length} client(s) affiché(s) sur {customers.length}
+            {filteredAndSortedCustomers.length} client(s) affichés • Total: {totalCount} clients
           </p>
           <p className="text-xs">
             Appuyez sur <kbd className="px-1.5 py-0.5 rounded border bg-muted font-mono">?</kbd> pour les raccourcis

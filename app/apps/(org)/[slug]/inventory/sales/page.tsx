@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { PDFPreviewWrapper } from "@/components/ui/pdf-preview";
 import { usePDF } from "@/lib/hooks/usePDF";
-import { cancelSale, getSales } from "@/lib/services/inventory";
+import { cancelSale } from "@/lib/services/inventory";
 import type { SaleList } from "@/lib/types/inventory";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -37,29 +37,68 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useListData } from "@/lib/hooks/use-list-data";
+import { Pagination } from "@/components/common/pagination";
+import { apiClient } from "@/lib/api/client";
+import { API_ENDPOINTS } from "@/lib/api/config";
+import type { PaginatedResponse } from "@/lib/types/shared";
+
+// Wrapper pour rendre getSales compatible avec useListData
+const fetchSalesList = async (params: any): Promise<PaginatedResponse<SaleList>> => {
+  const response = await apiClient.get<PaginatedResponse<SaleList>>(
+    API_ENDPOINTS.INVENTORY.SALES.LIST,
+    { params }
+  );
+  return response;
+};
 
 export default function SalesPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
 
-  const [sales, setSales] = useState<SaleList[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Hook de pagination avec filtres
+  const {
+    data: sales,
+    totalCount,
+    currentPage,
+    pageSize,
+    hasNext,
+    hasPrevious,
+    setPage,
+    loading,
+    error: fetchError,
+    reload,
+    filters,
+    setFilter,
+  } = useListData<SaleList, any>({
+    fetchFn: fetchSalesList,
+    initialFilters: {},
+    pageSize: 10,
+    deps: [slug],
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string | undefined>(undefined);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLTableSectionElement>(null);
 
   const { preview, download, previewState, closePreview } = usePDF();
 
+  // Convertir searchTerm en filtre server-side avec debounce
   useEffect(() => {
-    loadSales();
-  }, [slug, filterStatus]);
+    const timeoutId = setTimeout(() => {
+      setFilter('search', searchTerm || undefined);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, setFilter]);
+
+  // Extraire le filtre pour compatibilité UI
+  const filterStatus = filters.payment_status as string | undefined;
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -137,35 +176,18 @@ export default function SalesPage() {
     }
   }, [selectedIndex]);
 
-  const loadSales = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getSales({ payment_status: filterStatus });
-      setSales(data);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement des ventes");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCancel = async (id: string) => {
     try {
       await cancelSale(id);
       setCancelConfirmId(null);
-      loadSales();
+      await reload();
     } catch (err: any) {
       setError(err.message || "Erreur lors de l'annulation");
     }
   };
 
-  const filteredSales = sales.filter((sale) =>
-    searchTerm === ""
-      ? true
-      : sale.sale_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Plus de filtrage client-side - tout est server-side
+  const filteredSales = sales;
 
 
   const getStatusIcon = (status: string) => {
@@ -318,7 +340,7 @@ export default function SalesPage() {
           <div className="flex gap-2 flex-wrap">
             <Button
               variant={filterStatus === undefined ? "default" : "outline"}
-              onClick={() => setFilterStatus(undefined)}
+              onClick={() => setFilter('payment_status', undefined)}
               size="sm"
               className="h-10 px-4"
             >
@@ -326,7 +348,7 @@ export default function SalesPage() {
             </Button>
             <Button
               variant={filterStatus === "paid" ? "default" : "outline"}
-              onClick={() => setFilterStatus(filterStatus === "paid" ? undefined : "paid")}
+              onClick={() => setFilter('payment_status', filterStatus === "paid" ? undefined : "paid")}
               size="sm"
               className="h-10 px-4"
             >
@@ -335,7 +357,7 @@ export default function SalesPage() {
             </Button>
             <Button
               variant={filterStatus === "partial" ? "default" : "outline"}
-              onClick={() => setFilterStatus(filterStatus === "partial" ? undefined : "partial")}
+              onClick={() => setFilter('payment_status', filterStatus === "partial" ? undefined : "partial")}
               size="sm"
               className="h-10 px-4"
             >
@@ -344,7 +366,7 @@ export default function SalesPage() {
             </Button>
             <Button
               variant={filterStatus === "pending" ? "default" : "outline"}
-              onClick={() => setFilterStatus(filterStatus === "pending" ? undefined : "pending")}
+              onClick={() => setFilter('payment_status', filterStatus === "pending" ? undefined : "pending")}
               size="sm"
               className="h-10 px-4"
             >
@@ -356,12 +378,12 @@ export default function SalesPage() {
       </Card>
 
       {/* Error */}
-      {error && (
+      {(error || fetchError) && (
         <Alert variant="error">
           <AlertTriangle className="h-4 w-4" />
           <div>
             <h3 className="font-semibold">Erreur</h3>
-            <p className="text-sm">{error}</p>
+            <p className="text-sm">{error || fetchError}</p>
           </div>
         </Alert>
       )}
@@ -403,7 +425,6 @@ export default function SalesPage() {
                 <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">N° Vente</th>
                 <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Date</th>
                 <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Client</th>
-                <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground hidden md:table-cell">Entrepôt</th>
                 <th className="text-center px-3 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Qté</th>
                 <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Total</th>
                 <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wide text-muted-foreground">Payé</th>
@@ -452,9 +473,6 @@ export default function SalesPage() {
                     <td className="px-4 py-3">
                       <span className="text-sm font-medium truncate max-w-[150px] block">{sale.customer_name || "Client anonyme"}</span>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground text-sm hidden md:table-cell">
-                      {sale.warehouse_name || "-"}
-                    </td>
                     <td className="px-3 py-3 text-center">
                       <Badge variant="outline" className="text-xs px-2 py-0.5">
                         {sale.item_count || 0}
@@ -493,7 +511,6 @@ export default function SalesPage() {
                               onClick={(e) => e.stopPropagation()}
                             >
                               <FileText className="h-4 w-4 mr-1.5" />
-                              <span className="text-xs font-medium">Documents</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-56">
@@ -614,6 +631,19 @@ export default function SalesPage() {
           </div>
         </div>
       </Card>
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        hasNext={hasNext}
+        hasPrevious={hasPrevious}
+        loading={loading}
+        itemLabel="ventes"
+        variant="default"
+      />
 
       <p className="text-center text-xs text-muted-foreground">
         <kbd className="px-2 py-1 rounded border bg-muted font-mono text-xs">?</kbd> pour voir les raccourcis clavier

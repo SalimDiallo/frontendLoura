@@ -2,9 +2,9 @@
  * Service de gestion des modules - Module Core
  */
 
-import { cacheManager } from '@/lib/offline';
 import { API_ENDPOINTS } from '@/lib/api/config';
-import type { Module, DefaultModulesResponse } from '@/lib/types/core';
+import { cacheManager } from '@/lib/offline';
+import type { DefaultModulesResponse, Module } from '@/lib/types/core';
 
 // Les modules sont relativement statiques
 const CACHE_TTL = {
@@ -28,6 +28,7 @@ export const moduleService = {
     if (response && typeof response === 'object' && 'results' in response) {
       return response.results || [];
     }
+
     // Fallback if response is already an array
     return Array.isArray(response) ? response : [];
   },

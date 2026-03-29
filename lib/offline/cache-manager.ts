@@ -2,14 +2,15 @@
  * Cache Manager - Couche de cache pour les requêtes API
  *
  * Stratégie:
- * - GET: Cache-first avec fallback réseau, cache expiré en dernier recours
+ * - GET (online): Network-first → toujours interroger l'API, cache en fallback si erreur réseau
+ * - GET (offline): Cache-first → retourne le cache même expiré, jamais de throw si données disponibles
  * - POST/PUT/PATCH/DELETE: Network-first avec queue offline
  *
  * Améliorations offline-first:
  * - Cache expiré TOUJOURS retourné en mode offline (jamais de throw)
  * - getCache "raw" qui ignore le TTL pour garantir le fonctionnement hors ligne
  * - Invalidation par préfixe pour les routes dynamiques
- * - Stale-while-revalidate en arrière-plan quand online
+ * - Quand online, les données fraîches de l'API sont toujours prioritaires
  */
 
 import { apiClient, ApiError } from '@/lib/api/client';
@@ -17,9 +18,9 @@ import { indexedDBManager } from './indexeddb';
 
 export interface CacheOptions {
   ttl?: number; // Time to live en millisecondes (défaut: 5 minutes)
-  forceRefresh?: boolean; // Forcer un rafraîchissement depuis le réseau
-  skipCache?: boolean; // Ne pas utiliser le cache du tout
-  staleWhileRevalidate?: boolean; // Retourner le cache et rafraîchir en arrière-plan
+  forceRefresh?: boolean; // Forcer un rafraîchissement depuis le réseau (legacy, toujours network-first maintenant)
+  skipCache?: boolean; // Ne pas stocker en cache après le fetch
+  staleWhileRevalidate?: boolean; // Legacy, ignoré (on est toujours network-first online)
 }
 
 export interface MutationOptions {
@@ -30,7 +31,6 @@ export interface MutationOptions {
 
 class CacheManager {
   private defaultTTL = 5 * 60 * 1000; // 5 minutes par défaut
-  private revalidatingSet = new Set<string>(); // Éviter les revalidations en double
 
   /**
    * Vérifie si on est en ligne
@@ -40,12 +40,15 @@ class CacheManager {
   }
 
   /**
-   * Requête GET avec cache - stratégie offline-first
+   * Requête GET avec cache - stratégie network-first
    *
-   * 1. Si cache valide → retourne le cache
-   * 2. Si online → requête réseau, stocke dans le cache
-   * 3. Si offline/erreur réseau → retourne le cache même expiré
-   * 4. Si rien en cache et offline → throw
+   * Online:
+   *   1. Requête réseau → stocke en cache → retourne les données fraîches
+   *   2. Si erreur réseau → retourne le cache (même expiré) en fallback
+   *
+   * Offline:
+   *   1. Retourne le cache (même expiré)
+   *   2. Si rien en cache → throw
    */
   async get<T>(
     endpoint: string,
@@ -53,66 +56,39 @@ class CacheManager {
   ): Promise<T> {
     const {
       ttl = this.defaultTTL,
-      forceRefresh = false,
       skipCache = false,
-      staleWhileRevalidate = false,
     } = options;
 
-    // Si on ne veut pas de cache, requête directe
-    if (skipCache) {
-      if (!this.isOnline()) {
-        // Même avec skipCache, tenter le cache en offline
-        const fallback = await this.getRawCache<T>(endpoint);
-        if (fallback !== null) return fallback;
-        throw new ApiError('Mode hors ligne - pas de données en cache', 0);
-      }
-      return apiClient.get<T>(endpoint);
-    }
-
-    // Si on ne force pas le refresh, essayer le cache d'abord
-    if (!forceRefresh) {
-      try {
-        const cachedData = await indexedDBManager.getCache(endpoint);
-        if (cachedData !== null) {
-          // Stale-while-revalidate: retourner le cache et rafraîchir en arrière-plan
-          if (staleWhileRevalidate && this.isOnline() && !this.revalidatingSet.has(endpoint)) {
-            this.revalidateInBackground(endpoint, ttl);
-          }
-          return cachedData as T;
-        }
-      } catch (error) {
-        console.warn('[Cache] Erreur lecture cache:', error);
-      }
-    }
-
-    // Si on est offline, essayer le cache même expiré avant de faire une requête réseau
+    // --- OFFLINE: cache-first (même expiré) ---
     if (!this.isOnline()) {
-      const staleData = await this.getRawCache<T>(endpoint);
-      if (staleData !== null) {
-        console.log(`[Cache] 📴 Offline → cache expiré pour ${endpoint}`);
-        return staleData;
+      const cachedData = await this.getRawCache<T>(endpoint);
+      if (cachedData !== null) {
+        console.log(`[Cache] 📴 Offline → cache pour ${endpoint}`);
+        return cachedData;
       }
       throw new ApiError('Mode hors ligne - pas de données en cache', 0);
     }
 
-    // Online: requête réseau
+    // --- ONLINE: network-first ---
     try {
       const data = await apiClient.get<T>(endpoint);
 
-      // Stocker dans le cache
-      try {
-        await indexedDBManager.setCache(endpoint, data, ttl);
-      } catch (error) {
-        console.warn('[Cache] Erreur écriture cache:', error);
+      // Stocker dans le cache (sauf si skipCache)
+      if (!skipCache) {
+        try {
+          await indexedDBManager.setCache(endpoint, data, ttl);
+        } catch (error) {
+          console.warn('[Cache] Erreur écriture cache:', error);
+        }
       }
 
       return data;
     } catch (error) {
-      // Si erreur réseau, essayer le cache même expiré
+      // Si erreur réseau, fallback sur le cache (même expiré)
       if (error instanceof ApiError && error.status === 0) {
         const staleData = await this.getRawCache<T>(endpoint);
         if (staleData !== null) {
-          console.log(`[Cache] 🔄 Erreur réseau → cache expiré pour ${endpoint}`);
+          console.log(`[Cache] 🔄 Erreur réseau → cache fallback pour ${endpoint}`);
           return staleData;
         }
       }
@@ -130,21 +106,6 @@ class CacheManager {
       return await indexedDBManager.getCacheRaw(endpoint) as T | null;
     } catch {
       return null;
-    }
-  }
-
-  /**
-   * Revalidate en arrière-plan (stale-while-revalidate)
-   */
-  private async revalidateInBackground(endpoint: string, ttl: number): Promise<void> {
-    this.revalidatingSet.add(endpoint);
-    try {
-      const data = await apiClient.get(endpoint);
-      await indexedDBManager.setCache(endpoint, data, ttl);
-    } catch {
-      // Ignorer les erreurs de revalidation silencieusement
-    } finally {
-      this.revalidatingSet.delete(endpoint);
     }
   }
 

@@ -86,7 +86,7 @@ export interface CategoryCreate {
   is_active?: boolean;
 }
 
-export interface CategoryUpdate extends Partial<CategoryCreate> {}
+export interface CategoryUpdate extends Partial<CategoryCreate> { }
 
 export interface CategoryTree extends Category {
   children: CategoryTree[];
@@ -126,7 +126,7 @@ export interface WarehouseCreate {
   is_active?: boolean;
 }
 
-export interface WarehouseUpdate extends Partial<WarehouseCreate> {}
+export interface WarehouseUpdate extends Partial<WarehouseCreate> { }
 
 export interface WarehouseStats {
   product_count: number;
@@ -183,7 +183,7 @@ export interface SupplierCreate {
   is_active?: boolean;
 }
 
-export interface SupplierUpdate extends Partial<SupplierCreate> {}
+export interface SupplierUpdate extends Partial<SupplierCreate> { }
 
 // ============================================
 // Stock
@@ -211,7 +211,7 @@ export interface StockCreate {
   location?: string;
 }
 
-export interface StockUpdate extends Partial<StockCreate> {}
+export interface StockUpdate extends Partial<StockCreate> { }
 
 // ============================================
 // Product
@@ -260,7 +260,7 @@ export interface ProductCreate {
   is_active?: boolean;
 }
 
-export interface ProductUpdate extends Partial<ProductCreate> {}
+export interface ProductUpdate extends Partial<ProductCreate> { }
 
 export interface ProductList {
   id: string;
@@ -272,6 +272,7 @@ export interface ProductList {
   selling_price: number;
   unit: ProductUnit;
   total_stock?: number;
+  warehouse_stock?: number | null;
   is_active: boolean;
 }
 
@@ -318,7 +319,7 @@ export interface MovementCreate {
   destination_warehouse?: string | null;
 }
 
-export interface MovementUpdate extends Partial<MovementCreate> {}
+export interface MovementUpdate extends Partial<MovementCreate> { }
 
 // ============================================
 // Order & OrderItem
@@ -391,7 +392,7 @@ export interface OrderCreate {
   transport_notes?: string;
 }
 
-export interface OrderUpdate extends Partial<OrderCreate> {}
+export interface OrderUpdate extends Partial<OrderCreate> { }
 
 export interface OrderList {
   id: string;
@@ -459,7 +460,7 @@ export interface StockCountCreate {
   notes?: string;
 }
 
-export interface StockCountUpdate extends Partial<StockCountCreate> {}
+export interface StockCountUpdate extends Partial<StockCountCreate> { }
 
 // ============================================
 // Alert
@@ -492,7 +493,7 @@ export interface AlertCreate {
   message: string;
 }
 
-export interface AlertUpdate extends Partial<AlertCreate> {}
+export interface AlertUpdate extends Partial<AlertCreate> { }
 
 // ============================================
 // Statistics & Reports

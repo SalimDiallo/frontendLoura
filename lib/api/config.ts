@@ -350,11 +350,13 @@ export const API_ENDPOINTS = {
       EXPORT_STOCK_PDF: '/inventory/stats/export_stock_pdf/',
       GENERATE_QUOTE_PDF: '/inventory/stats/generate_quote_pdf/',
       GENERATE_INVOICE_PDF: '/inventory/stats/generate_invoice_pdf/',
+      FILTERABLE_SALES: '/inventory/stats/filterable_sales/',
+      GENERATE_GROUPED_INVOICE_PDF: '/inventory/stats/generate_grouped_invoice_pdf/',
     },
     // ============================================
     // Sales & Commercial Documents
     // ============================================
-    
+
     // Clients
     CUSTOMERS: {
       LIST: '/inventory/customers/',

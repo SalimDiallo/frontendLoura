@@ -34,22 +34,66 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useListData } from "@/lib/hooks/use-list-data";
+import { Pagination } from "@/components/common/pagination";
+import { apiClient } from "@/lib/api/client";
+import { API_ENDPOINTS } from "@/lib/api/config";
+import type { PaginatedResponse } from "@/lib/types/shared";
+
+// Wrapper pour rendre getExpenses compatible avec useListData
+const fetchExpensesList = async (params: any): Promise<PaginatedResponse<Expense>> => {
+  const response = await apiClient.get<PaginatedResponse<Expense>>(
+    API_ENDPOINTS.INVENTORY.EXPENSES.LIST,
+    { params }
+  );
+  return response;
+};
 
 export default function ExpensesPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
 
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  // Hook de pagination pour les expenses
+  const {
+    data: expenses,
+    totalCount,
+    currentPage,
+    pageSize,
+    hasNext,
+    hasPrevious,
+    setPage,
+    loading,
+    error: fetchError,
+    reload,
+    filters,
+    setFilter,
+  } = useListData<Expense, any>({
+    fetchFn: fetchExpensesList,
+    initialFilters: {},
+    pageSize: 10,
+    deps: [slug],
+  });
+
+  // États additionnels pour categories et summary (non paginés)
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [summary, setSummary] = useState<ExpenseSummary | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState<string | undefined>(undefined);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Convertir searchTerm en filtre server-side avec debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setFilter('search', searchTerm || undefined);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, setFilter]);
+
+  // Extraire le filtre pour compatibilité UI
+  const filterCategory = filters.category as string | undefined;
   
   // PDF Export states
   const [showExportModal, setShowExportModal] = useState(false);
@@ -64,9 +108,22 @@ export default function ExpensesPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLTableSectionElement>(null);
 
+  // Charger categories et summary au montage
   useEffect(() => {
-    loadData();
-  }, [slug, filterCategory]);
+    const loadAdditionalData = async () => {
+      try {
+        const [categoriesData, summaryData] = await Promise.all([
+          getExpenseCategories(),
+          getExpenseSummary(),
+        ]);
+        setCategories(categoriesData);
+        setSummary(summaryData);
+      } catch (err: any) {
+        setError(err.message || "Erreur lors du chargement des données");
+      }
+    };
+    loadAdditionalData();
+  }, [slug]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -144,42 +201,18 @@ export default function ExpensesPage() {
     }
   }, [selectedIndex]);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const [expensesData, categoriesData, summaryData] = await Promise.all([
-        getExpenses({ category: filterCategory }),
-        getExpenseCategories(),
-        getExpenseSummary(),
-      ]);
-      setExpenses(expensesData);
-      setCategories(categoriesData);
-      setSummary(summaryData);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement des dépenses");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     try {
       await deleteExpense(id);
       setDeleteConfirmId(null);
-      loadData();
+      await reload();
     } catch (err: any) {
       setError(err.message || "Erreur lors de la suppression");
     }
   };
 
-  const filteredExpenses = expenses.filter((expense) =>
-    searchTerm === ""
-      ? true
-      : expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.expense_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.beneficiary?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Plus de filtrage client-side - tout est server-side
+  const filteredExpenses = expenses;
 
   if (loading) {
     return (
@@ -347,7 +380,7 @@ export default function ExpensesPage() {
           <div className="flex gap-1 flex-wrap">
             <Button
               variant={filterCategory === undefined ? "default" : "outline"}
-              onClick={() => setFilterCategory(undefined)}
+              onClick={() => setFilter('category', undefined)}
               size="sm"
               className="px-2 py-1"
             >
@@ -358,7 +391,7 @@ export default function ExpensesPage() {
               <Button
                 key={cat.id}
                 variant={filterCategory === cat.id ? "default" : "outline"}
-                onClick={() => setFilterCategory(filterCategory === cat.id ? undefined : cat.id)}
+                onClick={() => setFilter('category', filterCategory === cat.id ? undefined : cat.id)}
                 size="sm"
                 className="px-2 py-1"
               >
@@ -370,12 +403,12 @@ export default function ExpensesPage() {
       </Card>
 
       {/* Error */}
-      {error && (
+      {(error || fetchError) && (
         <Alert variant="error" className="text-xs py-1 px-2">
           <AlertTriangle className="h-3 w-3" />
           <div>
             <h3 className="font-semibold text-xs">Erreur</h3>
-            <p className="text-xs">{error}</p>
+            <p className="text-xs">{error || fetchError}</p>
           </div>
         </Alert>
       )}
@@ -657,6 +690,19 @@ export default function ExpensesPage() {
           </Card>
         </div>
       )}
+
+      {/* Pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalCount={totalCount}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        hasNext={hasNext}
+        hasPrevious={hasPrevious}
+        loading={loading}
+        itemLabel="dépenses"
+        variant="default"
+      />
 
       {/* PDF Preview Modal */}
       <PDFPreviewWrapper previewState={previewState} onClose={closePreview} />

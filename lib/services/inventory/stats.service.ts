@@ -2,20 +2,20 @@
  * Service pour les statistiques d'inventaire et rapports
  */
 
-import { cacheManager } from '@/lib/offline';
 import { API_CONFIG, API_ENDPOINTS, STORAGE_KEYS } from '@/lib/api/config';
+import { cacheManager } from '@/lib/offline';
 import type {
+  ABCAnalysisResponse,
+  CategoryStockReport,
+  CreditsReportResponse,
+  FinancialAnalysisResponse,
   InventoryStats,
+  LowRotationProductsResponse,
+  MovementHistoryResponse,
+  SalesPerformanceResponse,
+  StockCountsSummaryResponse,
   TopProduct,
   WarehouseStockReport,
-  CategoryStockReport,
-  MovementHistoryResponse,
-  LowRotationProductsResponse,
-  StockCountsSummaryResponse,
-  FinancialAnalysisResponse,
-  ABCAnalysisResponse,
-  CreditsReportResponse,
-  SalesPerformanceResponse,
 } from '@/lib/types/inventory';
 
 /**
@@ -60,7 +60,7 @@ export async function getMovementHistory(days: number = 30): Promise<MovementHis
  * Récupère les produits à faible rotation (stock dormant)
  */
 export async function getLowRotationProducts(
-  days: number = 90, 
+  days: number = 90,
   limit: number = 20
 ): Promise<LowRotationProductsResponse> {
   return cacheManager.get<LowRotationProductsResponse>(
@@ -85,28 +85,28 @@ export async function getStockCountsSummary(
  * Construit l'URL complète avec authentification et organization
  */
 function buildExportUrl(endpoint: string, params?: Record<string, string | number>): string {
-  const token = typeof window !== 'undefined' 
-    ? localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) 
+  const token = typeof window !== 'undefined'
+    ? localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
     : null;
-  const orgSlug = typeof window !== 'undefined' 
-    ? localStorage.getItem('current_organization_slug') 
+  const orgSlug = typeof window !== 'undefined'
+    ? localStorage.getItem('current_organization_slug')
     : null;
 
   let url = `${API_CONFIG.baseURL}${endpoint}`;
-  
+
   // Construire les query params
   const queryParams = new URLSearchParams();
-  
+
   if (orgSlug) {
     queryParams.append('organization_subdomain', orgSlug);
   }
-  
+
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       queryParams.append(key, String(value));
     });
   }
-  
+
   const queryString = queryParams.toString();
   if (queryString) {
     url += `?${queryString}`;
@@ -123,22 +123,22 @@ async function downloadCsvFile(endpoint: string, filename: string, params?: Reco
 
   const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   const orgSlug = localStorage.getItem('current_organization_slug');
-  
+
   let url = `${API_CONFIG.baseURL}${endpoint}`;
-  
+
   // Construire les query params
   const queryParams = new URLSearchParams();
-  
+
   if (orgSlug) {
     queryParams.append('organization_subdomain', orgSlug);
   }
-  
+
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       queryParams.append(key, String(value));
     });
   }
-  
+
   const queryString = queryParams.toString();
   if (queryString) {
     url += `?${queryString}`;
@@ -159,14 +159,14 @@ async function downloadCsvFile(endpoint: string, filename: string, params?: Reco
     // Récupérer le blob et créer un lien de téléchargement
     const blob = await response.blob();
     const downloadUrl = window.URL.createObjectURL(blob);
-    
+
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // Nettoyer l'URL du blob
     window.URL.revokeObjectURL(downloadUrl);
   } catch (error) {
@@ -213,8 +213,8 @@ export async function downloadAlertsExport(): Promise<void> {
  * Télécharge un fichier PDF via fetch avec authentification
  */
 async function downloadPdfFile(
-  endpoint: string, 
-  filename: string, 
+  endpoint: string,
+  filename: string,
   params?: Record<string, string | number>,
   method: 'GET' | 'POST' = 'GET',
   body?: any
@@ -223,22 +223,22 @@ async function downloadPdfFile(
 
   const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   const orgSlug = localStorage.getItem('current_organization_slug');
-  
+
   let url = `${API_CONFIG.baseURL}${endpoint}`;
-  
+
   // Construire les query params
   const queryParams = new URLSearchParams();
-  
+
   if (orgSlug) {
     queryParams.append('organization_subdomain', orgSlug);
   }
-  
+
   if (params && method === 'GET') {
     Object.entries(params).forEach(([key, value]) => {
       queryParams.append(key, String(value));
     });
   }
-  
+
   const queryString = queryParams.toString();
   if (queryString) {
     url += `?${queryString}`;
@@ -267,14 +267,14 @@ async function downloadPdfFile(
     // Récupérer le blob et créer un lien de téléchargement
     const blob = await response.blob();
     const downloadUrl = window.URL.createObjectURL(blob);
-    
+
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // Nettoyer l'URL du blob
     window.URL.revokeObjectURL(downloadUrl);
   } catch (error) {
@@ -415,3 +415,90 @@ export async function getSalesPerformance(days: number = 30): Promise<SalesPerfo
   );
 }
 
+/**
+ * Interface pour un item de vente filtrable
+ */
+export interface FilterableSaleItem {
+  id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+/**
+ * Interface pour une vente filtrable
+ */
+export interface FilterableSale {
+  id: string;
+  sale_number: string;
+  sale_date: string | null;
+  customer_name: string;
+  customer_id: string | null;
+  total_amount: number;
+  payment_status: string;
+  items: FilterableSaleItem[];
+}
+
+/**
+ * Interface pour les filtres de ventes
+ */
+export interface SalesFilters {
+  customer?: string;
+  start_date?: string;
+  end_date?: string;
+}
+
+/**
+ * Interface pour les données de facture groupée
+ */
+export interface GroupedInvoiceData {
+  invoice_number: string;
+  title: string;
+  date?: string;
+  client_name: string;
+  client_department?: string;
+  client_position?: string;
+  date_from?: string;
+  date_to?: string;
+  filters_summary: string;
+  items: Array<{
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+    sale_number?: string;
+    sale_date?: string;
+  }>;
+  notes?: string;
+}
+
+/**
+ * Récupère les ventes filtrables pour la facture groupée
+ */
+export async function getFilterableSales(filters: SalesFilters = {}): Promise<FilterableSale[]> {
+  const params = new URLSearchParams();
+  if (filters.customer) params.append('customer', filters.customer);
+  if (filters.start_date) params.append('start_date', filters.start_date);
+  if (filters.end_date) params.append('end_date', filters.end_date);
+
+  const queryString = params.toString();
+  const url = queryString
+    ? `${API_ENDPOINTS.INVENTORY.STATS.FILTERABLE_SALES}?${queryString}`
+    : API_ENDPOINTS.INVENTORY.STATS.FILTERABLE_SALES;
+
+  // Cache optimisé : 2 minutes de TTL, pas de forceRefresh systématique
+  return cacheManager.get<FilterableSale[]>(url, { ttl: 2 * 60 * 1000 });
+}
+
+/**
+ * Génère et télécharge une facture groupée en PDF
+ */
+export async function generateGroupedInvoicePdf(invoiceData: GroupedInvoiceData): Promise<void> {
+  await downloadPdfFile(
+    API_ENDPOINTS.INVENTORY.STATS.GENERATE_GROUPED_INVOICE_PDF,
+    `facture_groupee_${invoiceData.invoice_number}.pdf`,
+    undefined,
+    'POST',
+    invoiceData
+  );
+}

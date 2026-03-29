@@ -5,7 +5,7 @@ import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
 import { Alert, Badge, Button, Card, Input } from "@/components/ui";
 import { KeyboardHint, ShortcutBadge, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
 import { KeyboardShortcut, commonShortcuts, useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { deleteProduct, getProducts } from "@/lib/services/inventory";
+import { productService, deleteProduct } from "@/lib/services/inventory";
 import type { ProductList } from "@/lib/types/inventory";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -22,30 +22,46 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useListData } from "@/lib/hooks/use-list-data";
+import { Pagination } from "@/components/common/pagination";
 
 export default function ProductsPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
 
-  const [products, setProducts] = useState<ProductList[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Hook de pagination avec filtres
+  const {
+    data: products,
+    totalCount,
+    currentPage,
+    totalPages,
+    pageSize,
+    hasNext,
+    hasPrevious,
+    setPage,
+    loading,
+    error: fetchError,
+    reload,
+    filters,
+    setFilter,
+  } = useListData<ProductList, any>({
+    fetchFn: (params) => productService.list(params),
+    initialFilters: {},
+    pageSize: 10,
+    deps: [slug],
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterActive, setFilterActive] = useState<boolean | undefined>(undefined);
-  const [filterLowStock, setFilterLowStock] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [error, setError] = useState<string | null>(null);
 
   // Confirmation dialog state
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null; name: string | null }>({ open: false, id: null, name: null });
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const tableRef = useRef<HTMLTableSectionElement>(null);
-
-  useEffect(() => {
-    loadProducts();
-  }, [slug, filterActive, filterLowStock]);
 
   // Scroll vers l'élément sélectionné
   useEffect(() => {
@@ -55,23 +71,17 @@ export default function ProductsPage() {
     }
   }, [selectedIndex]);
 
-  const loadProducts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Convertir searchTerm en filtre server-side avec debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setFilter('search', searchTerm || undefined);
+    }, 300); // Debounce de 300ms
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, setFilter]);
 
-      const params: any = {};
-      if (filterActive !== undefined) params.is_active = filterActive;
-      if (filterLowStock) params.low_stock = true;
-
-      const data = await getProducts(params);
-      setProducts(data);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement des produits");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Extraire les filtres pour compatibilité avec l'UI
+  const filterActive = filters.is_active as boolean | undefined;
+  const filterLowStock = filters.low_stock as boolean | undefined;
 
   const handleRequestDelete = (id: string, name: string) => {
     setDeleteDialog({ open: true, id, name });
@@ -82,19 +92,15 @@ export default function ProductsPage() {
     try {
       await deleteProduct(deleteDialog.id);
       setDeleteDialog({ open: false, id: null, name: null });
-      await loadProducts();
+      await reload();
     } catch (err: any) {
-      alert(err.message || "Erreur lors de la suppression");
+      setError(err.message || "Erreur lors de la suppression");
       setDeleteDialog({ open: false, id: null, name: null });
     }
   };
 
-  const filteredProducts = products.filter((product) =>
-    searchTerm === ""
-      ? true
-      : product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Plus de filtrage client-side - tout est server-side maintenant
+  const filteredProducts = products;
 
   // Définir les raccourcis clavier
   const shortcuts: KeyboardShortcut[] = useMemo(() => [
@@ -122,10 +128,10 @@ export default function ProductsPage() {
         router.push(`/apps/${slug}/inventory/products/${filteredProducts[selectedIndex].id}`);
       }
     }),
-    commonShortcuts.filter("1", () => setFilterActive(undefined), "Tous les produits"),
-    commonShortcuts.filter("2", () => setFilterActive(filterActive === true ? undefined : true), "Produits actifs"),
-    commonShortcuts.filter("3", () => setFilterActive(filterActive === false ? undefined : false), "Produits inactifs"),
-    commonShortcuts.filter("4", () => setFilterLowStock(!filterLowStock), "Stock bas"),
+    commonShortcuts.filter("1", () => setFilter('is_active', undefined), "Tous les produits"),
+    commonShortcuts.filter("2", () => setFilter('is_active', filterActive === true ? undefined : true), "Produits actifs"),
+    commonShortcuts.filter("3", () => setFilter('is_active', filterActive === false ? undefined : false), "Produits inactifs"),
+    commonShortcuts.filter("4", () => setFilter('low_stock', !filterLowStock), "Stock bas"),
     { key: "e", action: () => {
       if (selectedIndex >= 0 && filteredProducts[selectedIndex]) {
         router.push(`/apps/${slug}/inventory/products/${filteredProducts[selectedIndex].id}/edit`);
@@ -219,7 +225,7 @@ export default function ProductsPage() {
               <Button
                 variant={filterActive === undefined ? "default" : "outline"}
                 onClick={() => {
-                  setFilterActive(undefined);
+                  setFilter('is_active', undefined);
                 }}
                 aria-pressed={filterActive === undefined}
               >
@@ -229,7 +235,7 @@ export default function ProductsPage() {
               <Button
                 variant={filterActive === true ? "default" : "outline"}
                 onClick={() => {
-                  setFilterActive(filterActive === true ? undefined : true);
+                  setFilter('is_active', filterActive === true ? undefined : true);
                 }}
                 aria-pressed={filterActive === true}
               >
@@ -239,7 +245,7 @@ export default function ProductsPage() {
               <Button
                 variant={filterActive === false ? "default" : "outline"}
                 onClick={() => {
-                  setFilterActive(filterActive === false ? undefined : false);
+                  setFilter('is_active', filterActive === false ? undefined : false);
                 }}
                 aria-pressed={filterActive === false}
               >
@@ -248,7 +254,7 @@ export default function ProductsPage() {
               </Button>
               <Button
                 variant={filterLowStock ? "destructive" : "outline"}
-                onClick={() => setFilterLowStock(!filterLowStock)}
+                onClick={() => setFilter('low_stock', !filterLowStock)}
                 aria-pressed={filterLowStock}
               >
                 <AlertTriangle className="mr-2 h-4 w-4" />
@@ -260,12 +266,12 @@ export default function ProductsPage() {
         </Card>
 
         {/* Error */}
-        {error && (
+        {(error || fetchError) && (
           <Alert variant="error" role="alert">
             <AlertTriangle className="h-4 w-4" />
             <div>
               <h3 className="font-semibold">Erreur</h3>
-              <p className="text-sm">{error}</p>
+              <p className="text-sm">{error || fetchError}</p>
             </div>
           </Alert>
         )}
@@ -415,8 +421,8 @@ export default function ProductsPage() {
               variant="ghost"
               size="sm"
               onClick={() => {
-                setFilterActive(undefined);
-                setFilterLowStock(false);
+                setFilter('is_active', undefined);
+                setFilter('low_stock', undefined);
                 setSearchTerm("");
               }}
               className="text-xs"
@@ -425,6 +431,19 @@ export default function ProductsPage() {
             </Button>
           )}
         </div>
+
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          hasNext={hasNext}
+          hasPrevious={hasPrevious}
+          loading={loading}
+          itemLabel="produits"
+          variant="default"
+        />
 
         {/* Hint */}
         <KeyboardHint />

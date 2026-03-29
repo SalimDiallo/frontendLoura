@@ -59,6 +59,7 @@ export const tokenManager = {
  */
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean;
+  params?: Record<string, any>;
 }
 
 /**
@@ -101,8 +102,23 @@ class ApiClient {
     };
 
     try {
-      // Ajouter organization_subdomain aux query params si disponible
+      // Construire l'URL avec les query params si fournis
       let url = `${this.baseURL}${endpoint}`;
+
+      // Ajouter les params si fournis dans les options
+      if (options.params) {
+        const searchParams = new URLSearchParams();
+        Object.entries(options.params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && value !== '') {
+            searchParams.append(key, String(value));
+          }
+        });
+        const queryString = searchParams.toString();
+        if (queryString) {
+          const separator = url.includes('?') ? '&' : '?';
+          url = `${url}${separator}${queryString}`;
+        }
+      }
 
       // Ne pas ajouter organization_subdomain pour les endpoints d'auth
       const isAuthEndpoint = endpoint.includes('/auth/') || endpoint.includes('/login') || endpoint.includes('/register');

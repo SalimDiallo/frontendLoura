@@ -1,23 +1,23 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { z } from 'zod';
-import { authService } from '@/lib/services/core';
-import { ApiError } from '@/lib/api/client';
-import { siteConfig } from '@/lib/config';
-import { useUser, useZodForm } from '@/lib/hooks';
 import {
-  Form,
-  FormInputField,
-  FormEmailField,
-  Button,
   Alert,
+  Button,
+  Form,
+  FormEmailField,
+  FormInputField,
   PasswordFieldWithToggle,
 } from '@/components/ui';
 import Logo from '@/components/ui/Logo';
-import { ArrowRight, ArrowLeft, Building2, Users, BarChart3, Shield, Check } from 'lucide-react';
+import { ApiError } from '@/lib/api/client';
+import { siteConfig } from '@/lib/config';
+import { useUser, useZodForm } from '@/lib/hooks';
+import { authService } from '@/lib/services/core';
+import { ArrowLeft, ArrowRight, BarChart3, Building2, Check, Shield, Users } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { z } from 'zod';
 
 // Schéma de validation Zod
 const registerSchema = z.object({
@@ -108,18 +108,10 @@ export default function RegisterPage() {
       
       {/* Panneau gauche - Illustration créative */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] bg-foreground relative overflow-hidden">
-        {/* Pattern de fond */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0 bg-size-[60px_60px] bg-[linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)]"></div>
-        </div>
-        
-        {/* Cercles décoratifs */}
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl"></div>
-        
+        {/* Cercles décoratifs sans gradients */}
+      
         {/* Contenu principal */}
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20 w-full">
-          {/* Logo */}
           <div className="mb-12">
             <Logo showTitle={true} className="flex items-center gap-3 [&_h1]:text-background [&_span]:text-primary" />
           </div>
@@ -168,7 +160,7 @@ export default function RegisterPage() {
           </div>
         </div>
         
-        {/* Illustration abstraite flottante */}
+        {/* Illustration abstraite flottante sans gradients */}
         <div className="absolute bottom-20 right-20 w-64 h-64 opacity-20">
           <div className="absolute inset-0 border-2 border-background/30 rounded-3xl rotate-12"></div>
           <div className="absolute inset-4 border-2 border-background/20 rounded-3xl -rotate-6"></div>

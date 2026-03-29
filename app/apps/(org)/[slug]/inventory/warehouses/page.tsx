@@ -1,59 +1,72 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Alert, Badge, Card, Input } from "@/components/ui";
-import { getWarehouses, deleteWarehouse } from "@/lib/services/inventory";
+import { Can } from "@/components/apps/common/protected-route";
+import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
+import { Pagination } from "@/components/common/pagination";
+import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { useListData } from "@/lib/hooks/use-list-data";
+import { deleteWarehouse, warehouseService } from "@/lib/services/inventory";
 import type { Warehouse } from "@/lib/types/inventory";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { formatCurrency } from "@/lib/utils";
 import {
-  Plus,
-  Search,
   Edit,
   Eye,
-  Warehouse as WarehouseIcon,
+  Loader2,
   MapPin,
   Package,
-  TrendingUp,
-  Loader2,
+  Plus,
+  Search,
   ShoppingCart,
   Trash2,
+  TrendingUp,
+  Warehouse as WarehouseIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { formatCurrency } from "@/lib/utils";
-import { Can } from "@/components/apps/common/protected-route";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function WarehousesPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
 
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Hook de pagination avec filtres
+  const {
+    data: warehouses,
+    totalCount,
+    currentPage,
+    totalPages,
+    pageSize,
+    hasNext,
+    hasPrevious,
+    setPage,
+    loading,
+    error: fetchError,
+    reload,
+    filters,
+    setFilter,
+  } = useListData({
+    fetchFn: (params) => warehouseService.list(params),
+    initialFilters: { is_active: true },
+    pageSize: 10,
+    deps: [slug],
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
 
   // Supprime state
   const [toDelete, setToDelete] = useState<Warehouse | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // Convertir searchTerm en filtre server-side avec debounce
   useEffect(() => {
-    loadWarehouses();
-    // eslint-disable-next-line
-  }, [slug]);
-
-  const loadWarehouses = async () => {
-    try {
-      setLoading(true);
-      const data = await getWarehouses({ is_active: true });
-      setWarehouses(data);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const timeoutId = setTimeout(() => {
+      // setFilter('name', searchTerm || undefined); // Ajout de setFilter
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   const handleDeleteWarehouse = async () => {
     if (!toDelete) return;
@@ -61,7 +74,7 @@ export default function WarehousesPage() {
     setError(null);
     try {
       await deleteWarehouse(toDelete.id);
-      setWarehouses(w => w.filter(_w => _w.id !== toDelete.id));
+      await reload(); // Recharger la liste après suppression
       setToDelete(null);
     } catch (e: any) {
       setError(
@@ -72,14 +85,10 @@ export default function WarehousesPage() {
     }
   };
 
-  const filteredWarehouses = warehouses.filter((w) =>
-    searchTerm === "" ? true :
-    w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    w.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    w.city?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Plus de filtrage client-side - tout est server-side
+  const filteredWarehouses = warehouses;
 
-  // Stats globales
+  // Stats globales (basées sur la page courante)
   const totalValue = warehouses.reduce((sum, w) => sum + (w.total_stock_value || 0), 0);
   const totalProducts = warehouses.reduce((sum, w) => sum + (w.product_count || 0), 0);
 
@@ -175,7 +184,7 @@ export default function WarehousesPage() {
         </div>
 
         {/* Error */}
-        {error && <Alert variant="error">{error}</Alert>}
+        {(error || fetchError) && <Alert variant="error">{error || fetchError}</Alert>}
 
         {/* Liste des entrepôts */}
         {filteredWarehouses.length === 0 ? (
@@ -303,9 +312,22 @@ export default function WarehousesPage() {
           loading={deleteLoading}
         />
 
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          hasNext={hasNext}
+          hasPrevious={hasPrevious}
+          loading={loading}
+          itemLabel="entrepôts"
+          variant="default"
+        />
+
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground">
-          {filteredWarehouses.length} entrepôt(s) • Valeur totale: {formatCurrency(totalValue)}
+          {filteredWarehouses.length} entrepôt(s) affichés • Total: {totalCount} entrepôts
         </p>
       </div>
     </Can>

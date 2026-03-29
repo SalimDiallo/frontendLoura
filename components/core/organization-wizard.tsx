@@ -36,7 +36,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
-import { FormSelect } from '../common';
 import { ModuleSelector } from './module-selector';
 
 const organizationSchema = z.object({
@@ -538,17 +537,22 @@ export function OrganizationWizard() {
                         </p>
                       </div>
 
-                      <FormSelect
+                      <QuickSelect
                         label="Catégorie"
-                        name="category"
-                        value={form.watch("category") || ""}
-                        onChange={e => form.setValue("category", e.target.value, { shouldValidate: true })}
-                        options={categoryOptions}
+                        items={categoryOptions.map(option => ({
+                          id: String(option.value),
+                          name: option.label,
+                        }))}
+                        selectedId={form.watch("category") || ""}
+                        onSelect={id => form.setValue("category", id, { shouldValidate: true })}
                         placeholder="Sélectionner une catégorie"
-                        required
                         disabled={form.formState.isSubmitting}
-                        error={form.formState.errors.category?.message as string | undefined}
+                        required
+                        accentColor="primary"
                       />
+                      {form.formState.errors.category?.message && (
+                        <p className="mt-1 text-xs text-destructive">{form.formState.errors.category?.message}</p>
+                      )}
 
                       <div className="p-4 bg-muted/50 rounded-lg border border-border">
                         <p className="text-sm text-muted-foreground">

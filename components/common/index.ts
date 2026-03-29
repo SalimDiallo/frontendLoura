@@ -13,6 +13,9 @@ export * from './page-states';
 // Dialogs
 export * from './confirmation-dialog';
 
+// Pagination
+export * from './pagination';
+
 // Notifications
 export * from './NotificationPermissionPrompt';
 

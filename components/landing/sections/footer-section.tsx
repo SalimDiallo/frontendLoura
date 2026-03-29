@@ -1,11 +1,9 @@
 "use client";
 
-import { Icons } from "@/components/landing/icons";
 import { FlickeringGrid } from "@/components/landing/ui/flickering-grid";
 import Logo from "@/components/ui/Logo";
 import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { siteConfig } from "@/lib/landing/config";
-import { ChevronRightIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 
 export function FooterSection() {
@@ -23,20 +21,9 @@ export function FooterSection() {
             {siteConfig.hero.description}
           </p>
           {/* Badges de conformité */}
-          <div className="flex items-center gap-3 dark:hidden opacity-60">
-            <Icons.soc2 className="size-10" />
-            <Icons.hipaa className="size-10" />
-            <Icons.gdpr className="size-10" />
-          </div>
-          <div className="dark:flex items-center gap-3 hidden opacity-60">
-            <Icons.soc2Dark className="size-10" />
-            <Icons.hipaaDark className="size-10" />
-            <Icons.gdprDark className="size-10" />
-          </div>
         </div>
-        
         {/* Liens du footer */}
-        <div className="flex-1 md:pl-16">
+        {/* <div className="flex-1 md:pl-16">
           <div className="flex flex-col items-start justify-start md:flex-row md:items-start md:justify-end gap-y-8 gap-x-16">
             {siteConfig.footerLinks.map((column, columnIndex) => (
               <ul key={columnIndex} className="flex flex-col gap-y-3">
@@ -57,7 +44,7 @@ export function FooterSection() {
               </ul>
             ))}
           </div>
-        </div>
+        </div> */}
       </div>
       
       {/* Séparateur */}
@@ -68,16 +55,16 @@ export function FooterSection() {
         <p className="text-xs text-muted-foreground">
           © {new Date().getFullYear()} LouraTech. Tous droits réservés.
         </p>
-        <div className="flex items-center gap-6 text-xs text-muted-foreground">
+        {/* <div className="flex items-center gap-6 text-xs text-muted-foreground">
           <Link href="#" className="hover:text-foreground transition-colors">Confidentialité</Link>
           <Link href="#" className="hover:text-foreground transition-colors">Conditions</Link>
           <Link href="#" className="hover:text-foreground transition-colors">Cookies</Link>
-        </div>
+        </div> */}
       </div>
       
       {/* Animation du footer */}
       <div className="w-full h-32 md:h-40 relative mt-8 z-0">
-        <div className="absolute inset-0 bg-gradient-to-t from-transparent to-background z-10 from-30%" />
+        <div className="absolute inset-0 bg-linear-to-t from-transparent to-background z-10 from-30%" />
         <div className="absolute inset-0 mx-6">
           <FlickeringGrid
             text={tablet ? "LouraTech" : "Gestion simplifiée"}

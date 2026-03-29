@@ -1,11 +1,10 @@
 "use client";
 
+import { Button, Card } from "@/components/ui";
 import {
   HiOutlineChevronLeft,
   HiOutlineChevronRight,
 } from "react-icons/hi2";
-import {  LuCalendarOff, LuPause } from "react-icons/lu";
-import {  Badge, Button, Card, Input } from "@/components/ui";
 
 
 export function EmployeesPagination({
@@ -15,6 +14,7 @@ export function EmployeesPagination({
   hasPrevious,
   hasNext,
   loading,
+  pageSize = 10,
 }: {
   currentPage: number;
   totalCount: number;
@@ -22,12 +22,13 @@ export function EmployeesPagination({
   hasPrevious: boolean;
   hasNext: boolean;
   loading: boolean;
+  pageSize?: number;
 }) {
   return (
     <Card className="p-4 border shadow-sm">
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
-          Page {currentPage} sur {Math.ceil(totalCount / 20)} • {totalCount} employés
+          Page {currentPage} sur {Math.ceil(totalCount / pageSize)} • {totalCount} employés
         </div>
         <div className="flex gap-2">
           <Button
@@ -55,3 +56,4 @@ export function EmployeesPagination({
     </Card>
   );
 }
+

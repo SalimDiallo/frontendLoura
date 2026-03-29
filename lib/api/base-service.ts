@@ -103,6 +103,8 @@ export abstract class BaseService<
   protected buildQueryParams(filters?: TFilters): string {
     if (!filters) return '';
 
+    console.log('[BaseService] buildQueryParams input:', filters);
+
     const params = new URLSearchParams();
 
     Object.entries(filters).forEach(([key, value]) => {
@@ -111,7 +113,10 @@ export abstract class BaseService<
       }
     });
 
-    return params.toString();
+    const result = params.toString();
+    console.log('[BaseService] buildQueryParams output:', result);
+
+    return result;
   }
 }
 

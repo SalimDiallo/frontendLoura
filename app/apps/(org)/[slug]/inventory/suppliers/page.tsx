@@ -4,7 +4,7 @@ import { Can } from "@/components/apps/common/protected-route";
 import { Alert, Badge, Button, Card, Input } from "@/components/ui";
 import { KeyboardHint, ShortcutBadge, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
 import { KeyboardShortcut, commonShortcuts, useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { deleteSupplier, getSuppliers } from "@/lib/services/inventory";
+import { supplierService, deleteSupplier } from "@/lib/services/inventory";
 import type { Supplier } from "@/lib/types/inventory";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -23,22 +23,42 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 // Importer DeleteConfirmation du composant de confirmation générique
 import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
+import { useListData } from "@/lib/hooks/use-list-data";
+import { Pagination } from "@/components/common/pagination";
 
 export default function SuppliersPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
 
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Hook de pagination avec filtres
+  const {
+    data: suppliers,
+    totalCount,
+    currentPage,
+    totalPages,
+    pageSize,
+    hasNext,
+    hasPrevious,
+    setPage,
+    loading,
+    error: fetchError,
+    reload,
+  } = useListData({
+    fetchFn: (params) => supplierService.list(params),
+    initialFilters: { is_active: true },
+    pageSize: 10,
+    deps: [slug],
+  });
+
   const [searchTerm, setSearchTerm] = useState("");
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [error, setError] = useState<string | null>(null);
 
   // État du dialogue de suppression
   const [deleteDialog, setDeleteDialog] = useState<{
@@ -49,22 +69,13 @@ export default function SuppliersPage() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Convertir searchTerm en filtre server-side avec debounce
   useEffect(() => {
-    loadSuppliers();
-  }, [slug]);
-
-  const loadSuppliers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getSuppliers({ is_active: true });
-      setSuppliers(data);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du chargement des fournisseurs");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const timeoutId = setTimeout(() => {
+      setFilter('search', searchTerm || undefined);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, setFilter]);
 
   // Nouvelle fonction de suppression avec le dialogue
   const handleDelete = (supplier: Supplier) => {
@@ -77,7 +88,7 @@ export default function SuppliersPage() {
     setDeleteDialog((prev) => ({ ...prev, loading: true }));
     try {
       await deleteSupplier(deleteDialog.supplier.id);
-      await loadSuppliers();
+      await reload(); // Recharger la liste après suppression
       setDeleteDialog({ open: false, supplier: null, loading: false });
     } catch (err: any) {
       setDeleteDialog((prev) => ({ ...prev, loading: false }));
@@ -85,13 +96,8 @@ export default function SuppliersPage() {
     }
   };
 
-  const filteredSuppliers = suppliers.filter((supplier) =>
-    searchTerm === ""
-      ? true
-      : supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        supplier.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        supplier.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Plus de filtrage client-side - tout est server-side
+  const filteredSuppliers = suppliers;
 
   // Définir les raccourcis clavier
   const shortcuts: KeyboardShortcut[] = useMemo(() => [
@@ -210,12 +216,12 @@ export default function SuppliersPage() {
         </Card>
 
         {/* Error */}
-        {error && (
+        {(error || fetchError) && (
           <Alert variant="error" role="alert">
             <AlertTriangle className="h-4 w-4" />
             <div>
               <h3 className="font-semibold">Erreur</h3>
-              <p className="text-sm">{error}</p>
+              <p className="text-sm">{error || fetchError}</p>
             </div>
           </Alert>
         )}
@@ -342,9 +348,22 @@ export default function SuppliersPage() {
           )}
         </div>
 
+        {/* Pagination */}
+        <Pagination
+          currentPage={currentPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          hasNext={hasNext}
+          hasPrevious={hasPrevious}
+          loading={loading}
+          itemLabel="fournisseurs"
+          variant="default"
+        />
+
         {/* Summary */}
         <div className="text-sm text-muted-foreground">
-          Total: {filteredSuppliers.length} fournisseur(s)
+          {filteredSuppliers.length} fournisseur(s) affichés • Total: {totalCount} fournisseurs
         </div>
 
         {/* Hint */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { Can } from "@/components/apps/common";
+import { ConfirmationDialog } from "@/components/common";
 import { Badge, Button, Input } from "@/components/ui";
 import { QuickSelect } from "@/components/ui/quick-select";
 import { usePermissions } from "@/lib/hooks";
@@ -93,34 +94,31 @@ export default function QuickSalePOSPage() {
   // Édition prix
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
 
+  // Confirmation de vente
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Récupérer la quantité restante pour un produit
+  // Priorité : warehouse_stock (par entrepôt) > total_stock (tous entrepôts)
   const getRemainingQty = (product: ProductList): number => {
-    if ("remaining_qty" in product && typeof (product as any).remaining_qty === "number") {
-      return (product as any).remaining_qty;
+    // Si un entrepôt est sélectionné et que warehouse_stock est retourné par l'API
+    if (product.warehouse_stock != null && typeof product.warehouse_stock === "number") {
+      return product.warehouse_stock;
     }
-    if ("total_stock" in product && typeof (product as any).total_stock === "number") {
-      return (product as any).total_stock;
-    }
-    if ("stock" in product && typeof (product as any).stock === "number") {
-      return (product as any).stock;
-    }
-    if ("qty" in product && typeof (product as any).qty === "number") {
-      return (product as any).qty;
+    // Fallback sur total_stock (toutes warehouses confondues)
+    if (product.total_stock != null && typeof product.total_stock === "number") {
+      return product.total_stock;
     }
     return 0;
   };
 
+  // Le filtrage par warehouse est fait côté API, ici on filtre uniquement par recherche
   const filteredProducts = products.filter((p) => {
-    // @ts-ignore
-    if (productFilter.warehouseId && (p.warehouse_id ?? p.warehouseId) && (p.warehouse_id ?? p.warehouseId) !== productFilter.warehouseId) {
-      return false;
-    }
     return searchTerm === ""
       ? true
       : p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.sku?.toLowerCase().includes(searchTerm.toLowerCase());
+      p.sku?.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   // Ajout au panier
@@ -262,19 +260,17 @@ export default function QuickSalePOSPage() {
 
   const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // --- ENCAISSER DIRECTEMENT ---
-  const handleInstantSale = async () => {
+  // --- Ouvrir le dialog de confirmation (avec pré-validation) ---
+  const openSaleConfirmation = () => {
     if (cart.length === 0) return;
     if (!defaultWarehouse) {
       setError("Aucun entrepôt configuré");
       return;
     }
-
     if (!isPaid && !selectedCustomer) {
       setError("Un client est requis pour une vente à crédit (non payée)");
       return;
     }
-
     for (const item of cart) {
       const product = products.find((p) => p.id === item.product_id);
       const remaining = product ? getRemainingQty(product) : 0;
@@ -287,6 +283,13 @@ export default function QuickSalePOSPage() {
         return;
       }
     }
+    setError(null);
+    setShowConfirmDialog(true);
+  };
+
+  // --- ENCAISSER (appelé après confirmation) ---
+  const handleInstantSale = async () => {
+    if (cart.length === 0) return;
 
     try {
       setProcessing(true);
@@ -321,6 +324,9 @@ export default function QuickSalePOSPage() {
       setDueDate(undefined);
       setShowMobileCart(false);
       setTimeout(() => setSuccess(null), 3000);
+
+      // Recharger les produits pour mettre à jour le stock affiché
+      reloadProducts(productFilter.warehouseId, false);
     } catch (err: any) {
       setError(err.message || "Erreur lors de la vente");
     } finally {
@@ -331,6 +337,13 @@ export default function QuickSalePOSPage() {
   useEffect(() => {
     loadData();
   }, [slug]);
+
+  // Recharger les produits quand l'entrepôt change
+  useEffect(() => {
+    if (!loading) {
+      reloadProducts(productFilter.warehouseId);
+    }
+  }, [productFilter.warehouseId]);
 
   const loadData = async () => {
     try {
@@ -343,14 +356,29 @@ export default function QuickSalePOSPage() {
       setProducts(productsData);
       setWarehouses(warehousesData);
       setCustomers(customersData);
-      if (warehousesData.length > 0) {
-        setDefaultWarehouse(warehousesData[0].id);
-        setProductFilter({ warehouseId: warehousesData[0].id });
-      }
     } catch (err: any) {
       setError(err.message || "Erreur de chargement");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Recharger uniquement les produits avec le filtre warehouse
+  const reloadProducts = async (warehouseId?: string, clearCart = true) => {
+    try {
+      const filters: any = { is_active: true };
+      if (warehouseId) {
+        filters.warehouse = warehouseId;
+      }
+      const productsData = await getProducts(filters);
+      setProducts(productsData);
+      // Vider le panier uniquement lors du changement d'entrepôt
+      if (clearCart) {
+        setCart([]);
+      }
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || "Erreur de chargement des produits");
     }
   };
 
@@ -360,7 +388,7 @@ export default function QuickSalePOSPage() {
         const isInputFocused = document.activeElement?.tagName === "INPUT";
         if (!isInputFocused) {
           e.preventDefault();
-          handleInstantSale();
+          openSaleConfirmation();
         }
       }
       if (e.key === "Escape") {
@@ -396,246 +424,290 @@ export default function QuickSalePOSPage() {
   }
 
   return (
-   <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SALES} showMessage>
-       <div className="h-screen flex flex-col lg:flex-row bg-muted/30 overflow-hidden">
-      {/* Notifications */}
-      {success && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-          <div className="bg-emerald-600 text-white px-5 py-2.5 rounded-lg shadow-lg flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
-            <span className="text-sm font-medium">{success}</span>
+    <Can permission={COMMON_PERMISSIONS.INVENTORY.CREATE_SALES} showMessage>
+      <div className="h-screen flex flex-col lg:flex-row bg-muted/30 overflow-hidden">
+        {/* Notifications */}
+        {success && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+            <div className="bg-emerald-600 text-white px-5 py-2.5 rounded-lg shadow-lg flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-sm font-medium">{success}</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {error && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-          <div className="bg-red-600 text-white px-5 py-2.5 rounded-lg shadow-lg flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            <span className="text-sm font-medium">{error}</span>
-            <button onClick={() => setError(null)} className="ml-2 hover:bg-white/20 p-1 rounded">
-              <X className="h-3 w-3" />
-            </button>
+        {error && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+            <div className="bg-red-600 text-white px-5 py-2.5 rounded-lg shadow-lg flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-sm font-medium">{error}</span>
+              <button onClick={() => setError(null)} className="ml-2 hover:bg-white/20 p-1 rounded">
+                <X className="h-3 w-3" />
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* LEFT: Products */}
-      <div className="flex-1 flex flex-col p-3 lg:p-4 overflow-hidden">
-        {/* Header + Search */}
-        <div className="mb-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <QuickSelect
-              label="Entrepôt"
-              items={warehouses.map(w => ({ id: w.id, name: w.name, subtitle: w.city || w.code }))}
-              selectedId={productFilter.warehouseId}
-              onSelect={(id) => setProductFilter(f => ({ ...f, warehouseId: id as string }))}
-              placeholder="Tout"
-              icon={undefined}
-              accentColor="blue"
-              createLabel={undefined}
-            />
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                ref={searchInputRef}
-                placeholder="Rechercher..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-10 text-sm bg-background"
+        {/* LEFT: Products */}
+        <div className="flex-1 flex flex-col p-3 lg:p-4 overflow-hidden">
+          {/* Header + Search */}
+          <div className="mb-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <QuickSelect
+                label="Entrepôt"
+                items={warehouses.map(w => ({ id: w.id, name: w.name, subtitle: w.city || w.code }))}
+                selectedId={productFilter.warehouseId}
+                onSelect={(id) => {
+                  setProductFilter(f => ({ ...f, warehouseId: id as string }));
+                  setDefaultWarehouse(id as string);
+                }}
+                placeholder="Tout"
+                icon={undefined}
+                accentColor="blue"
+                createLabel={undefined}
               />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Rechercher..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-10 text-sm bg-background"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Products Grid */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
-            {filteredProducts.map((product) => {
-              const remainingQty = getRemainingQty(product);
-              const inCart = cart.find((item) => item.product_id === product.id);
-              const outOfStock = remainingQty <= 0;
-              
-              return (
-                <button
-                  key={product.id}
-                  onClick={() => !outOfStock && addToCart(product)}
-                  disabled={outOfStock}
-                  className={cn(
-                    "relative p-3 rounded-lg border text-left transition-all",
-                    "hover:shadow-sm active:scale-[0.98] bg-background",
-                    inCart
-                      ? "border-primary/50 bg-primary/5"
-                      : outOfStock
-                        ? "border-red-200 bg-red-50/50 dark:bg-red-950/10 opacity-60"
-                        : "border-border hover:border-muted-foreground/30"
-                  )}
-                >
-                  {/* Stock badge */}
-                  <div className="absolute left-1.5 top-1.5">
-                    <span className={cn(
-                      "text-[10px] font-medium px-1.5 py-0.5 rounded",
-                      outOfStock 
-                        ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" 
-                        : remainingQty <= 5
-                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                          : "bg-muted text-muted-foreground"
-                    )}>
-                      {remainingQty}
-                    </span>
-                  </div>
-
-                  {/* Cart quantity badge */}
-                  {inCart && (
-                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">
-                      {inCart.quantity}
-                    </div>
-                  )}
-
-                  <div className="pt-4">
-                    <p className="font-medium text-sm truncate">{product.name}</p>
-                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">{product.sku}</p>
-                    <p className="text-base font-bold text-primary mt-1.5">{formatCurrency(product.selling_price || 0)}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {filteredProducts.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-              <Package className="h-10 w-10 mb-2 opacity-30" />
-              <p className="text-sm">Aucun produit trouvé</p>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile Cart Toggle */}
-        <div className="lg:hidden mt-3">
-          <Button
-            onClick={() => setShowMobileCart(true)}
-            className={cn(
-              "w-full h-12 text-base font-semibold",
-              cart.length > 0 ? "bg-primary" : "bg-muted text-muted-foreground"
-            )}
-            disabled={cart.length === 0}
-          >
-            <ShoppingCart className="h-5 w-5 mr-2" />
-            Panier ({itemCount})
-            {cart.length > 0 && (
-              <span className="ml-auto">{formatCurrency(total)}</span>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {/* RIGHT: Cart Panel - Desktop */}
-      <div className="hidden lg:flex w-80 xl:w-96 bg-background border-l flex-col">
-        <CartPanel
-          cart={cart}
-          products={products}
-          customers={customers}
-          selectedCustomer={selectedCustomer}
-          setSelectedCustomer={setSelectedCustomer}
-          isPaid={isPaid}
-          setIsPaid={setIsPaid}
-          paymentMethod={paymentMethod}
-          setPaymentMethod={setPaymentMethod}
-          dueDate={dueDate}
-          setDueDate={setDueDate}
-          globalDiscountType={globalDiscountType}
-          setGlobalDiscountType={setGlobalDiscountType}
-          globalDiscountValue={globalDiscountValue}
-          setGlobalDiscountValue={setGlobalDiscountValue}
-          showDiscountOptions={showDiscountOptions}
-          setShowDiscountOptions={setShowDiscountOptions}
-          creatingCustomer={creatingCustomer}
-          setCreatingCustomer={setCreatingCustomer}
-          editingPriceId={editingPriceId}
-          setEditingPriceId={setEditingPriceId}
-          total={total}
-          subtotal={subtotal}
-          totalSavings={totalSavings}
-          itemCount={itemCount}
-          processing={processing}
-          handleInstantSale={handleInstantSale}
-          updateQuantity={updateQuantity}
-          updateQuantityDirect={updateQuantityDirect}
-          updateUnitPrice={updateUnitPrice}
-          resetPrice={resetPrice}
-          updateItemDiscount={updateItemDiscount}
-          removeFromCart={removeFromCart}
-          setCart={setCart}
-          getRemainingQty={getRemainingQty}
-          createCustomer={createCustomer}
-          setCustomers={setCustomers}
-        />
-      </div>
-
-      {/* Mobile Cart Overlay */}
-      {showMobileCart && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-background flex flex-col">
-          <div className="flex items-center gap-3 px-4 py-3 border-b">
-            <button onClick={() => setShowMobileCart(false)} className="p-1.5 -ml-1.5 hover:bg-muted rounded-lg">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <h2 className="font-semibold">Panier</h2>
-            <Badge className="ml-auto">{itemCount} articles</Badge>
-          </div>
+          {/* Products Grid */}
           <div className="flex-1 overflow-y-auto">
-            <CartPanel
-              cart={cart}
-              products={products}
-              customers={customers}
-              selectedCustomer={selectedCustomer}
-              setSelectedCustomer={setSelectedCustomer}
-              isPaid={isPaid}
-              setIsPaid={setIsPaid}
-              paymentMethod={paymentMethod}
-              setPaymentMethod={setPaymentMethod}
-              dueDate={dueDate}
-              setDueDate={setDueDate}
-              globalDiscountType={globalDiscountType}
-              setGlobalDiscountType={setGlobalDiscountType}
-              globalDiscountValue={globalDiscountValue}
-              setGlobalDiscountValue={setGlobalDiscountValue}
-              showDiscountOptions={showDiscountOptions}
-              setShowDiscountOptions={setShowDiscountOptions}
-              creatingCustomer={creatingCustomer}
-              setCreatingCustomer={setCreatingCustomer}
-              editingPriceId={editingPriceId}
-              setEditingPriceId={setEditingPriceId}
-              total={total}
-              subtotal={subtotal}
-              totalSavings={totalSavings}
-              itemCount={itemCount}
-              processing={processing}
-              handleInstantSale={handleInstantSale}
-              updateQuantity={updateQuantity}
-              updateQuantityDirect={updateQuantityDirect}
-              updateUnitPrice={updateUnitPrice}
-              resetPrice={resetPrice}
-              updateItemDiscount={updateItemDiscount}
-              removeFromCart={removeFromCart}
-              setCart={setCart}
-              getRemainingQty={getRemainingQty}
-              createCustomer={createCustomer}
-              setCustomers={setCustomers}
-              isMobile
-            />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
+              {filteredProducts.map((product) => {
+                const remainingQty = getRemainingQty(product);
+                const inCart = cart.find((item) => item.product_id === product.id);
+                const outOfStock = remainingQty <= 0;
+
+                return (
+                  <button
+                    key={product.id}
+                    onClick={() => !outOfStock && addToCart(product)}
+                    disabled={outOfStock}
+                    className={cn(
+                      "relative p-3 rounded-lg border text-left transition-all",
+                      "hover:shadow-sm active:scale-[0.98] bg-background",
+                      inCart
+                        ? "border-primary/50 bg-primary/5"
+                        : outOfStock
+                          ? "border-red-200 bg-red-50/50 dark:bg-red-950/10 opacity-60"
+                          : "border-border hover:border-muted-foreground/30"
+                    )}
+                  >
+                    {/* Stock badge */}
+                    <div className="absolute left-1.5 top-1.5">
+                      <span className={cn(
+                        "text-[10px] font-medium px-1.5 py-0.5 rounded",
+                        outOfStock
+                          ? "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                          : remainingQty <= 5
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                            : "bg-muted text-muted-foreground"
+                      )}>
+                        {remainingQty}
+                      </span>
+                    </div>
+
+                    {/* Cart quantity badge */}
+                    {inCart && (
+                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">
+                        {inCart.quantity}
+                      </div>
+                    )}
+
+                    <div className="pt-4">
+                      <p className="font-medium text-sm truncate">{product.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate mt-0.5">{product.sku}</p>
+                      <p className="text-base font-bold text-primary mt-1.5">{formatCurrency(product.selling_price || 0)}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {filteredProducts.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
+                <Package className="h-10 w-10 mb-2 opacity-30" />
+                <p className="text-sm">Aucun produit trouvé</p>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Cart Toggle */}
+          <div className="lg:hidden mt-3">
+            <Button
+              onClick={() => setShowMobileCart(true)}
+              className={cn(
+                "w-full h-12 text-base font-semibold",
+                cart.length > 0 ? "bg-primary" : "bg-muted text-muted-foreground"
+              )}
+              disabled={cart.length === 0}
+            >
+              <ShoppingCart className="h-5 w-5 mr-2" />
+              Panier ({itemCount})
+              {cart.length > 0 && (
+                <span className="ml-auto">{formatCurrency(total)}</span>
+              )}
+            </Button>
           </div>
         </div>
-      )}
-    </div>
-   </Can>
+
+        {/* RIGHT: Cart Panel - Desktop */}
+        <div className="hidden lg:flex w-80 xl:w-96 bg-background border-l flex-col">
+          <CartPanel
+            cart={cart}
+            products={products}
+            customers={customers}
+            selectedCustomer={selectedCustomer}
+            setSelectedCustomer={setSelectedCustomer}
+            isPaid={isPaid}
+            setIsPaid={setIsPaid}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
+            dueDate={dueDate}
+            setDueDate={setDueDate}
+            globalDiscountType={globalDiscountType}
+            setGlobalDiscountType={setGlobalDiscountType}
+            globalDiscountValue={globalDiscountValue}
+            setGlobalDiscountValue={setGlobalDiscountValue}
+            showDiscountOptions={showDiscountOptions}
+            setShowDiscountOptions={setShowDiscountOptions}
+            creatingCustomer={creatingCustomer}
+            setCreatingCustomer={setCreatingCustomer}
+            editingPriceId={editingPriceId}
+            setEditingPriceId={setEditingPriceId}
+            total={total}
+            subtotal={subtotal}
+            totalSavings={totalSavings}
+            itemCount={itemCount}
+            processing={processing}
+            handleInstantSale={openSaleConfirmation}
+            updateQuantity={updateQuantity}
+            updateQuantityDirect={updateQuantityDirect}
+            updateUnitPrice={updateUnitPrice}
+            resetPrice={resetPrice}
+            updateItemDiscount={updateItemDiscount}
+            removeFromCart={removeFromCart}
+            setCart={setCart}
+            getRemainingQty={getRemainingQty}
+            createCustomer={createCustomer}
+            setCustomers={setCustomers}
+          />
+        </div>
+
+        {/* Mobile Cart Overlay */}
+        {showMobileCart && (
+          <div className="lg:hidden fixed inset-0 z-50 bg-background flex flex-col">
+            <div className="flex items-center gap-3 px-4 py-3 border-b">
+              <button onClick={() => setShowMobileCart(false)} className="p-1.5 -ml-1.5 hover:bg-muted rounded-lg">
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <h2 className="font-semibold">Panier</h2>
+              <Badge className="ml-auto">{itemCount} articles</Badge>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <CartPanel
+                cart={cart}
+                products={products}
+                customers={customers}
+                selectedCustomer={selectedCustomer}
+                setSelectedCustomer={setSelectedCustomer}
+                isPaid={isPaid}
+                setIsPaid={setIsPaid}
+                paymentMethod={paymentMethod}
+                setPaymentMethod={setPaymentMethod}
+                dueDate={dueDate}
+                setDueDate={setDueDate}
+                globalDiscountType={globalDiscountType}
+                setGlobalDiscountType={setGlobalDiscountType}
+                globalDiscountValue={globalDiscountValue}
+                setGlobalDiscountValue={setGlobalDiscountValue}
+                showDiscountOptions={showDiscountOptions}
+                setShowDiscountOptions={setShowDiscountOptions}
+                creatingCustomer={creatingCustomer}
+                setCreatingCustomer={setCreatingCustomer}
+                editingPriceId={editingPriceId}
+                setEditingPriceId={setEditingPriceId}
+                total={total}
+                subtotal={subtotal}
+                totalSavings={totalSavings}
+                itemCount={itemCount}
+                processing={processing}
+                handleInstantSale={openSaleConfirmation}
+                updateQuantity={updateQuantity}
+                updateQuantityDirect={updateQuantityDirect}
+                updateUnitPrice={updateUnitPrice}
+                resetPrice={resetPrice}
+                updateItemDiscount={updateItemDiscount}
+                removeFromCart={removeFromCart}
+                setCart={setCart}
+                getRemainingQty={getRemainingQty}
+                createCustomer={createCustomer}
+                setCustomers={setCustomers}
+                isMobile
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Confirmation de vente */}
+      <ConfirmationDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Confirmer la vente"
+        description={
+          <div className="space-y-2 text-sm">
+            <p>
+              <span className="font-medium">{itemCount}</span> article{itemCount > 1 ? "s" : ""}{" "}
+              pour un total de <span className="font-semibold text-emerald-600">{formatCurrency(total)}</span>
+            </p>
+            <p>
+              Paiement :{" "}
+              <span className="font-medium">
+                {isPaid
+                  ? paymentMethod === "cash" ? "Espèces" : paymentMethod === "card" ? "Carte" : paymentMethod === "mobile" ? "Mobile" : paymentMethod
+                  : "Vente à crédit"}
+              </span>
+            </p>
+            {selectedCustomer && (
+              <p>
+                Client :{" "}
+                <span className="font-medium">
+                  {customers.find((c: Customer) => c.id === selectedCustomer)?.name || "Sélectionné"}
+                </span>
+              </p>
+            )}
+            {totalSavings > 0 && (
+              <p className="text-amber-600">
+                Remise totale : -{formatCurrency(totalSavings)}
+              </p>
+            )}
+          </div>
+        }
+        confirmLabel="Encaisser"
+        cancelLabel="Annuler"
+        onConfirm={handleInstantSale}
+        loading={processing}
+        icon="success"
+      />
+    </Can>
   );
 }
 
@@ -680,7 +752,7 @@ function CartPanel({
   setCustomers,
   isMobile = false,
 }: any) {
-  const {hasPermission} = usePermissions()
+  const { hasPermission } = usePermissions()
 
   return (
     <div className="flex flex-col h-full">
@@ -759,8 +831,8 @@ function CartPanel({
           onClick={() => setIsPaid(!isPaid)}
           className={cn(
             "w-full flex items-center gap-3 p-2.5 rounded-lg border transition-all text-left",
-            isPaid 
-              ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800" 
+            isPaid
+              ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800"
               : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"
           )}
         >
@@ -876,7 +948,7 @@ function CartPanel({
                         : "bg-muted hover:bg-muted/80"
                     )}
                   >
-                    {disc === 0 ? "0" : globalDiscountType === "percentage" ? `-${disc}%` : `-${disc/1000}k`}
+                    {disc === 0 ? "0" : globalDiscountType === "percentage" ? `-${disc}%` : `-${disc / 1000}k`}
                   </button>
                 ))}
               </div>
@@ -917,7 +989,7 @@ function CartPanel({
           </div>
         ) : (
           <div className="divide-y">
-            {cart.map((item:any) => {
+            {cart.map((item: any) => {
               const product = products.find((p: any) => p.id === item.product_id);
               const remainingQty = product ? getRemainingQty(product) : (item.remaining_qty || 0);
               const itemSubtotal = item.quantity * item.unit_price;
@@ -935,8 +1007,8 @@ function CartPanel({
                       <p className="font-medium text-sm truncate">{item.product_name}</p>
                       <p className="text-[10px] text-muted-foreground">{item.product_sku}</p>
                     </div>
-                    <button 
-                      onClick={() => removeFromCart(item.product_id)} 
+                    <button
+                      onClick={() => removeFromCart(item.product_id)}
                       className="p-1 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5" />

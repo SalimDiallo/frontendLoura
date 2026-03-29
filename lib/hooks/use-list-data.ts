@@ -3,8 +3,8 @@
  * Élimine la duplication de code dans ~90 pages
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { PaginatedResponse, FilterParams } from '@/lib/types/shared';
+import type { FilterParams, PaginatedResponse } from '@/lib/types/shared';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * Configuration du hook
@@ -15,17 +15,17 @@ export interface UseListDataOptions<T, F extends FilterParams> {
    * @param params - Paramètres de pagination et filtres
    */
   fetchFn: (params: F & { page?: number; page_size?: number }) => Promise<PaginatedResponse<T>>;
-  
+
   /**
    * Filtres initiaux
    */
   initialFilters?: Partial<F>;
-  
+
   /**
    * Taille de page par défaut
    */
   pageSize?: number;
-  
+
   /**
    * Charger automatiquement au montage
    */
@@ -44,11 +44,11 @@ export interface UseListDataReturn<T, F extends FilterParams> {
   // Données
   data: T[];
   totalCount: number;
-  
+
   // État de chargement
   loading: boolean;
   error: string | null;
-  
+
   // Pagination
   currentPage: number;
   pageSize: number;
@@ -58,14 +58,14 @@ export interface UseListDataReturn<T, F extends FilterParams> {
   setPage: (page: number) => void;
   nextPage: () => void;
   previousPage: () => void;
-  
+
   // Filtres
   filters: Partial<F>;
   setFilter: <K extends keyof F>(key: K, value: F[K]) => void;
   setFilters: (filters: Partial<F>) => void;
   resetFilters: () => void;
   hasActiveFilters: boolean;
-  
+
   // Actions
   reload: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -77,23 +77,29 @@ export interface UseListDataReturn<T, F extends FilterParams> {
 export function useListData<T, F extends FilterParams = FilterParams>({
   fetchFn,
   initialFilters = {},
-  pageSize = 20,
+  pageSize = 10,
   autoLoad = true,
   deps = [],
 }: UseListDataOptions<T, F>): UseListDataReturn<T, F> {
+  // Stocker fetchFn dans une ref pour éviter les re-renders
+  const fetchFnRef = useRef(fetchFn);
+  useEffect(() => {
+    fetchFnRef.current = fetchFn;
+  }, [fetchFn]);
+
   // État des données
   const [data, setData] = useState<T[]>([]);
   const [totalCount, setTotalCount] = useState(0);
-  
+
   // État de chargement
   const [loading, setLoading] = useState(autoLoad);
   const [error, setError] = useState<string | null>(null);
-  
+
   // État de pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
-  
+
   // État des filtres
   const [filters, setFiltersState] = useState<Partial<F>>(initialFilters);
 
@@ -111,7 +117,16 @@ export function useListData<T, F extends FilterParams = FilterParams>({
         page_size: pageSize,
       } as F & { page: number; page_size: number };
 
-      const response = await fetchFn(params);
+      console.log('[useListData] Loading page:', currentPage, 'with params:', params);
+
+      const response = await fetchFnRef.current(params);
+
+      console.log('[useListData] Response:', {
+        count: response.count,
+        resultsLength: response.results?.length,
+        hasNext: !!response.next,
+        hasPrevious: !!response.previous
+      });
 
       setData(response.results || []);
       setTotalCount(response.count || 0);
@@ -124,7 +139,7 @@ export function useListData<T, F extends FilterParams = FilterParams>({
     } finally {
       setLoading(false);
     }
-  }, [fetchFn, filters, currentPage, pageSize]);
+  }, [filters, currentPage, pageSize]);
 
   /**
    * Charger les données au montage et quand les dépendances changent
@@ -133,7 +148,7 @@ export function useListData<T, F extends FilterParams = FilterParams>({
     if (autoLoad) {
       loadData();
     }
-  }, [loadData, ...deps]);
+  }, [loadData, autoLoad, ...deps]);
 
   /**
    * Calculer le nombre total de pages
@@ -156,10 +171,11 @@ export function useListData<T, F extends FilterParams = FilterParams>({
    * Changer de page
    */
   const setPage = useCallback((page: number) => {
+    console.log('[useListData] setPage called:', { page, currentPage, totalPages, willChange: page >= 1 && page <= totalPages });
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
-  }, [totalPages]);
+  }, [totalPages, currentPage]);
 
   /**
    * Page suivante
@@ -219,11 +235,11 @@ export function useListData<T, F extends FilterParams = FilterParams>({
     // Données
     data,
     totalCount,
-    
+
     // État
     loading,
     error,
-    
+
     // Pagination
     currentPage,
     pageSize,
@@ -233,14 +249,14 @@ export function useListData<T, F extends FilterParams = FilterParams>({
     setPage,
     nextPage,
     previousPage,
-    
+
     // Filtres
     filters,
     setFilter,
     setFilters,
     resetFilters,
     hasActiveFilters,
-    
+
     // Actions
     reload,
     refresh,
