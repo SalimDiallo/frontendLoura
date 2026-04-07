@@ -1,33 +1,32 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { Alert, Card } from "@/components/ui";
 import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-
-  HiOutlineIdentification,
-  HiOutlineCheckCircle,
-  HiOutlineBriefcase,
-  HiOutlineShieldCheck,
+    HiOutlineBriefcase,
+    HiOutlineCheckCircle,
+    HiOutlineIdentification,
+    HiOutlineShieldCheck,
 } from "react-icons/hi2";
-import { LuUsers, LuCalendarOff, LuPause, LuBan } from "react-icons/lu";
-import { Alert, Badge, Button, Card, Input } from "@/components/ui";
+import { LuBan, LuCalendarOff, LuPause, LuUsers } from "react-icons/lu";
 
 import { Can } from "@/components/apps/common";
-import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { cn, formatCurrency } from "@/lib/utils";
-import { useKeyboardShortcuts, KeyboardShortcut, commonShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
-import { ShortcutsHelpModal, ShortcutBadge, KeyboardHint } from "@/components/ui/shortcuts-help";
-import { SmartFilters, FilterConfig } from "@/components/ui/smart-filters";
-import { useAuthStore } from "@/lib/store";
-import { getEmployees, deleteEmployee, activateEmployee, deactivateEmployee } from "@/lib/services/hr";
-import type { EmployeeListItem } from "@/lib/types/hr";
+import { EmployeesEmptyState } from "@/components/apps/hr/employees/EmployeesEmptyState";
+import { EmployeesHeader } from "@/components/apps/hr/employees/EmployeesHeader";
+import { EmployeesPagination } from "@/components/apps/hr/employees/EmployeesPagination";
+import { EmployeesSearchAndFilters } from "@/components/apps/hr/employees/EmployeesSearchAndFilters";
+import { EmployeesStatsCards } from "@/components/apps/hr/employees/EmployeesStatsCards";
+import { EmployeesTable } from "@/components/apps/hr/employees/EmployeesTable";
 import { DeleteConfirmation } from "@/components/common/confirmation-dialog";
-import { EmployeesHeader } from "@/components/hr/employees/EmployeesHeader";
-import { EmployeesStatsCards } from "@/components/hr/employees/EmployeesStatsCards";
-import { EmployeesSearchAndFilters } from "@/components/hr/employees/EmployeesSearchAndFilters";
-import { EmployeesEmptyState } from "@/components/hr/employees/EmployeesEmptyState";
-import { EmployeesTable } from "@/components/hr/employees/EmployeesTable";
-import { EmployeesPagination } from "@/components/hr/employees/EmployeesPagination";
+import { KeyboardHint, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
+import { FilterConfig } from "@/components/ui/smart-filters";
+import { KeyboardShortcut, commonShortcuts, useKeyboardShortcuts } from "@/lib/hooks/use-keyboard-shortcuts";
+import { activateEmployee, deactivateEmployee, deleteEmployee, getEmployees } from "@/lib/services/hr";
+import { useAuthStore } from "@/lib/store";
+import type { EmployeeListItem } from "@/lib/types/hr";
+import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import { formatCurrency } from "@/lib/utils";
 
 // ============================================
 // Types & Constants

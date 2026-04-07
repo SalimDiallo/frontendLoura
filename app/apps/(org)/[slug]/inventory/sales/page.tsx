@@ -1,6 +1,7 @@
 "use client";
 
 import { Can } from "@/components/apps/common/protected-route";
+import { Pagination } from "@/components/common/pagination";
 import { Alert, Badge, Button, Card, Input } from "@/components/ui";
 import {
   DropdownMenu,
@@ -11,10 +12,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PDFPreviewWrapper } from "@/components/ui/pdf-preview";
+import { apiClient } from "@/lib/api/client";
+import { API_ENDPOINTS } from "@/lib/api/config";
+import { useListData } from "@/lib/hooks/use-list-data";
 import { usePDF } from "@/lib/hooks/usePDF";
 import { cancelSale } from "@/lib/services/inventory";
 import type { SaleList } from "@/lib/types/inventory";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
+import type { PaginatedResponse } from "@/lib/types/shared";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
   AlertTriangle,
@@ -37,11 +42,6 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { useListData } from "@/lib/hooks/use-list-data";
-import { Pagination } from "@/components/common/pagination";
-import { apiClient } from "@/lib/api/client";
-import { API_ENDPOINTS } from "@/lib/api/config";
-import type { PaginatedResponse } from "@/lib/types/shared";
 
 // Wrapper pour rendre getSales compatible avec useListData
 const fetchSalesList = async (params: any): Promise<PaginatedResponse<SaleList>> => {

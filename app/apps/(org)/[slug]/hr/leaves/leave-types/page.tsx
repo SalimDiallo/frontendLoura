@@ -2,21 +2,21 @@
 import { Can } from "@/components/apps/common";
 import { Button, Card } from "@/components/ui";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  createLeaveType,
-  deleteLeaveType,
-  getLeaveTypes,
-  updateLeaveType,
+    createLeaveType,
+    deleteLeaveType,
+    getLeaveTypes,
+    updateLeaveType,
 } from "@/lib/services/hr/leave-type.service";
 import type { LeaveType } from "@/lib/types/hr";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
@@ -75,7 +75,7 @@ function LeaveTypeForm({
         type="text"
         required
         placeholder="Nom*"
-        value={name}
+        defaultValue={name}
         maxLength={60}
         autoFocus
         onChange={e => setName(e.target.value)}
@@ -85,7 +85,7 @@ function LeaveTypeForm({
       <Textarea
         placeholder="Description"
         rows={2}
-        value={description}
+        defaultValue={description}
         maxLength={200}
         onChange={e => setDescription(e.target.value)}
         disabled={loading}
@@ -220,7 +220,7 @@ export default function LeaveTypesPage({
             <Input
               type="search"
               placeholder="Rechercher…"
-              value={searchQuery}
+              defaultValue={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="h-8 text-sm"
               spellCheck={false}

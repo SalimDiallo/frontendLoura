@@ -8,10 +8,10 @@ import { ApiError } from "@/lib/api/client";
 import { useUser } from "@/lib/hooks";
 import { getEmployees } from "@/lib/services/hr/employee.service";
 import {
-  deleteLeaveBalance,
-  getLeaveBalances,
-  initializeLeaveBalances,
-  updateLeaveBalance,
+    deleteLeaveBalance,
+    getLeaveBalances,
+    initializeLeaveBalances,
+    updateLeaveBalance,
 } from "@/lib/services/hr/leave-balance.service";
 import type { Employee, LeaveBalance } from "@/lib/types/hr";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
@@ -19,17 +19,17 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  HiOutlineArrowLeft,
-  HiOutlineCalendar,
-  HiOutlineCheckCircle,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
-  HiOutlineMagnifyingGlass,
-  HiOutlinePencil,
-  HiOutlineTrash,
-  HiOutlineUserGroup,
-  HiOutlineXCircle,
-  HiOutlineXMark,
+    HiOutlineArrowLeft,
+    HiOutlineCalendar,
+    HiOutlineCheckCircle,
+    HiOutlineChevronLeft,
+    HiOutlineChevronRight,
+    HiOutlineMagnifyingGlass,
+    HiOutlinePencil,
+    HiOutlineTrash,
+    HiOutlineUserGroup,
+    HiOutlineXCircle,
+    HiOutlineXMark,
 } from "react-icons/hi2";
 
 interface EmployeeWithBalance extends Employee {

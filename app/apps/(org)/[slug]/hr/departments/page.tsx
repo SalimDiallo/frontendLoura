@@ -1,8 +1,8 @@
 "use client";
 
 import { Can, usePermissionContext } from "@/components/apps/common";
-import { DepartmentsTable } from "@/components/hr/departements/DepartementsTable";
-import { ModalPosition, PositionsTable } from "@/components/hr/departements/PositionTable";
+import { DepartmentsTable } from "@/components/apps/hr/departements/DepartementsTable";
+import { ModalPosition, PositionsTable } from "@/components/apps/hr/departements/PositionTable";
 import { Alert, Button, Card, Input } from "@/components/ui";
 import { KeyboardHint, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,11 +15,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  HiOutlineBriefcase,
-  HiOutlineMagnifyingGlass,
-  HiOutlinePlusCircle,
-  HiOutlineQuestionMarkCircle,
-  HiOutlineUserGroup
+    HiOutlineBriefcase,
+    HiOutlineMagnifyingGlass,
+    HiOutlinePlusCircle,
+    HiOutlineQuestionMarkCircle,
+    HiOutlineUserGroup
 } from "react-icons/hi2";
 
 

@@ -4,28 +4,28 @@ import { Can } from "@/components/apps/common";
 import { ConfirmationDialog } from "@/components/common/confirmation-dialog";
 import { Alert, Button, Card } from "@/components/ui";
 import {
-  KeyboardHint,
-  ShortcutsHelpModal,
+    KeyboardHint,
+    ShortcutsHelpModal,
 } from "@/components/ui/shortcuts-help";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/api/client";
 import { useUser } from "@/lib/hooks";
 import {
-  KeyboardShortcut,
-  commonShortcuts,
-  useKeyboardShortcuts,
+    KeyboardShortcut,
+    commonShortcuts,
+    useKeyboardShortcuts,
 } from "@/lib/hooks/use-keyboard-shortcuts";
 import {
-  approveLeaveRequest,
-  getLeaveRequests,
-  rejectLeaveRequest,
+    approveLeaveRequest,
+    getLeaveRequests,
+    rejectLeaveRequest,
 } from "@/lib/services/hr/leave.service";
 import type { LeaveRequest } from "@/lib/types/hr";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
@@ -35,15 +35,15 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  HiOutlineCalendar,
-  HiOutlineChartBar,
-  HiOutlineCheckCircle,
-  HiOutlineClipboardDocumentList,
-  HiOutlineEye,
-  HiOutlineMagnifyingGlass,
-  HiOutlineQuestionMarkCircle,
-  HiOutlineUserGroup,
-  HiOutlineXCircle
+    HiOutlineCalendar,
+    HiOutlineChartBar,
+    HiOutlineCheckCircle,
+    HiOutlineClipboardDocumentList,
+    HiOutlineEye,
+    HiOutlineMagnifyingGlass,
+    HiOutlineQuestionMarkCircle,
+    HiOutlineUserGroup,
+    HiOutlineXCircle
 } from "react-icons/hi2";
 
 // Import the document download hook used in leave details
@@ -464,7 +464,7 @@ export default function LeavesPage() {
               ref={searchInputRef}
               type="search"
               placeholder="Rechercher par employé..."
-              value={searchQuery}
+              defaultValue={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-20 border rounded h-10 w-full outline-none text-sm"
               aria-label="Rechercher des demandes de congés"

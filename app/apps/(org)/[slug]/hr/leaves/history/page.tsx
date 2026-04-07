@@ -3,12 +3,12 @@
 import { Alert, Badge, Button, Card, Input, PDFPreviewWrapper } from "@/components/ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
 import { PDFEndpoints, usePDF, useUser } from "@/lib/hooks";
 import { getLeaveTypes } from "@/lib/services/hr/leave-type.service";
@@ -19,14 +19,14 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  HiOutlineArrowLeft,
-  HiOutlineCalendar,
-  HiOutlineCheckCircle,
-  HiOutlineClock,
-  HiOutlineEye,
-  HiOutlineMagnifyingGlass,
-  HiOutlinePlus,
-  HiOutlineXCircle
+    HiOutlineArrowLeft,
+    HiOutlineCalendar,
+    HiOutlineCheckCircle,
+    HiOutlineClock,
+    HiOutlineEye,
+    HiOutlineMagnifyingGlass,
+    HiOutlinePlus,
+    HiOutlineXCircle
 } from "react-icons/hi2";
 
 export default function LeaveHistoryPage() {
@@ -214,7 +214,7 @@ export default function LeaveHistoryPage() {
             <Input
               type="search"
               placeholder="Rechercher par type, statut, ou approbateur…"
-              value={search}
+              defaultValue={search}
               autoFocus
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 pr-9 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary bg-background text-sm h-9"

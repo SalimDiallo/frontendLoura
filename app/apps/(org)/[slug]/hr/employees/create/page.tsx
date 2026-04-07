@@ -22,13 +22,13 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
-  HiOutlineArrowLeft,
-  HiOutlineCheckCircle,
-  HiOutlinePlusCircle,
-  HiOutlineShieldCheck,
-  HiOutlineSparkles,
-  HiOutlineUserCircle,
-  HiOutlineXMark,
+    HiOutlineArrowLeft,
+    HiOutlineCheckCircle,
+    HiOutlinePlusCircle,
+    HiOutlineShieldCheck,
+    HiOutlineSparkles,
+    HiOutlineUserCircle,
+    HiOutlineXMark,
 } from "react-icons/hi2";
 import * as z from "zod";
 
@@ -541,7 +541,7 @@ export default function CreateEmployeePage() {
                 <label className="block text-sm font-medium mb-1">Titre du poste *</label>
                 <input
                   type="text"
-                  value={newPositionTitle}
+                  defaultValue={newPositionTitle}
                   onChange={(e) => setNewPositionTitle(e.target.value)}
                   placeholder="ex: Développeur Senior"
                   className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

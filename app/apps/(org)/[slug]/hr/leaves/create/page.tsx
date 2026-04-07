@@ -2,7 +2,7 @@
 
 import { Alert, Button, Card, Form } from "@/components/ui";
 import {
-  FormTextareaField,
+    FormTextareaField,
 } from "@/components/ui/form-fields";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/client";
@@ -17,12 +17,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  HiOutlineArrowLeft,
-  HiOutlineCalendar,
-  HiOutlineCheckCircle,
-  HiOutlineInformationCircle,
-  HiOutlineUserGroup,
-  HiOutlineXMark,
+    HiOutlineArrowLeft,
+    HiOutlineCalendar,
+    HiOutlineCheckCircle,
+    HiOutlineInformationCircle,
+    HiOutlineUserGroup,
+    HiOutlineXMark,
 } from "react-icons/hi2";
 import * as z from "zod";
 
@@ -725,7 +725,7 @@ export default function CreateLeaveRequestPage() {
                         {field.value?.from && (
                           <input
                             type="hidden"
-                            value={field.value.from.toISOString().split("T")[0]}
+                            defaultValue={field.value.from.toISOString().split("T")[0]}
                             name="start_date"
                             readOnly
                           />
@@ -750,7 +750,7 @@ export default function CreateLeaveRequestPage() {
                         {field.value?.to && (
                           <input
                             type="hidden"
-                            value={field.value.to.toISOString().split("T")[0]}
+                            defaultValue={field.value.to.toISOString().split("T")[0]}
                             name="end_date"
                             readOnly
                           />

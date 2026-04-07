@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  ChevronUp,
-  LayoutDashboard,
-  LogOut
+    ChevronUp,
+    LayoutDashboard,
+    LogOut
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -11,26 +11,26 @@ import { useEffect, useState } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { OfflineIndicator } from "@/components/ui/offline-indicator";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
-  useSidebar,
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarRail,
+    useSidebar,
 } from "@/components/ui/sidebar";
 import { authService, CurrentUser } from "@/lib/services/core";
 import { cn } from "@/lib/utils";
@@ -121,10 +121,10 @@ export function AppSidebar() {
     try {
       setIsLoggingOut(true);
       await authService.logout();
-      router.push("/auth/admin");
+      router.push("/auth");
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
-      router.push("/auth/admin");
+      router.push("/auth");
     } finally {
       setIsLoggingOut(false);
     }

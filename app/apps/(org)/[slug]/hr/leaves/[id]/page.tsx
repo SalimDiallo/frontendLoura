@@ -5,31 +5,31 @@ import { ConfirmationDialog } from '@/components/common/confirmation-dialog';
 import { Alert, Badge, Button, Card, PDFPreviewWrapper } from '@/components/ui';
 import { PDFEndpoints, usePDF, useUser } from '@/lib/hooks';
 import {
-  approveLeaveRequest,
-  deleteLeaveRequest,
-  getLeaveRequest,
-  rejectLeaveRequest
+    approveLeaveRequest,
+    deleteLeaveRequest,
+    getLeaveRequest,
+    rejectLeaveRequest
 } from '@/lib/services/hr';
 import type { LeaveRequest } from '@/lib/types/hr';
 import { COMMON_PERMISSIONS } from '@/lib/types/permissions';
 import { cn, formatDate, formatShortDate } from '@/lib/utils';
 import {
-  AlertCircle,
-  ArrowLeft,
-  Calendar,
-  CalendarDays,
-  CheckCircle2,
-  Clock,
-  Download,
-  FileDown,
-  FileText,
-  Loader2,
-  MessageSquare,
-  Text,
-  Trash2,
-  User,
-  UserCheck,
-  XCircle
+    AlertCircle,
+    ArrowLeft,
+    Calendar,
+    CalendarDays,
+    CheckCircle2,
+    Clock,
+    Download,
+    FileDown,
+    FileText,
+    Loader2,
+    MessageSquare,
+    Text,
+    Trash2,
+    User,
+    UserCheck,
+    XCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -607,7 +607,7 @@ export default function LeaveRequestDetailPage() {
           <div>
             <div>Voulez-vous ajouter un commentaire pour expliquer le rejet ?</div>
             <textarea
-              value={rejectNotes}
+              defaultValue={rejectNotes}
               onChange={(e) => setRejectNotes(e.target.value)}
               placeholder="Motif du rejet (optionnel)"
               className="w-full p-3 border rounded-lg mt-3 min-h-[100px] resize-none text-black dark:text-white bg-white dark:bg-zinc-900"

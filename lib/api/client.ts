@@ -2,7 +2,7 @@
  * Client API avec gestion des tokens JWT
  */
 
-import { API_CONFIG, STORAGE_KEYS, API_ENDPOINTS } from './config';
+import { API_CONFIG, API_ENDPOINTS, STORAGE_KEYS } from './config';
 
 export class ApiError extends Error {
   constructor(
@@ -157,10 +157,7 @@ class ApiClient {
             return this.request<T>(endpoint, options);
           } else {
             // Impossible de rafraîchir, déconnexion
-            // Déterminer le type d'utilisateur pour rediriger vers la bonne page de login
-            const user = tokenManager.getUser();
-            const userType = user?.userType || 'admin';
-            const loginPath = userType === 'employee' ? '/auth/employee' : '/auth/admin';
+            const loginPath = '/auth';
 
             tokenManager.clearTokens();
 

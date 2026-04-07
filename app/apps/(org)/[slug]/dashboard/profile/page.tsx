@@ -1,30 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { Button, Card, Input, Alert, Badge, Label } from "@/components/ui";
+import { Alert, Badge, Button, Card, Input, Label } from "@/components/ui";
 import { authService, UnifiedUser } from "@/lib/services/auth/auth.service";
+import { formatDate } from "@/lib/utils";
 import {
-  User,
-  Mail,
-  Phone,
-  Building2,
-  Calendar,
-  Shield,
-  Edit,
-  Save,
-  X,
-  CheckCircle,
-  Clock,
-  Key,
-  Settings,
-  ArrowLeft,
-  Briefcase,
-  Award,
-  Map
+    ArrowLeft,
+    Award,
+    Briefcase,
+    Building2,
+    CheckCircle,
+    Clock,
+    Edit,
+    Key,
+    Mail,
+    Map,
+    Phone,
+    Save,
+    Settings,
+    Shield,
+    User,
+    X
 } from "lucide-react";
 import Link from "next/link";
-import { cn, formatDate } from "@/lib/utils";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function ProfilePage() {
   const params = useParams();
@@ -384,7 +383,7 @@ export default function ProfilePage() {
               {isEditing ? (
                 <Input
                   id="first_name"
-                  value={editData.first_name}
+                  defaultValue={editData.first_name}
                   onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
                   placeholder="Votre prénom"
                   autoComplete="off"
@@ -402,7 +401,7 @@ export default function ProfilePage() {
               {isEditing ? (
                 <Input
                   id="last_name"
-                  value={editData.last_name}
+                  defaultValue={editData.last_name}
                   onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
                   placeholder="Votre nom"
                   autoComplete="off"
@@ -432,7 +431,7 @@ export default function ProfilePage() {
               {isEditing ? (
                 <Input
                   id="phone"
-                  value={editData.phone}
+                  defaultValue={editData.phone}
                   onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
                   placeholder="+33 6 00 00 00 00"
                   autoComplete="off"
@@ -454,7 +453,7 @@ export default function ProfilePage() {
                 <Input
                   id="date_of_birth"
                   type="date"
-                  value={editData.date_of_birth ? editData.date_of_birth.substring(0, 10) : ""}
+                  defaultValue={editData.date_of_birth ? editData.date_of_birth.substring(0, 10) : ""}
                   onChange={(e) => setEditData({ ...editData, date_of_birth: e.target.value })}
                   placeholder="Date de naissance"
                   autoComplete="off"
@@ -472,7 +471,7 @@ export default function ProfilePage() {
               {isEditing ? (
                 <Input
                   id="address"
-                  value={editData.address}
+                  defaultValue={editData.address}
                   onChange={(e) => setEditData({ ...editData, address: e.target.value })}
                   placeholder="Votre adresse"
                   autoComplete="off"
@@ -493,7 +492,7 @@ export default function ProfilePage() {
               {isEditing ? (
                 <Input
                   id="city"
-                  value={editData.city}
+                  defaultValue={editData.city}
                   onChange={(e) => setEditData({ ...editData, city: e.target.value })}
                   placeholder="Votre ville"
                   autoComplete="off"
@@ -514,7 +513,7 @@ export default function ProfilePage() {
               {isEditing ? (
                 <Input
                   id="country"
-                  value={editData.country}
+                  defaultValue={editData.country}
                   onChange={(e) => setEditData({ ...editData, country: e.target.value })}
                   placeholder="France"
                   autoComplete="off"
@@ -536,7 +535,7 @@ export default function ProfilePage() {
                 <>
                   <Input
                     id="emergency_contact_name"
-                    value={editData.emergency_contact?.name || ""}
+                    defaultValue={editData.emergency_contact?.name || ""}
                     onChange={(e) => setEditData({
                       ...editData,
                       emergency_contact: { ...editData.emergency_contact, name: e.target.value }
@@ -546,7 +545,7 @@ export default function ProfilePage() {
                   />
                   <Input
                     id="emergency_contact_phone"
-                    value={editData.emergency_contact?.phone || ""}
+                    defaultValue={editData.emergency_contact?.phone || ""}
                     onChange={(e) => setEditData({
                       ...editData,
                       emergency_contact: { ...editData.emergency_contact, phone: e.target.value }
@@ -556,7 +555,7 @@ export default function ProfilePage() {
                   />
                   <Input
                     id="emergency_contact_relationship"
-                    value={editData.emergency_contact?.relationship || ""}
+                    defaultValue={editData.emergency_contact?.relationship || ""}
                     onChange={(e) => setEditData({
                       ...editData,
                       emergency_contact: { ...editData.emergency_contact, relationship: e.target.value }

@@ -7,11 +7,11 @@
 
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { useModules } from '@/lib/contexts';
 import { useRouter } from 'next/navigation';
 import React, { PropsWithChildren } from 'react';
 import { HiOutlineShieldExclamation } from 'react-icons/hi2';
 import { usePermissionContext } from './permission-provider';
-import { useModules } from '@/lib/contexts';
 
 // ============================================
 // Types

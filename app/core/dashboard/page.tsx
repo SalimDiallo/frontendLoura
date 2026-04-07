@@ -1,6 +1,6 @@
 "use client";
 
-import { OrganizationCard } from "@/components/core/organization-card";
+import { OrganizationCard } from "@/components/apps/core";
 import { Button } from "@/components/ui";
 import { Alert } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
@@ -8,18 +8,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api/client";
 import { siteConfig } from "@/lib/config";
 import {
-  authService,
-  categoryService,
-  organizationService,
+    authService,
+    categoryService,
+    organizationService,
 } from "@/lib/services/core";
 import type { AdminUser, Category, Organization } from "@/lib/types/core";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  HiOutlineBuildingOffice2,
-  HiOutlineCheckCircle,
-  HiOutlinePlus,
-  HiOutlineXCircle,
+    HiOutlineBuildingOffice2,
+    HiOutlineCheckCircle,
+    HiOutlinePlus,
+    HiOutlineXCircle,
 } from "react-icons/hi2";
 
 export default function DashboardPage() {

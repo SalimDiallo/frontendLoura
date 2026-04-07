@@ -1,23 +1,23 @@
 "use client";
 
-import { NotificationPanel } from "@/components/core/notification-panel";
 import { useNotifications } from "@/lib/hooks/use-notifications";
 import { useSSE } from "@/lib/hooks/use-sse";
 import {
-  Bell,
-  Command,
-  Search
+    Bell,
+    Command,
+    Search
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect, useRef, useState } from "react";
 
-import { AppSidebar } from "@/components/core/app-sidebar";
+import { NotificationPanel } from "@/components/apps/core";
+import { AppSidebar } from "@/components/apps/core/app-sidebar";
 import { ThemeToggle } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
+    SidebarInset,
+    SidebarProvider,
+    SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { ModuleProvider } from "@/lib/contexts";
 import { useUser } from "@/lib/hooks";

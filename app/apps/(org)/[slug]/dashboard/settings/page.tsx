@@ -1,28 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Button, Card, Input, Alert, Badge, Label } from "@/components/ui";
+import { Alert, Badge, Button, Card, Input, Label } from "@/components/ui";
 import { authService, UnifiedUser } from "@/lib/services/auth/auth.service";
-import type { AdminUser } from "@/lib/types/core";
+import { cn } from "@/lib/utils";
 import {
-  User,
-  Key,
-  Shield,
-  Bell,
-  Palette,
-  Globe,
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  CheckCircle,
-  AlertTriangle,
-  Lock,
-  Trash2,
-  Settings,
+    AlertTriangle,
+    ArrowLeft,
+    Bell,
+    CheckCircle,
+    Eye,
+    EyeOff,
+    Key,
+    Lock,
+    Palette,
+    Shield,
+    Trash2
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -236,7 +232,7 @@ export default function SettingsPage() {
                     <Input
                       id="currentPassword"
                       type={showCurrentPassword ? "text" : "password"}
-                      value={passwordData.currentPassword}
+                      defaultValue={passwordData.currentPassword}
                       onChange={(e) =>
                         setPasswordData({ ...passwordData, currentPassword: e.target.value })
                       }
@@ -261,7 +257,7 @@ export default function SettingsPage() {
                     <Input
                       id="newPassword"
                       type={showNewPassword ? "text" : "password"}
-                      value={passwordData.newPassword}
+                      defaultValue={passwordData.newPassword}
                       onChange={(e) =>
                         setPasswordData({ ...passwordData, newPassword: e.target.value })
                       }
@@ -299,7 +295,7 @@ export default function SettingsPage() {
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
-                      value={passwordData.confirmPassword}
+                      defaultValue={passwordData.confirmPassword}
                       onChange={(e) =>
                         setPasswordData({ ...passwordData, confirmPassword: e.target.value })
                       }
@@ -447,8 +443,8 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <select className="px-3 py-2 border rounded-lg bg-background text-sm">
-                    <option value="fr">Français</option>
-                    <option value="en" disabled>English (Bientôt)</option>
+                    <option defaultValue="fr">Français</option>
+                    <option defaultValue="en" disabled>English (Bientôt)</option>
                   </select>
                 </div>
               </div>

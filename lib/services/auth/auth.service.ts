@@ -313,6 +313,5 @@ export const authService = {
 
 
 // Re-export types for compatibility
-export type { LoginCredentials as EmployeeLoginCredentials };
-export type { AuthResponse as EmployeeAuthResponse };
+export type { AuthResponse as EmployeeAuthResponse, LoginCredentials as EmployeeLoginCredentials };
 export type CurrentUser = UnifiedUser | null;

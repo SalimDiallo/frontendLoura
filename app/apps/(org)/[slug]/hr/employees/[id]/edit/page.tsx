@@ -1,37 +1,36 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import Link from "next/link";
-import { getEmployee, updateEmployee }from "@/lib/services/hr/employee.service";
 import { getDepartments } from "@/lib/services/hr/department.service";
+import { getEmployee, getEmployees, updateEmployee } from "@/lib/services/hr/employee.service";
 import { getPositions } from "@/lib/services/hr/position.service";
 import { getRoles } from "@/lib/services/hr/role.service";
-import { getEmployees } from "@/lib/services/hr/employee.service";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
-import type { Department, Position, Employee, EmployeeListItem, Role } from "@/lib/types/hr";
-import {
-  EmploymentStatus,
-  Gender,
-} from "@/lib/types/hr";
-import { AVAILABLE_PERMISSIONS, type PermissionItem } from "@/lib/constants/permissions-data-label";
-import {
-  HiOutlineUserCircle,
-  HiOutlineArrowLeft,
-  HiOutlineCheckCircle,
-  HiMagnifyingGlass,
-  HiOutlineChevronDown,
-  HiOutlineChevronRight,
-  HiOutlineCheck,
-} from "react-icons/hi2";
 import { Alert, Button, Card, Form } from "@/components/ui";
 import {
-  FormInputField,
-  FormSelectField,
+    FormInputField,
+    FormSelectField,
 } from "@/components/ui/form-fields";
+import { AVAILABLE_PERMISSIONS, type PermissionItem } from "@/lib/constants/permissions-data-label";
+import type { Department, Employee, EmployeeListItem, Position, Role } from "@/lib/types/hr";
+import {
+    EmploymentStatus,
+    Gender,
+} from "@/lib/types/hr";
+import {
+    HiMagnifyingGlass,
+    HiOutlineArrowLeft,
+    HiOutlineCheck,
+    HiOutlineCheckCircle,
+    HiOutlineChevronDown,
+    HiOutlineChevronRight,
+    HiOutlineUserCircle,
+} from "react-icons/hi2";
 
 // Schema de validation
 const employeeSchema = z.object({
@@ -490,7 +489,7 @@ export default function EditEmployeePage() {
                   <input 
                     type="text" 
                     placeholder="Rechercher..." 
-                    value={searchTerm}
+                    defaultValue={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   />

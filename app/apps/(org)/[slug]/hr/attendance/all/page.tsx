@@ -533,7 +533,7 @@ export default function AttendanceApprovalsPage() {
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Rechercher un employé…"
-              value={filters.search}
+              defaultValue={filters.search}
               onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
               className="pl-9 h-9"
             />
@@ -610,7 +610,7 @@ export default function AttendanceApprovalsPage() {
                 </label>
                 <input
                   type="date"
-                  value={filters.dateRange.to}
+                  defaultValue={filters.dateRange.to}
                   onChange={(e) => setFilters((f) => ({ ...f, dateRange: { ...f.dateRange, to: e.target.value } }))}
                   className="w-full text-sm border border-zinc-200 dark:border-zinc-700 rounded-md px-3 py-1.5 bg-background focus:outline-none focus:ring-1 focus:ring-zinc-400"
                 />
@@ -833,7 +833,7 @@ export default function AttendanceApprovalsPage() {
                     Raison du rejet (optionnel)
                   </label>
                   <textarea
-                    value={rejectionReason}
+                    defaultValue={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                     className="w-full border border-border rounded-md p-2.5 min-h-[100px] text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                     placeholder="Indiquez la raison du rejet..."

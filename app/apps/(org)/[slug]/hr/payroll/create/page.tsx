@@ -5,55 +5,55 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import { formatCurrency } from "@/lib";
 import {
-  contractService,
-  createPayroll,
-  createPayrollPeriod,
-  getEmployees,
-  getPayrollAdvances,
-  getPayrollPeriods,
+    contractService,
+    createPayroll,
+    createPayrollPeriod,
+    getEmployees,
+    getPayrollAdvances,
+    getPayrollPeriods,
 } from "@/lib/services/hr";
 import type {
-  Contract,
-  EmployeeListItem,
-  PayrollAdvance,
-  PayrollCreate,
-  PayrollItem,
-  PayrollPeriod,
+    Contract,
+    EmployeeListItem,
+    PayrollAdvance,
+    PayrollCreate,
+    PayrollItem,
+    PayrollPeriod,
 } from "@/lib/types/hr";
 import {
-  DEFAULT_ALLOWANCE_TEMPLATES,
-  DEFAULT_DEDUCTION_TEMPLATES,
+    DEFAULT_ALLOWANCE_TEMPLATES,
+    DEFAULT_DEDUCTION_TEMPLATES,
 } from "@/lib/types/hr";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  HiChevronDown,
-  HiMagnifyingGlass,
-  HiOutlineArrowLeft,
-  HiOutlineBanknotes,
-  HiOutlineCalendar,
-  HiOutlinePlusCircle,
-  HiOutlineTrash,
+    HiChevronDown,
+    HiMagnifyingGlass,
+    HiOutlineArrowLeft,
+    HiOutlineBanknotes,
+    HiOutlineCalendar,
+    HiOutlinePlusCircle,
+    HiOutlineTrash,
 } from "react-icons/hi2";
 
 export default function CreatePayrollPage() {
@@ -962,7 +962,7 @@ export default function CreatePayrollPage() {
                                     {(formData.allowances || []).map((item, idx) => (
                                         <div key={idx} className="flex gap-2 items-center group">
                                             <Input 
-                                                value={item.name} 
+                                                defaultValue={item.name} 
                                                 onChange={(e) => updateAllowance(idx, "name", e.target.value)}
                                                 className="flex-1 h-9 text-sm"
                                                 placeholder="Nom de la prime"
@@ -970,7 +970,7 @@ export default function CreatePayrollPage() {
                                             <div className="relative w-32 shrink-0">
                                                 <Input 
                                                     type="number" 
-                                                    value={item.amount} 
+                                                    defaultValue={item.amount} 
                                                     onChange={(e) => updateAllowance(idx, "amount", parseFloat(e.target.value) || 0)}
                                                     className="h-9 text-sm font-mono text-right pr-8 text-green-600 font-medium"
                                                 />
@@ -1012,7 +1012,7 @@ export default function CreatePayrollPage() {
                                     {(formData.deductions || []).map((item, idx) => (
                                         <div key={idx} className="flex gap-2 items-center group">
                                             <Input 
-                                                value={item.name} 
+                                                defaultValue={item.name} 
                                                 onChange={(e) => updateDeduction(idx, "name", e.target.value)}
                                                 className="flex-1 h-9 text-sm"
                                                 placeholder="Nom de la déduction"
@@ -1020,7 +1020,7 @@ export default function CreatePayrollPage() {
                                             <div className="relative w-32 shrink-0">
                                                 <Input 
                                                     type="number" 
-                                                    value={item.amount} 
+                                                    defaultValue={item.amount} 
                                                     onChange={(e) => updateDeduction(idx, "amount", parseFloat(e.target.value) || 0)}
                                                     className="h-9 text-sm font-mono text-right pr-8 text-destructive font-medium"
                                                 />
@@ -1219,7 +1219,7 @@ export default function CreatePayrollPage() {
               <Label htmlFor="period-name">Nom</Label>
               <Input
                 id="period-name"
-                value={periodForm.name}
+                defaultValue={periodForm.name}
                 onChange={(e) => setPeriodForm({ ...periodForm, name: e.target.value })}
                 placeholder="Ex: Janvier 2024"
               />
