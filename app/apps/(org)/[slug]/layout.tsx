@@ -2,7 +2,6 @@
 
 import { OrgAccessGuard, PermissionProvider } from "@/components/apps/common";
 import { NotificationPanel } from "@/components/apps/core";
-import { ChatSidebar } from "@/components/apps/core/chat-sidebar";
 import { QRScanFAB } from "@/components/apps/hr";
 import { OrganisationSideBar } from "@/components/apps/orgs/org-sidebar";
 import { NotificationPermissionPrompt } from "@/components/common/NotificationPermissionPrompt";
@@ -23,8 +22,7 @@ import {
     ArrowLeft,
     Bell,
     Command,
-    Search,
-    Sparkles
+    Search
 } from "lucide-react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { PropsWithChildren, useCallback, useEffect, useRef, useState } from "react";
@@ -266,7 +264,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                 <div className="h-6 w-px bg-border/60 mx-1" />
 
                 {/* AI Assistant button */}
-                <Button
+                {/* <Button
                   variant={chatOpen ? "default" : "outline"}
                   size="sm"
                   onClick={() => setChatOpen((prev) => !prev)}
@@ -295,7 +293,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                       <span className="relative inline-flex rounded-full size-2 bg-white" />
                     </span>
                   )}
-                </Button>
+                </Button> */}
               </div>
             </header>
 
@@ -312,7 +310,7 @@ export default function OrganizationLayout({ children }: PropsWithChildren) {
                 <div className="mx-auto max-w-7xl">{children}</div>
               </main>
 
-              <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} />
+              {/* <ChatSidebar open={chatOpen} onClose={() => setChatOpen(false)} /> */}
             </div>
 
             {/* QR Scan Floating Action Button */}
