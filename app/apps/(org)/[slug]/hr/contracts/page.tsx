@@ -1,11 +1,11 @@
 "use client";
 
 import { Can } from "@/components/apps/common";
+import { ContractsHeader } from "@/components/apps/hr/contracts/ContractsHeader";
+import { ContractsSearchFilter } from "@/components/apps/hr/contracts/ContractsSearchFilter";
+import { ContractsStatsCards } from "@/components/apps/hr/contracts/ContractsStatsCards";
+import { ContractsTable } from "@/components/apps/hr/contracts/ContractsTable";
 import { ActionConfirmation, DeleteConfirmation } from "@/components/common/confirmation-dialog";
-import { ContractsHeader } from "@/components/hr/contracts/ContractsHeader";
-import { ContractsSearchFilter } from "@/components/hr/contracts/ContractsSearchFilter";
-import { ContractsStatsCards } from "@/components/hr/contracts/ContractsStatsCards";
-import { ContractsTable } from "@/components/hr/contracts/ContractsTable";
 import { Alert, PDFPreviewWrapper } from "@/components/ui";
 import { KeyboardHint, ShortcutsHelpModal } from "@/components/ui/shortcuts-help";
 import { usePDF, useUser } from '@/lib/hooks';

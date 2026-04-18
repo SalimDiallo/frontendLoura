@@ -8,6 +8,9 @@ export * from '../auth';
 // Employee Service
 export * from './employee.service';
 
+// Invitation Service
+export * from './invitation.service';
+
 // Department Service
 export * from './department.service';
 

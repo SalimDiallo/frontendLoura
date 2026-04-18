@@ -1,7 +1,7 @@
 "use client";
 
 import { Can } from "@/components/apps/common";
-import { ContractForm } from "@/components/hr/contracts/contract/forms/contract-form";
+import { ContractForm } from "@/components/apps/hr/contracts/contract/forms/contract-form";
 import { Alert, Button, Card } from "@/components/ui";
 import { contractService } from "@/lib/services/hr";
 import type { Contract } from "@/lib/types/hr";
@@ -10,8 +10,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  HiOutlineArrowLeft,
-  HiOutlineDocumentText,
+    HiOutlineArrowLeft,
+    HiOutlineDocumentText,
 } from "react-icons/hi2";
 
 export default function EditContractPage() {

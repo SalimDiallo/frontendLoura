@@ -23,6 +23,7 @@ Le système de **gestion des modules** a été entièrement implémenté pour pe
 **Fichier:** `/backend/app/core/models.py`
 
 #### Module
+
 ```python
 class Module(TimeStampedModel):
     code = models.CharField(max_length=100, unique=True)
@@ -40,6 +41,7 @@ class Module(TimeStampedModel):
 ```
 
 #### OrganizationModule
+
 ```python
 class OrganizationModule(TimeStampedModel):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
@@ -66,29 +68,33 @@ class OrganizationModule(TimeStampedModel):
 ### 3. Management Commands
 
 #### `initialize_modules`
+
 ```bash
 python manage.py initialize_modules
 # Options: --dry-run, --force
 ```
+
 Initialise ou met à jour les modules dans la base de données.
 
 #### `create_sample_categories`
+
 ```bash
 python manage.py create_sample_categories --with-modules
 ```
+
 Crée les catégories et affiche les modules par défaut.
 
 ### 4. API Endpoints
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| GET | `/api/core/modules/` | Liste tous les modules |
-| GET | `/api/core/modules/defaults/?category_id=X` | Modules par défaut pour une catégorie |
-| GET | `/api/core/modules/by_category/` | Modules groupés par catégorie |
-| GET | `/api/core/organization-modules/` | Modules d'une organisation |
-| POST | `/api/core/organization-modules/{id}/enable/` | Activer un module |
-| POST | `/api/core/organization-modules/{id}/disable/` | Désactiver un module |
-| POST | `/api/core/organizations/` | Créer une organisation avec modules |
+| Méthode | Endpoint                                       | Description                           |
+| ------- | ---------------------------------------------- | ------------------------------------- |
+| GET     | `/api/core/modules/`                           | Liste tous les modules                |
+| GET     | `/api/core/modules/defaults/?category_id=X`    | Modules par défaut pour une catégorie |
+| GET     | `/api/core/modules/by_category/`               | Modules groupés par catégorie         |
+| GET     | `/api/core/organization-modules/`              | Modules d'une organisation            |
+| POST    | `/api/core/organization-modules/{id}/enable/`  | Activer un module                     |
+| POST    | `/api/core/organization-modules/{id}/disable/` | Désactiver un module                  |
+| POST    | `/api/core/organizations/`                     | Créer une organisation avec modules   |
 
 ### 5. Serializers
 
@@ -99,15 +105,15 @@ Crée les catégories et affiche les modules par défaut.
 
 ### 6. Mapping Catégories → Modules
 
-| Catégorie | Modules par défaut |
-|-----------|-------------------|
-| **Technologie** | employees, payroll, leave, contracts, permissions (5) |
-| **Commerce** | employees, payroll, leave, attendance, contracts, permissions (6) |
-| **Restauration** | employees, leave, attendance, permissions (4) |
-| **Agriculture** | employees, attendance, permissions (3) |
-| **Agence de voyage** | employees, permissions (2) |
+| Catégorie            | Modules par défaut                                                |
+| -------------------- | ----------------------------------------------------------------- |
+| **Technologie**      | employees, payroll, leave, contracts, permissions (5)             |
+| **Commerce**         | employees, payroll, leave, attendance, contracts, permissions (6) |
+| **Restauration**     | employees, leave, attendance, permissions (4)                     |
+| **Agriculture**      | employees, attendance, permissions (3)                            |
+| **Agence de voyage** | employees, permissions (2)                                        |
 
-*17 catégories configurées au total*
+_17 catégories configurées au total_
 
 ---
 
@@ -160,6 +166,7 @@ export const moduleService = {
 ### 3. Composants React
 
 #### `ModuleSelector`
+
 **Fichier:** `/frontend/lourafrontend/components/core/module-selector.tsx`
 
 - Affichage des modules avec icônes
@@ -169,6 +176,7 @@ export const moduleService = {
 - Indicateur "Obligatoire" pour modules core
 
 #### `OrganizationWizard`
+
 **Fichier:** `/frontend/lourafrontend/components/core/organization-wizard.tsx`
 
 Formulaire **multi-étapes** (5 étapes) :
@@ -197,6 +205,7 @@ Formulaire **multi-étapes** (5 étapes) :
    - Création de l'organisation
 
 **Fonctionnalités:**
+
 - Indicateur de progression (step indicator)
 - Navigation avant/arrière
 - Validation à chaque étape
@@ -208,9 +217,9 @@ Formulaire **multi-étapes** (5 étapes) :
 **Fichier:** `/frontend/lourafrontend/app/core/dashboard/organizations/create/page.tsx`
 
 ```tsx
-'use client';
+"use client";
 
-import { OrganizationWizard } from '@/components/core';
+import { OrganizationWizard } from "@/components/apps/core";
 
 export default function CreateOrganizationPage() {
   return <OrganizationWizard />;
@@ -245,12 +254,14 @@ CORE: {
 ### Backend
 
 1. **Initialiser les modules**
+
    ```bash
    cd /home/salim/Projets/loura/stack/backend/app
    python manage.py initialize_modules
    ```
 
 2. **Créer les catégories**
+
    ```bash
    python manage.py create_sample_categories --with-modules
    ```
@@ -263,12 +274,14 @@ CORE: {
 ### Frontend
 
 1. **Installer les dépendances**
+
    ```bash
    cd /home/salim/Projets/loura/stack/frontend/lourafrontend
    pnpm install
    ```
 
 2. **Lancer le dev server**
+
    ```bash
    pnpm dev
    ```
@@ -323,26 +336,31 @@ POST /api/core/organizations/
 ## 🎨 Captures d'écran du parcours
 
 ### Étape 1 : Informations
+
 - Champ nom avec auto-génération du sous-domaine
 - Upload de logo (drag & drop ou sélection)
 - Preview en temps réel
 
 ### Étape 2 : Catégorie
+
 - Liste déroulante des 17 catégories
 - Info bulle sur l'impact des modules
 
 ### Étape 3 : Modules
+
 - Grille de modules avec icônes
 - Badges "Obligatoire" pour les core
 - Indication des dépendances
 - Compteur de modules sélectionnés
 
 ### Étape 4 : Paramètres
+
 - QuickSelect pour pays (recherche)
 - QuickSelect pour devise
 - Email de contact optionnel
 
 ### Étape 5 : Validation
+
 - Récapitulatif complet
 - Liste des modules sélectionnés
 - Bouton "Créer l'organisation"
@@ -352,9 +370,11 @@ POST /api/core/organizations/
 ## 📝 Documentation technique
 
 ### Backend
+
 - `/backend/app/core/MODULE_SYSTEM.md` : Documentation complète du système de modules
 
 ### Architecture
+
 - **Modèle de données :** Module + OrganizationModule
 - **Registry centralisé :** ModuleRegistry dans `modules.py`
 - **Management commands :** `initialize_modules`, `create_sample_categories`
@@ -365,6 +385,7 @@ POST /api/core/organizations/
 Pour ajouter un nouveau module :
 
 1. **Définir dans `core/modules.py`**
+
    ```python
    NEW_MODULE = ModuleDefinition(
        code='hr.performance',
@@ -380,6 +401,7 @@ Pour ajouter un nouveau module :
    ```
 
 2. **Ajouter au registry**
+
    ```python
    def register_all_modules():
        modules = [
@@ -399,6 +421,7 @@ Pour ajouter un nouveau module :
 ## ✅ Tests recommandés
 
 ### Backend
+
 ```bash
 # Test de création avec modules auto
 curl -X POST http://localhost:8000/api/core/organizations/ \
@@ -411,6 +434,7 @@ curl http://localhost:8000/api/core/modules/defaults/?category_id=1
 ```
 
 ### Frontend
+
 1. Créer une organisation avec catégorie "Technologie" → Vérifier 5 modules pré-sélectionnés
 2. Créer une organisation avec catégorie "Commerce" → Vérifier 6 modules pré-sélectionnés
 3. Tester la désélection d'un module non-core
@@ -424,12 +448,14 @@ curl http://localhost:8000/api/core/modules/defaults/?category_id=1
 ### Backend
 
 **Problème:** `ModuleDoesNotExist` lors de la création
+
 ```bash
 # Solution: Initialiser les modules
 python manage.py initialize_modules
 ```
 
 **Problème:** Catégories manquantes
+
 ```bash
 # Solution: Créer les catégories
 python manage.py create_sample_categories
@@ -438,6 +464,7 @@ python manage.py create_sample_categories
 ### Frontend
 
 **Problème:** `Cannot read property 'map' of undefined` sur modules
+
 ```typescript
 // Vérifier que l'API retourne bien un tableau
 const modules = await moduleService.getAll();
@@ -445,6 +472,7 @@ console.log(modules);
 ```
 
 **Problème:** Modules non pré-sélectionnés
+
 - Vérifier que la catégorie est bien sélectionnée
 - Vérifier que `loadDefaultModules` est appelé
 - Vérifier les modules dans la réponse API
@@ -454,6 +482,7 @@ console.log(modules);
 ## 📦 Fichiers créés/modifiés
 
 ### Backend
+
 - ✅ `core/models.py` (Module, OrganizationModule)
 - ✅ `core/modules.py` (Registry et définitions)
 - ✅ `core/serializers.py` (ModuleSerializer, etc.)
@@ -464,6 +493,7 @@ console.log(modules);
 - ✅ `core/MODULE_SYSTEM.md` (documentation)
 
 ### Frontend
+
 - ✅ `lib/types/core/index.ts` (types Module)
 - ✅ `lib/api/config.ts` (endpoints modules)
 - ✅ `lib/services/core/module.service.ts`

@@ -948,6 +948,72 @@ export interface SalesPerformanceResponse {
 }
 
 // ============================================
+// Sales Analytics Types (Time-Based Aggregation)
+// ============================================
+
+export interface HourlySalesData {
+  hour: number;
+  label: string;
+  avg_revenue: number;
+  avg_count: number;
+  total_revenue: number;
+  total_count: number;
+}
+
+export interface DailySalesData {
+  day_index: number;
+  day_name: string;
+  avg_revenue: number;
+  avg_count: number;
+  total_revenue: number;
+  total_count: number;
+}
+
+export interface MonthlySalesData {
+  month: number;
+  month_name: string;
+  month_short: string;
+  avg_revenue: number;
+  avg_count: number;
+  total_revenue: number;
+  total_count: number;
+}
+
+export interface SalesAnalyticsPeriod {
+  start: string;
+  end: string;
+}
+
+export interface HourlyAnalysis {
+  data: HourlySalesData[];
+  weeks_analyzed: number;
+  peak_hour: HourlySalesData | null;
+  period: SalesAnalyticsPeriod;
+}
+
+export interface DailyAnalysis {
+  data: DailySalesData[];
+  weeks_analyzed: number;
+  peak_day: DailySalesData | null;
+  period: SalesAnalyticsPeriod;
+}
+
+export interface MonthlyAnalysis {
+  data: MonthlySalesData[];
+  years_analyzed: number;
+  peak_month: MonthlySalesData | null;
+  period: SalesAnalyticsPeriod;
+}
+
+export interface SalesAnalyticsResponse {
+  hourly_analysis: HourlyAnalysis;
+  daily_analysis: DailyAnalysis;
+  monthly_analysis: MonthlyAnalysis;
+  total_revenue: number;
+}
+
+
+// ============================================
 // API Response Types
 // ============================================
 

@@ -36,6 +36,10 @@ export const API_ENDPOINTS = {
     ME: '/auth/me/',                               // Utilisateur courant
     UPDATE_PROFILE: '/auth/profile/update/',       // Mise à jour du profil
     CHANGE_PASSWORD: '/auth/profile/change-password/',  // Changement de mot de passe
+    // Multi-organization
+    MY_ORGANIZATIONS: '/auth/my-organizations/',   // Liste des organisations de l'employé
+    SELECT_ORGANIZATION: '/auth/select-organization/',  // Sélection d'organisation
+    SWITCH_ORGANIZATION: '/auth/switch-organization/',  // Changement d'organisation
   },
 
   CORE: {
@@ -341,6 +345,7 @@ export const API_ENDPOINTS = {
       ABC_ANALYSIS: '/inventory/stats/abc_analysis/',
       CREDITS_REPORT: '/inventory/stats/credits_report/',
       SALES_PERFORMANCE: '/inventory/stats/sales_performance/',
+      SALES_ANALYTICS: '/inventory/stats/sales_analytics/',
       // Exports CSV
       EXPORT_STOCK_LIST: '/inventory/stats/export_stock_list/',
       EXPORT_MOVEMENTS: '/inventory/stats/export_movements/',

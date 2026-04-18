@@ -1,20 +1,18 @@
 "use client";
 
-import {  useRouter } from "next/navigation";
+import { Button } from "@/components/ui";
 import Link from "next/link";
 import {
+  HiOutlinePaperAirplane,
   HiOutlinePlusCircle,
-  HiOutlineUserCircle,
   HiOutlineQuestionMarkCircle,
-  HiOutlineBanknotes,
+  HiOutlineUserCircle
 } from "react-icons/hi2";
-import {  Badge, Button, Card, Input } from "@/components/ui";
 
 import { Can } from "@/components/apps/common";
+import { ShortcutBadge } from "@/components/ui/shortcuts-help";
+import { KeyboardShortcut } from "@/lib/hooks/use-keyboard-shortcuts";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { cn, formatCurrency } from "@/lib/utils";
-import {  KeyboardShortcut } from "@/lib/hooks/use-keyboard-shortcuts";
-import {  ShortcutBadge } from "@/components/ui/shortcuts-help";
 
 
 export function EmployeesHeader({ slug, shortcuts, showShortcuts, setShowShortcuts }: {
@@ -46,6 +44,17 @@ export function EmployeesHeader({ slug, shortcuts, showShortcuts, setShowShortcu
           <HiOutlineQuestionMarkCircle className="size-4" />
         </Button>
         <Can permission={COMMON_PERMISSIONS.HR.CREATE_EMPLOYEES}>
+          <Button asChild variant="outline" size="sm" className="h-9 px-3">
+            <Link href={`/apps/${slug}/hr/employees/invitations`}>
+              <span className="text-sm">Invitations</span>
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="h-9 px-3">
+            <Link href={`/apps/${slug}/hr/employees/invite`}>
+              <HiOutlinePaperAirplane className="size-4 mr-1.5" />
+              <span className="text-sm">Inviter</span>
+            </Link>
+          </Button>
           <Button asChild size="sm" className="h-9 px-3">
             <Link href={`/apps/${slug}/hr/employees/create`}>
               <HiOutlinePlusCircle className="size-4 mr-1.5" />

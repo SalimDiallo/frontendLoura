@@ -34,32 +34,32 @@ lib/types/{module}/        # Types
 
 ```typescript
 // 1. React et frameworks
-import React from 'react';
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 // 2. Bibliothèques tierces
-import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
 
 // 3. Composants UI
-import { Button, Input, Card } from '@/components/ui';
+import { Button, Input, Card } from "@/components/ui";
 
 // 4. Composants métier
-import { EmployeeCard } from '@/components/hr';
+import { EmployeeCard } from "@/components/apps/hr";
 
 // 5. Services
-import { employeeService } from '@/lib/services/hr';
+import { employeeService } from "@/lib/services/hr";
 
 // 6. Types
-import type { Employee } from '@/lib/types/hr';
+import type { Employee } from "@/lib/types/hr";
 
 // 7. Utils et constants
-import { cn } from '@/lib/utils';
-import { API_ENDPOINTS } from '@/lib/api/config';
+import { cn } from "@/lib/utils";
+import { API_ENDPOINTS } from "@/lib/api/config";
 
 // 8. Styles (si nécessaire)
-import './styles.css';
+import "./styles.css";
 ```
 
 ### Imports depuis index
@@ -68,14 +68,14 @@ import './styles.css';
 
 ```typescript
 // ✅ Correct
-import { Button, Input } from '@/components/ui';
-import { employeeService, departmentService } from '@/lib/services/hr';
-import type { Employee, Department } from '@/lib/types/hr';
+import { Button, Input } from "@/components/ui";
+import { employeeService, departmentService } from "@/lib/services/hr";
+import type { Employee, Department } from "@/lib/types/hr";
 
 // ❌ Éviter
-import { Button } from '@/components/ui/button';
-import { employeeService } from '@/lib/services/hr/employee.service';
-import type { Employee } from '@/lib/types/hr/employee.types';
+import { Button } from "@/components/ui/button";
+import { employeeService } from "@/lib/services/hr/employee.service";
+import type { Employee } from "@/lib/types/hr/employee.types";
 ```
 
 ### Path alias
@@ -83,8 +83,8 @@ import type { Employee } from '@/lib/types/hr/employee.types';
 Utiliser `@/` pour les imports absolus :
 
 ```typescript
-import { Button } from '@/components/ui';
-import { authService } from '@/lib/services/core';
+import { Button } from "@/components/ui";
+import { authService } from "@/lib/services/core";
 ```
 
 ---
@@ -112,7 +112,7 @@ interface Employee {
 }
 
 // Type
-type EmploymentStatus = 'permanent' | 'contract' | 'intern';
+type EmploymentStatus = "permanent" | "contract" | "intern";
 type EmployeeWithRole = Employee & { role: Role };
 ```
 
@@ -123,10 +123,10 @@ type EmployeeWithRole = Employee & { role: Role };
 type EmployeeUpdate = Partial<Employee>;
 
 // Pick
-type EmployeePreview = Pick<Employee, 'id' | 'name' | 'email'>;
+type EmployeePreview = Pick<Employee, "id" | "name" | "email">;
 
 // Omit
-type EmployeeCreate = Omit<Employee, 'id' | 'created_at'>;
+type EmployeeCreate = Omit<Employee, "id" | "created_at">;
 
 // Required
 type EmployeeRequired = Required<Employee>;
@@ -180,7 +180,11 @@ interface EmployeeCardProps {
   showActions?: boolean;
 }
 
-export function EmployeeCard({ employee, onEdit, showActions = true }: EmployeeCardProps) {
+export function EmployeeCard({
+  employee,
+  onEdit,
+  showActions = true,
+}: EmployeeCardProps) {
   // ...
 }
 ```
@@ -303,9 +307,9 @@ export function Counter() {
  * Service description
  */
 
-import { cacheManager } from '@/lib/offline';
-import { API_ENDPOINTS } from '@/lib/api/config';
-import type { Entity, EntityCreate, EntityUpdate } from '@/lib/types/module';
+import { cacheManager } from "@/lib/offline";
+import { API_ENDPOINTS } from "@/lib/api/config";
+import type { Entity, EntityCreate, EntityUpdate } from "@/lib/types/module";
 
 /**
  * Get all entities
@@ -313,7 +317,7 @@ import type { Entity, EntityCreate, EntityUpdate } from '@/lib/types/module';
 export async function getEntities(): Promise<Entity[]> {
   const response = await cacheManager.get<{ results: Entity[] }>(
     API_ENDPOINTS.MODULE.ENTITIES.LIST,
-    { ttl: 5 * 60 * 1000 }
+    { ttl: 5 * 60 * 1000 },
   );
   return response.results || [];
 }
@@ -322,13 +326,9 @@ export async function getEntities(): Promise<Entity[]> {
  * Create entity
  */
 export async function createEntity(data: EntityCreate): Promise<Entity> {
-  return cacheManager.post<Entity>(
-    API_ENDPOINTS.MODULE.ENTITIES.CREATE,
-    data,
-    {
-      invalidateCache: [API_ENDPOINTS.MODULE.ENTITIES.LIST],
-    }
-  );
+  return cacheManager.post<Entity>(API_ENDPOINTS.MODULE.ENTITIES.CREATE, data, {
+    invalidateCache: [API_ENDPOINTS.MODULE.ENTITIES.LIST],
+  });
 }
 ```
 
@@ -459,13 +459,13 @@ export function LoginForm() {
 const handleSubmit = async (data: FormData) => {
   try {
     await createEmployee(data);
-    toast.success('Employé créé');
-    router.push('/hr/employees');
+    toast.success("Employé créé");
+    router.push("/hr/employees");
   } catch (error) {
     if (error instanceof ApiError) {
       toast.error(error.message);
     } else {
-      toast.error('Une erreur est survenue');
+      toast.error("Une erreur est survenue");
       console.error(error);
     }
   }
@@ -514,9 +514,12 @@ const sortedEmployees = useMemo(() => {
 ### useCallback
 
 ```typescript
-const handleClick = useCallback((id: string) => {
-  router.push(`/employees/${id}`);
-}, [router]);
+const handleClick = useCallback(
+  (id: string) => {
+    router.push(`/employees/${id}`);
+  },
+  [router],
+);
 ```
 
 ### Dynamic Imports
@@ -537,13 +540,13 @@ const HeavyComponent = dynamic(() => import('./HeavyComponent'), {
 
 ```typescript
 // employee.service.test.ts
-describe('employeeService', () => {
-  describe('getEmployees', () => {
-    it('should return a list of employees', async () => {
+describe("employeeService", () => {
+  describe("getEmployees", () => {
+    it("should return a list of employees", async () => {
       // Test
     });
 
-    it('should filter employees by department', async () => {
+    it("should filter employees by department", async () => {
       // Test
     });
   });

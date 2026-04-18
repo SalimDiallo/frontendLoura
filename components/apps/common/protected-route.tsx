@@ -17,68 +17,6 @@ import { usePermissionContext } from './permission-provider';
 // Types
 // ============================================
 
-interface RouteProtectionConfig {
-  /** Permissions requises (OR logic - au moins une) */
-  requiredPermissions?: string[];
-  /** Toutes ces permissions sont requises (AND logic) */
-  requireAllPermissions?: string[];
-  /** Message d'erreur personnalisé */
-  deniedMessage?: string;
-  /** Redirection si accès refusé */
-  redirectTo?: string;
-}
-
-interface ProtectedRouteProps extends PropsWithChildren {
-  config: RouteProtectionConfig;
-  fallback?: React.ReactNode;
-}
-
-// ============================================
-// ProtectedRoute Component
-// ============================================
-
-function renderDenied(
-  config: RouteProtectionConfig,
-  fallback: React.ReactNode | undefined,
-  router: ReturnType<typeof useRouter>
-) {
-  // Rediriger si configuré
-  if (config.redirectTo) {
-    router.push(config.redirectTo);
-    return null;
-  }
-
-  // Afficher le fallback personnalisé
-  if (fallback) {
-    return <>{fallback}</>;
-  }
-
-  // Message par défaut
-  return (
-    <div className="max-w-2xl mx-auto mt-8">
-      <Alert variant="error" className="border-red-200 bg-red-50">
-        <HiOutlineShieldExclamation className="h-5 w-5 text-red-600" />
-        <div className="ml-3">
-          <h3 className="text-sm font-medium text-red-800">Accès refusé</h3>
-          <div className="mt-2 text-sm text-red-700">
-            {config.deniedMessage || "Vous n'avez pas les permissions nécessaires pour accéder à cette page."}
-          </div>
-          <div className="mt-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.back()}
-              className="border-red-300 text-red-700 hover:bg-red-100"
-            >
-              Retour
-            </Button>
-          </div>
-        </div>
-      </Alert>
-    </div>
-  );
-}
-
 // ============================================
 // Can Component
 // ============================================

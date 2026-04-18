@@ -2,6 +2,7 @@ import { ServiceWorkerProvider } from "@/components/providers/sw-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Playfair_Display, Space_Grotesk } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 // Police principale : Space Grotesk depuis next/google-fonts
@@ -72,12 +73,16 @@ export default function RootLayout({
       </head>
       <body
         className={`${spaceGrotesk.className} ${spaceGrotesk.variable} ${jetbrainsMono.variable}   ${playfairDisplay.variable} font-sans antialiased`}
+        style={{
+          fontFamily: "system-ui, sans-serif",
+        }}
         suppressHydrationWarning
       >
         <ThemeProvider defaultTheme="system" storageKey="loura-ui-theme">
           <ServiceWorkerProvider>
             {children}
           </ServiceWorkerProvider>
+          <Toaster position="top-right" richColors />
         </ThemeProvider>
       </body>
     </html>

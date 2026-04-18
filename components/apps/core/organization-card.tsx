@@ -106,8 +106,8 @@ export function OrganizationCard({
           <div className="flex items-center gap-3">
             {/* Logo/Avatar avec upload */}
             <div 
-              className="relative flex size-12 items-center justify-center rounded-xl bg-muted font-semibold text-lg text-foreground overflow-hidden cursor-pointer group/logo"
-              onClick={handleLogoClick}
+              className={`relative flex size-12 items-center justify-center rounded-xl bg-muted font-semibold text-lg text-foreground overflow-hidden ${onLogoUpdate ? "cursor-pointer group/logo" : "cursor-default"}`}
+              onClick={() => onLogoUpdate && !uploading && handleLogoClick()}
             >
               {uploading ? (
                 <Loader2 className="size-5 animate-spin" />
@@ -122,9 +122,11 @@ export function OrganizationCard({
               )}
               
               {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center">
-                <Camera className="size-4 text-white" />
-              </div>
+              {onLogoUpdate && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera className="size-4 text-white" />
+                </div>
+              )}
               
               <input
                 ref={fileInputRef}

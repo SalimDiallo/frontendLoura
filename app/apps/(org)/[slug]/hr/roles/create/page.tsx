@@ -1,24 +1,24 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import Link from "next/link";
+import { PermissionSelector } from "@/components/apps/hr/permission-selector";
 import { Alert, Button, Card, Form } from "@/components/ui";
 import {
-  FormInputField,
-  FormTextareaField,
+    FormInputField,
+    FormTextareaField,
 } from "@/components/ui/form-fields";
-import { createRole } from "@/lib/services/hr/role.service";
 import { AVAILABLE_PERMISSIONS } from "@/lib/constants/permissions-data-label";
-import { PermissionSelector } from "@/components/apps/hr/permission-selector";
+import { createRole } from "@/lib/services/hr/role.service";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import {
-  HiOutlineShieldCheck,
-  HiOutlineArrowLeft,
-  HiOutlineCheckCircle,
+    HiOutlineArrowLeft,
+    HiOutlineCheckCircle,
+    HiOutlineShieldCheck,
 } from "react-icons/hi2";
+import * as z from "zod";
 
 // Schema de validation
 const roleSchema = z.object({

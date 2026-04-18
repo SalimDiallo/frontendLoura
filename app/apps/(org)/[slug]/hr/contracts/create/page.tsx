@@ -1,7 +1,7 @@
 "use client";
 
 import { Can } from "@/components/apps/common";
-import { ContractForm } from "@/components/hr/contracts/contract/forms/contract-form";
+import { ContractForm } from "@/components/apps/hr/contracts/contract/forms/contract-form";
 import { Alert, Badge, Button, Card, Input } from "@/components/ui";
 import { formatCurrency } from "@/lib";
 import { useUser } from "@/lib/hooks";
@@ -12,11 +12,11 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  HiOutlineArrowLeft,
-  HiOutlineCheckCircle,
-  HiOutlineDocumentText,
-  HiOutlineMagnifyingGlass,
-  HiOutlineUser,
+    HiOutlineArrowLeft,
+    HiOutlineCheckCircle,
+    HiOutlineDocumentText,
+    HiOutlineMagnifyingGlass,
+    HiOutlineUser,
 } from "react-icons/hi2";
 
 export default function CreateContractPage() {

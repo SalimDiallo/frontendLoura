@@ -115,3 +115,51 @@ export interface Contract {
  * Manager (version simplifiée d'un utilisateur)
  */
 export type Manager = Pick<BaseUser, 'id' | 'first_name' | 'last_name' | 'email' | 'user_type'>;
+
+/**
+ * Statut d'emploi dans une organisation
+ */
+export type EmploymentStatus = 'active' | 'on_leave' | 'suspended' | 'terminated';
+
+/**
+ * Membership d'un employé dans une organisation
+ * Représente l'appartenance à une organisation avec rôle, département, etc.
+ */
+export interface OrganizationMembership {
+  id: string;
+  name: string;
+  subdomain: string;
+  logo_url?: string;
+  is_active: boolean;
+  is_primary: boolean;
+  employment_status: EmploymentStatus;
+  hire_date?: string;
+  department?: Department;
+  position?: Position;
+  assigned_role?: Role;
+}
+
+/**
+ * Réponse de l'API pour la liste des organisations d'un employé
+ */
+export interface MyOrganizationsResponse {
+  organizations: OrganizationMembership[];
+  count: number;
+}
+
+/**
+ * Requête pour sélectionner/changer d'organisation
+ */
+export interface SelectOrganizationRequest {
+  organization_id: string;
+}
+
+/**
+ * Réponse après sélection/changement d'organisation
+ */
+export interface SelectOrganizationResponse {
+  message: string;
+  organization: OrganizationMembership;
+  access: string;
+  refresh: string;
+}

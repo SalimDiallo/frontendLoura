@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-03-28T11:14:00.229Z",
-  "total": 341,
+  "generatedAt": "2026-04-17T10:40:20.499Z",
+  "total": 344,
   "routes": [
     "/",
     "/apps/demo-org/dashboard",
@@ -42,6 +42,8 @@
     "/apps/demo-org/hr/employees/3/payroll",
     "/apps/demo-org/hr/employees/3/roles-permissions",
     "/apps/demo-org/hr/employees/create",
+    "/apps/demo-org/hr/employees/invitations",
+    "/apps/demo-org/hr/employees/invite",
     "/apps/demo-org/hr/leaves",
     "/apps/demo-org/hr/leaves/1",
     "/apps/demo-org/hr/leaves/2",
@@ -207,6 +209,8 @@
     "/apps/test-org/hr/employees/3/payroll",
     "/apps/test-org/hr/employees/3/roles-permissions",
     "/apps/test-org/hr/employees/create",
+    "/apps/test-org/hr/employees/invitations",
+    "/apps/test-org/hr/employees/invite",
     "/apps/test-org/hr/leaves",
     "/apps/test-org/hr/leaves/1",
     "/apps/test-org/hr/leaves/2",
@@ -334,14 +338,13 @@
     "/apps/test-org/inventory/warehouses/new",
     "/apps/test-org/notifications",
     "/auth",
-    "/auth/admin",
-    "/auth/employee",
     "/core/dashboard",
     "/core/dashboard/organizations/1/edit",
     "/core/dashboard/organizations/2/edit",
     "/core/dashboard/organizations/3/edit",
     "/core/dashboard/organizations/create",
     "/core/register",
+    "/invite/accept/example",
     "/tools/documents/generate/facture"
   ]
 }

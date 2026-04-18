@@ -1,16 +1,15 @@
 "use client";
 
+import { EmploymentStatusBadge } from "@/components/apps/hr";
 import {
-  Card,
-  Badge
+    Badge,
+    Card
 } from "@/components/ui";
-import { EmploymentStatusBadge } from "@/components/hr";
-import type { Employee, Contract, Payroll } from "@/lib/types/hr";
+import type { Employee } from "@/lib/types/hr";
 import {
-  HiOutlineEnvelope,
-  HiOutlinePhone,
-  HiOutlineIdentification,
-
+    HiOutlineEnvelope,
+    HiOutlineIdentification,
+    HiOutlinePhone,
 } from "react-icons/hi2";
 
 

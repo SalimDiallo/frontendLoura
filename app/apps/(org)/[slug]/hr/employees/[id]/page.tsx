@@ -1,31 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import {
-  Card,
-  Button,
-  Alert,
-  Badge
-} from "@/components/ui";
-import { getEmployee, deleteEmployee, activateEmployee, deactivateEmployee } from "@/lib/services/hr/employee.service";
-import { contractService, getPayrolls } from "@/lib/services/hr";
-import type { Employee, Contract, Payroll } from "@/lib/types/hr";
-import {
-  HiOutlineArrowLeft,
-} from "react-icons/hi2";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Can } from "@/components/apps/common";
+import { EmployeeAvatarAndIdentity } from "@/components/apps/hr/employees/employee/EmployeeAvatarAndIdentity";
+import { EmployeeContractsTab } from "@/components/apps/hr/employees/employee/EmployeeContractsTab";
+import { EmployeeDocumentsTab } from "@/components/apps/hr/employees/employee/EmployeeDocumentsTab";
+import { EmployeeEmploymentTab } from "@/components/apps/hr/employees/employee/EmployeeEmploymentTab";
+import { EmployeeHeader } from "@/components/apps/hr/employees/employee/EmployeeHeader";
+import { EmployeeOverviewTab } from "@/components/apps/hr/employees/employee/EmployeeOverviewTab";
+import { EmployeePayrollTab } from "@/components/apps/hr/employees/employee/EmployeePayrollTab";
+import { EmployeePermissionsTab } from "@/components/apps/hr/employees/employee/EmployeePermissionsTab";
+import {
+    Alert,
+    Badge,
+    Button
+} from "@/components/ui";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { contractService, getPayrolls } from "@/lib/services/hr";
+import { activateEmployee, deactivateEmployee, deleteEmployee, getEmployee } from "@/lib/services/hr/employee.service";
+import type { Contract, Employee, Payroll } from "@/lib/types/hr";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
-import { EmployeeHeader } from "@/components/hr/employees/employee/EmployeeHeader";
-import { EmployeeAvatarAndIdentity } from "@/components/hr/employees/employee/EmployeeAvatarAndIdentity";
-import { EmployeeOverviewTab } from "@/components/hr/employees/employee/EmployeeOverviewTab";
-import { EmployeeEmploymentTab } from "@/components/hr/employees/employee/EmployeeEmploymentTab";
-import { EmployeePermissionsTab } from "@/components/hr/employees/employee/EmployeePermissionsTab";
-import { EmployeeContractsTab } from "@/components/hr/employees/employee/EmployeeContractsTab";
-import { EmployeeDocumentsTab } from "@/components/hr/employees/employee/EmployeeDocumentsTab";
-import { EmployeePayrollTab } from "@/components/hr/employees/employee/EmployeePayrollTab";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import {
+    HiOutlineArrowLeft,
+} from "react-icons/hi2";
 
 
 

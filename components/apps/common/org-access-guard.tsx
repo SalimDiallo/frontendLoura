@@ -5,13 +5,13 @@
 
 'use client';
 
-import { useEffect, useState, useCallback, PropsWithChildren } from 'react';
-import { useRouter } from 'next/navigation';
-import { authService } from '@/lib/services/auth/auth.service';
-import { apiClient, tokenManager } from '@/lib/api/client';
-import type { Organization } from '@/lib/types/core';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { apiClient, tokenManager } from '@/lib/api/client';
+import { authService } from '@/lib/services/auth/auth.service';
+import type { Organization } from '@/lib/types/core';
+import { useRouter } from 'next/navigation';
+import { PropsWithChildren, useCallback, useEffect, useState } from 'react';
 import { HiOutlineLockClosed } from 'react-icons/hi2';
 
 interface OrgAccessGuardProps extends PropsWithChildren {

@@ -1,41 +1,41 @@
 "use client";
 
 import {
-  ABCAnalysisChart,
-  CategoryPerformanceChart,
-  KeyMetricsGrid,
-  MetricCard,
-  SalesTrendChart,
-  StockHealthGauge,
-} from "@/components/inventory/AdvancedCharts";
+    ABCAnalysisChart,
+    CategoryPerformanceChart,
+    KeyMetricsGrid,
+    MetricCard,
+    SalesTrendChart,
+    StockHealthGauge,
+} from "@/components/apps/inventory/AdvancedCharts";
 import {
-  ChartCardSkeleton,
-  DashboardSkeleton,
-  DataTableSkeleton,
-  DonutChartSkeleton,
-  GaugeSkeleton,
-  MetricCardSkeleton,
-  ProgressListSkeleton,
-  TableSkeleton,
-} from "@/components/inventory/DashboardSkeleton";
+    ChartCardSkeleton,
+    DashboardSkeleton,
+    DataTableSkeleton,
+    DonutChartSkeleton,
+    GaugeSkeleton,
+    MetricCardSkeleton,
+    ProgressListSkeleton,
+    TableSkeleton,
+} from "@/components/apps/inventory/DashboardSkeleton";
 import { Button, Card } from "@/components/ui";
 import {
-  getInventoryOverview,
-  getStockByWarehouse,
-  getTopProducts
+    getInventoryOverview,
+    getStockByWarehouse,
+    getTopProducts
 } from "@/lib/services/inventory";
 import type {
-  InventoryStats,
-  TopProduct,
-  WarehouseStockReport
+    InventoryStats,
+    TopProduct,
+    WarehouseStockReport
 } from "@/lib/types/inventory";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import {
-  ArrowUpRight,
-  BarChart3,
-  Package,
-  RefreshCcw,
-  Warehouse
+    ArrowUpRight,
+    BarChart3,
+    Package,
+    RefreshCcw,
+    Warehouse
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";

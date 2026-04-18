@@ -1,11 +1,11 @@
 'use client';
 
 import {
-  Alert,
-  Button,
-  Form,
-  FormEmailField,
-  FormInputField
+    Alert,
+    Button,
+    Form,
+    FormEmailField,
+    FormInputField
 } from '@/components/ui';
 import { QuickSelect } from '@/components/ui/quick-select';
 import { ApiError } from '@/lib/api/client';
@@ -13,23 +13,23 @@ import { siteConfig } from '@/lib/config';
 import { COUNTRIES, CURRENCIES } from '@/lib/data/geo';
 import { useZodForm } from '@/lib/hooks';
 import {
-  categoryService,
-  moduleService,
-  organizationService
+    categoryService,
+    moduleService,
+    organizationService
 } from '@/lib/services/core';
 import type { Category, Module, ModuleCreateData } from '@/lib/types';
 import {
-  ArrowLeft,
-  ArrowRight,
-  Building2,
-  CheckCircle,
-  Globe,
-  ImageIcon,
-  Loader2,
-  Package,
-  Settings,
-  Upload,
-  X
+    ArrowLeft,
+    ArrowRight,
+    Building2,
+    CheckCircle,
+    Globe,
+    ImageIcon,
+    Loader2,
+    Package,
+    Settings,
+    Upload,
+    X
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -100,8 +100,8 @@ export function OrganizationWizard() {
       logo_url: '',
       category: '',
       settings: {
-        country: 'GN',
-        currency: 'GNF',
+        country: '',
+        currency: '',
         theme: 'light',
         contact_email: '',
       },

@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 
 export default function DashboardCoreLayout({ children }: PropsWithChildren) {
   const pathname = usePathname();
-  const [chatOpen, setChatOpen] = useState(false);
+  // const [chatOpen, setChatOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const { unreadCount, refreshUnreadCount } = useNotifications();

@@ -309,6 +309,149 @@ export const authService = {
     }
     return null;
   },
+
+  // ============================================================================
+  // MULTI-ORGANIZATION ENDPOINTS
+  // ============================================================================
+
+  /**
+   * Liste des organisations d'un employé
+   */
+  async getMyOrganizations(): Promise<{
+    organizations: Array<{
+      id: string;
+      name: string;
+      subdomain: string;
+      logo_url?: string;
+      is_active: boolean;
+      is_primary: boolean;
+      employment_status: string;
+      hire_date?: string;
+      department?: { id: string; name: string };
+      position?: { id: string; title: string };
+      assigned_role?: { id: string; code: string; name: string };
+    }>;
+    count: number;
+  }> {
+    const response = await apiClient.get<{
+      organizations: Array<{
+        id: string;
+        name: string;
+        subdomain: string;
+        logo_url?: string;
+        is_active: boolean;
+        is_primary: boolean;
+        employment_status: string;
+        hire_date?: string;
+        department?: { id: string; name: string };
+        position?: { id: string; title: string };
+        assigned_role?: { id: string; code: string; name: string };
+      }>;
+      count: number;
+    }>(API_ENDPOINTS.AUTH.MY_ORGANIZATIONS);
+
+    return response;
+  },
+
+  /**
+   * Sélectionner une organisation (après login ou acceptation d'invitation)
+   */
+  async selectOrganization(organizationId: string): Promise<AuthResponse> {
+    const response = await apiClient.post<{
+      message: string;
+      organization: any;
+      access: string;
+      refresh: string;
+    }>(
+      API_ENDPOINTS.AUTH.SELECT_ORGANIZATION,
+      { organization_id: organizationId }
+    );
+
+    // Mettre à jour les tokens
+    if (response.access && response.refresh) {
+      tokenManager.setTokens(response.access, response.refresh);
+
+      // Mettre à jour le slug d'organisation
+      if (response.organization?.subdomain) {
+        localStorage.setItem('current_organization_slug', response.organization.subdomain);
+      }
+
+      // Recharger l'utilisateur complet avec les nouveaux JWT
+      try {
+        const user = await this.getCurrentUser();
+
+        // Retourner une AuthResponse compatible
+        return {
+          user,
+          user_type: user.user_type,
+          access: response.access,
+          refresh: response.refresh,
+          message: response.message,
+        } as AuthResponse;
+      } catch (error) {
+        console.error('Error reloading user after organization selection:', error);
+        throw error;
+      }
+    }
+
+    throw new Error('Invalid response from server');
+  },
+
+  /**
+   * Changer d'organisation en cours de session
+   */
+  async switchOrganization(organizationId: string): Promise<AuthResponse> {
+    const switchResponse = await apiClient.post<{
+      message: string;
+      organization: any;
+      access: string;
+      refresh: string;
+    }>(
+      API_ENDPOINTS.AUTH.SWITCH_ORGANIZATION,
+      { organization_id: organizationId }
+    );
+
+    // Mettre à jour les tokens
+    if (switchResponse.access && switchResponse.refresh) {
+      tokenManager.setTokens(switchResponse.access, switchResponse.refresh);
+
+      // Mettre à jour le slug d'organisation
+      if (switchResponse.organization?.subdomain) {
+        localStorage.setItem('current_organization_slug', switchResponse.organization.subdomain);
+      }
+
+      // Invalider le cache pour recharger les données de la nouvelle organisation
+      await cacheManager.clearAllCache();
+
+      // Recharger l'utilisateur complet avec les nouveaux JWT (en bypassant le cache)
+      try {
+        const user = await apiClient.get<UnifiedUser>(API_ENDPOINTS.AUTH.ME);
+
+        // Mettre à jour les stores
+        tokenManager.saveUser({ ...user, userType: user.user_type });
+        useAuthStore.getState().setUser(user, user.user_type);
+
+        // Si Employee, charger les permissions
+        if (user.user_type === 'employee' && user.permissions) {
+          usePermissionsStore.getState().setPermissions(user.permissions);
+        }
+
+        // Retourner une AuthResponse compatible
+        return {
+          user,
+          user_type: user.user_type,
+          access: switchResponse.access,
+          refresh: switchResponse.refresh,
+          message: switchResponse.message,
+        } as AuthResponse;
+      } catch (error) {
+        console.error('Error reloading user after organization switch:', error);
+        throw error;
+      }
+    }
+
+    throw new Error('Invalid response from server');
+  },
 };
 
 

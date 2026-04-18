@@ -12,6 +12,7 @@ import type {
   InventoryStats,
   LowRotationProductsResponse,
   MovementHistoryResponse,
+  SalesAnalyticsResponse,
   SalesPerformanceResponse,
   StockCountsSummaryResponse,
   TopProduct,
@@ -411,6 +412,16 @@ export async function getCreditsReport(): Promise<CreditsReportResponse> {
 export async function getSalesPerformance(days: number = 30): Promise<SalesPerformanceResponse> {
   return cacheManager.get<SalesPerformanceResponse>(
     `${API_ENDPOINTS.INVENTORY.STATS.SALES_PERFORMANCE}?days=${days}`,
+    { ttl: 10 * 60 * 1000 }
+  );
+}
+
+/**
+ * Récupère les analyses de ventes (horaire, journalier, mensuel)
+ */
+export async function getSalesAnalytics(): Promise<SalesAnalyticsResponse> {
+  return cacheManager.get<SalesAnalyticsResponse>(
+    API_ENDPOINTS.INVENTORY.STATS.SALES_ANALYTICS,
     { ttl: 10 * 60 * 1000 }
   );
 }

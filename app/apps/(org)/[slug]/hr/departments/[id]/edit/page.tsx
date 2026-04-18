@@ -1,7 +1,7 @@
 "use client";
 
 import { Can } from "@/components/apps/common";
-import DepartmentForm, { DepartmentFormData } from "@/components/hr/departements/departement/forms/DepartementForm";
+import DepartmentForm, { DepartmentFormData } from "@/components/apps/hr/departements/departement/forms/DepartementForm";
 import { Alert, Button } from "@/components/ui";
 import { getDepartment, getDepartments, updateDepartment } from "@/lib/services/hr/department.service";
 import { getEmployees } from "@/lib/services/hr/employee.service";
@@ -11,9 +11,9 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  HiOutlineArrowLeft,
-  HiOutlineBriefcase,
-  HiOutlineCheckCircle,
+    HiOutlineArrowLeft,
+    HiOutlineBriefcase,
+    HiOutlineCheckCircle,
 } from "react-icons/hi2";
 
 export default function EditDepartmentPage() {

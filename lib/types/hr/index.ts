@@ -990,3 +990,113 @@ export interface ContractListResponse {
   next?: string | null;
   previous?: string | null;
 }
+
+// ============================================
+// Employee Invitation
+// ============================================
+
+export enum InvitationStatus {
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  EXPIRED = 'expired',
+  CANCELLED = 'cancelled',
+}
+
+export interface EmployeeInvitation {
+  id: string;
+  organization: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  assigned_role?: string;
+  role_name?: string;
+  department?: string;
+  position?: string;
+  status: InvitationStatus;
+  status_display: string;
+  invited_by_name: string;
+  sent_at: string;
+  expires_at: string;
+  accepted_at?: string | null;
+  invitation_message?: string;
+  resent_count: number;
+  last_resent_at?: string | null;
+  is_expired: boolean;
+  is_valid: boolean;
+}
+
+export interface EmployeeInvitationCreate {
+  email: string;
+  role_id: string;
+  first_name?: string;
+  last_name?: string;
+  department_id?: string;
+  position_id?: string;
+  invitation_message?: string;
+  custom_permission_codes?: string[];
+}
+
+export interface EmployeeAcceptInvitation {
+  password: string;
+  password_confirm: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+  date_of_birth?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  emergency_contact?: string;
+}
+
+export interface EmployeeInvitationVerify {
+  valid: boolean;
+  email: string;
+  organization_name: string;
+  role_name?: string;
+  first_name?: string;
+  last_name?: string;
+  expires_at: string;
+}
+
+export interface EmployeeAcceptInvitationResponse {
+  message: string;
+  employee?: Employee;
+  access: string;
+  refresh: string;
+  // Multi-organization fields
+  requires_organization_selection?: boolean;
+  employee_id?: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  organizations?: Array<{
+    id: string;
+    name: string;
+    subdomain: string;
+    logo_url?: string;
+    is_primary: boolean;
+    employment_status?: string;
+    hire_date?: string;
+    department?: {
+      id: string;
+      name: string;
+    };
+    position?: {
+      id: string;
+      title: string;
+    };
+    assigned_role?: {
+      id: string;
+      code: string;
+      name: string;
+    };
+  }>;
+}
+
+export interface EmployeeInvitationListResponse {
+  results: EmployeeInvitation[];
+  count: number;
+  next?: string | null;
+  previous?: string | null;
+}

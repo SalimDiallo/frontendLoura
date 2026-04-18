@@ -1,14 +1,13 @@
 "use client";
 
 
+import { EmploymentStatusBadge } from "@/components/apps/hr";
 import {
-  Card,
-
-  Badge
+    Badge,
+    Card
 } from "@/components/ui";
-import { EmploymentStatusBadge } from "@/components/hr";
-import type { Employee, Contract, Payroll } from "@/lib/types/hr";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsContent } from "@/components/ui/tabs";
+import type { Employee } from "@/lib/types/hr";
 
 export function EmployeeEmploymentTab({ employee }: { employee: Employee }) {
   return (

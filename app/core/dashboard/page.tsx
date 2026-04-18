@@ -59,7 +59,12 @@ export default function DashboardPage() {
         categoryService.getAll(),
       ]);
 
-      if(userData.user_type === "admin"){ setUser(userData as AdminUser);}
+      if (userData.user_type === "admin") {
+        setUser(userData as AdminUser);
+      } else {
+        // Pour les employés, on peut quand même stocker une partie des infos si besoin
+        setUser(userData as any);
+      }
       setOrganizations(orgsData);
       setCategories(catsData);
     } catch (err) {
@@ -166,8 +171,9 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Stats - Uniquement pour les admins */}
+      {user?.user_type === "admin" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-6 border bg-background">
           <div className="flex items-center justify-between">
             <div>
@@ -216,6 +222,7 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+      )}
 
       {/* Header */}
       <div className="flex justify-between items-center">
@@ -224,16 +231,20 @@ export default function DashboardPage() {
             Mes Organisations
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Gérez vos organisations et accédez à leurs tableaux de bord
+            {user?.user_type === "admin" 
+              ? "Gérez vos organisations et accédez à leurs tableaux de bord"
+              : "Sélectionnez l'organisation à laquelle vous souhaitez vous connecter"}
           </p>
         </div>
-        <Button
-          onClick={() => router.push(siteConfig.core.dashboard.organizations.create)}
-          className="gap-2"
-        >
-          <HiOutlinePlus className="size-4" />
-          Nouvelle Organisation
-        </Button>
+        {user?.user_type === "admin" && (
+          <Button
+            onClick={() => router.push(siteConfig.core.dashboard.organizations.create)}
+            className="gap-2"
+          >
+            <HiOutlinePlus className="size-4" />
+            Nouvelle Organisation
+          </Button>
+        )}
       </div>
 
       {organizations.length === 0 ? (
@@ -261,9 +272,9 @@ export default function DashboardPage() {
             <OrganizationCard
               key={org.id}
               organization={org}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onToggleActive={handleToggleActive}
+              onEdit={user?.user_type === "admin" && org.role !== 'employee' ? handleEdit : undefined}
+              onDelete={user?.user_type === "admin" && org.role !== 'employee' ? handleDelete : undefined}
+              onToggleActive={user?.user_type === "admin" && org.role !== 'employee' ? handleToggleActive : undefined}
             />
           ))}
         </div>

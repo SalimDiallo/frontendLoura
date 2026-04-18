@@ -2,35 +2,35 @@
 
 import { Card } from "@/components/ui";
 import type {
-  ABCDistribution,
-  CategoryPerformance,
-  InventoryStats,
-  SalesTrendItem,
+    ABCDistribution,
+    CategoryPerformance,
+    InventoryStats,
+    SalesTrendItem,
 } from "@/lib/types/inventory";
 import { COMMON_PERMISSIONS } from "@/lib/types/permissions";
 import { cn, formatCurrency } from "@/lib/utils";
 import {
-  Info,
-  Minus,
-  TrendingDown,
-  TrendingUp
+    Info,
+    Minus,
+    TrendingDown,
+    TrendingUp
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    Line,
+    LineChart,
+    Pie,
+    PieChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis
 } from "recharts";
-import { Can } from "../apps/common";
+import { Can } from "../common";
 
 // Hook to detect dark mode
 const useIsDarkMode = () => {

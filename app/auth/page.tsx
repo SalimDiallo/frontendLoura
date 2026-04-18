@@ -1,22 +1,22 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { z } from 'zod';
-import { authService } from '@/lib/services/auth/auth.service';
+import {
+    Alert,
+    Button,
+    Form,
+    FormEmailField,
+    PasswordFieldWithToggle,
+} from '@/components/ui';
+import Logo from '@/components/ui/Logo';
 import { ApiError } from '@/lib/api/client';
 import { siteConfig } from '@/lib/config';
 import { useUser, useZodForm } from '@/lib/hooks';
-import {
-  Form,
-  FormEmailField,
-  Button,
-  Alert,
-  PasswordFieldWithToggle,
-} from '@/components/ui';
-import Logo from '@/components/ui/Logo';
-import { ArrowRight, ArrowLeft } from 'lucide-react';
+import { authService } from '@/lib/services/auth/auth.service';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useState } from 'react';
+import { z } from 'zod';
 
 // Schéma de validation Zod
 const loginSchema = z.object({
@@ -59,27 +59,70 @@ function LoginForm() {
     },
   });
 
-  const getRedirectUrl = (userType: 'admin' | 'employee', user: any): string => {
+  const getRedirectUrl = useCallback((userType: 'admin' | 'employee', userData: any): string => {
     if (redirectUrl) {
       return redirectUrl;
     }
 
+    // Cas Admin : plusieurs organisations
     if (userType === 'admin') {
+      const organizations = userData.organizations || [];
+
+      // Si plusieurs organisations, rediriger vers le dashboard global
+      if (organizations.length > 1) {
+        return siteConfig.core.dashboard.home;
+      }
+
+      // Une seule organisation
+      if (organizations.length === 1) {
+        const orgSubdomain = organizations[0].subdomain;
+        return `/apps/${orgSubdomain}/dashboard`;
+      }
+
+      // Aucune organisation
       return siteConfig.core.dashboard.home;
     }
-    
-    const orgSubdomain = user.organization?.subdomain;
-    if (orgSubdomain) {
-      return `/apps/${orgSubdomain}/dashboard`;
+
+    // Cas Employee : vérifier les organisations multiples
+    if (userType === 'employee') {
+      const organizations = userData.organizations || [];
+
+      // Si l'employé a plusieurs organisations, rediriger vers le sélecteur
+      if (organizations.length > 1) {
+        return '/select-organization';
+      }
+
+      // Une seule organisation dans le nouveau format
+      if (organizations.length === 1) {
+        const orgSubdomain = organizations[0].subdomain;
+        return `/apps/${orgSubdomain}/dashboard`;
+      }
+
+      // Fallback sur l'organisation legacy
+      const legacyOrgSubdomain = userData.organization?.subdomain;
+      if (legacyOrgSubdomain) {
+        return `/apps/${legacyOrgSubdomain}/dashboard`;
+      }
     }
 
     return '/';
-  };
+  }, [redirectUrl]);
 
-  if (user?.id && user.user_type) {
-    router.push(getRedirectUrl(user.user_type, user))
-    return;
-  }
+  // Redirection automatique si l'utilisateur est déjà connecté
+  useEffect(() => {
+    // Vérifier que l'utilisateur existe ET qu'il y a des tokens valides
+    if (user?.id && user.user_type) {
+      // Vérifier si on a des tokens dans localStorage
+      const hasTokens = typeof window !== 'undefined' &&
+        localStorage.getItem('loura_access_token') &&
+        localStorage.getItem('loura_refresh_token');
+
+      if (hasTokens) {
+        const destination = getRedirectUrl(user.user_type, user);
+        router.push(destination);
+      }
+    }
+  }, [user, router, getRedirectUrl]);
 
   
 

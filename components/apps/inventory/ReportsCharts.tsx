@@ -39,7 +39,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import { Can } from "../apps/common";
+import { Can } from "@/components/apps/common/protected-route";
 
 // Couleurs pour les graphiques
 const CHART_COLORS = [

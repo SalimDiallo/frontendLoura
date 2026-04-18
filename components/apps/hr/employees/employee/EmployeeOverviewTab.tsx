@@ -1,25 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { EmploymentStatusBadge } from "@/components/apps/hr";
 import {
-  Card,
-  Button,
-  Alert,
-  Badge
+    Card
 } from "@/components/ui";
-import { EmploymentStatusBadge } from "@/components/hr";
-import type { Employee, Contract, Payroll } from "@/lib/types/hr";
+import { TabsContent } from "@/components/ui/tabs";
+import type { Employee } from "@/lib/types/hr";
 import {
-  HiOutlineMapPin,
-  HiOutlineCalendar,
-  HiOutlineBriefcase,
-  HiOutlineUserCircle,
-  HiOutlineExclamationCircle,
-
+    HiOutlineBriefcase,
+    HiOutlineCalendar,
+    HiOutlineExclamationCircle,
+    HiOutlineMapPin,
+    HiOutlineUserCircle,
 } from "react-icons/hi2";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function EmployeeOverviewTab({
   employee,

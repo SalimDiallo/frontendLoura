@@ -1,9 +1,9 @@
 "use client";
 
 import { Can } from "@/components/apps/common";
-import { EmptyStatePaylips } from "@/components/hr/payrolls/EmptyStatePaylips";
-import { PayslipsTable } from "@/components/hr/payrolls/PayslipsTable";
-import { StatsBar } from "@/components/hr/payrolls/StatsBar";
+import { EmptyStatePaylips } from "@/components/apps/hr/payrolls/EmptyStatePaylips";
+import { PayslipsTable } from "@/components/apps/hr/payrolls/PayslipsTable";
+import { StatsBar } from "@/components/apps/hr/payrolls/StatsBar";
 import { Label, PDFPreviewWrapper } from "@/components/ui";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +11,11 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useHasPermission, useIsAdmin, usePDF, useUser } from "@/lib/hooks";
@@ -27,14 +27,14 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  HiOutlineArrowPath,
-  HiOutlineBanknotes,
-  HiOutlineCheckCircle,
-  HiOutlineCurrencyDollar,
-  HiOutlineMagnifyingGlass,
-  HiOutlinePlusCircle,
-  HiOutlineSparkles,
-  HiOutlineXCircle
+    HiOutlineArrowPath,
+    HiOutlineBanknotes,
+    HiOutlineCheckCircle,
+    HiOutlineCurrencyDollar,
+    HiOutlineMagnifyingGlass,
+    HiOutlinePlusCircle,
+    HiOutlineSparkles,
+    HiOutlineXCircle
 } from "react-icons/hi2";
 
 // Import the ActionConfirmation dialog

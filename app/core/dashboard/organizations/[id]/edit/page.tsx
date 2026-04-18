@@ -1,23 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
-import { organizationService, categoryService } from '@/lib/services/core';
-import type { Category, Organization } from '@/lib/types/core';
-import { ApiError } from '@/lib/api/client';
-import { siteConfig } from '@/lib/config';
-import { useZodForm } from '@/lib/hooks';
-import { Form, Alert, FormInputField } from '@/components/ui';
+import { OrganizationModuleManager } from '@/components/apps/core';
+import { Alert, Form, FormInputField } from '@/components/ui';
 import { FormSelectField } from '@/components/ui/form-fields';
 import { QuickSelect } from '@/components/ui/quick-select';
-import { OrganizationModuleManager } from '@/components/core';
+import { ApiError } from '@/lib/api/client';
+import { siteConfig } from '@/lib/config';
 import { COUNTRIES, CURRENCIES } from '@/lib/data/geo';
-import { z } from 'zod';
+import { useZodForm } from '@/lib/hooks';
+import { categoryService, organizationService } from '@/lib/services/core';
+import type { Category, Organization } from '@/lib/types/core';
 import {
-  Building2, Globe, Settings, ArrowRight,
-  Monitor, CheckCircle, Save, Loader2, ArrowLeft, Package
+    ArrowLeft,
+    Building2,
+    CheckCircle,
+    Globe,
+    Loader2,
+    Monitor,
+    Package,
+    Save,
+    Settings
 } from 'lucide-react';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { z } from 'zod';
 
 const organizationSchema = z.object({
   name: z

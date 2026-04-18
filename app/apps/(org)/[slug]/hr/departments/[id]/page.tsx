@@ -1,22 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Card, Button, Alert, Badge, Input } from '@/components/ui';
-import { getDepartment, deleteDepartment, activateDepartment, deactivateDepartment } from '@/lib/services/hr/department.service';
+import { Can } from '@/components/apps/common';
+import { DepartmentDetailsSection } from '@/components/apps/hr/departements/departement/DepartmentDetailsSection';
+import { DepartmentHeader } from '@/components/apps/hr/departements/departement/DepartmentHeader';
+import { DepartmentStats } from '@/components/apps/hr/departements/departement/DepartmentStats';
+import { EmployeesTable } from '@/components/apps/hr/departements/departement/EmployeesTable';
+import { ManageEmployeeModal } from '@/components/apps/hr/departements/departement/ManageEmployeeModal';
+import { Alert, Button } from '@/components/ui';
+import { usePermissions } from '@/lib/hooks';
+import { activateDepartment, deactivateDepartment, deleteDepartment, getDepartment } from '@/lib/services/hr/department.service';
 import { getEmployees, patchEmployee } from '@/lib/services/hr/employee.service';
 import type { Department, EmployeeListItem } from '@/lib/types/hr';
-import {
-  HiOutlineArrowLeft,
-} from 'react-icons/hi2';
-import { Can } from '@/components/apps/common';
 import { COMMON_PERMISSIONS } from '@/lib/types/permissions';
-import { DepartmentStats } from '@/components/hr/departements/departement/DepartmentStats';
-import { DepartmentDetailsSection } from '@/components/hr/departements/departement/DepartmentDetailsSection';
-import { EmployeesTable } from '@/components/hr/departements/departement/EmployeesTable';
-import { ManageEmployeeModal } from '@/components/hr/departements/departement/ManageEmployeeModal';
-import { DepartmentHeader } from '@/components/hr/departements/departement/DepartmentHeader';
-import { usePermissions } from '@/lib/hooks';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import {
+    HiOutlineArrowLeft,
+} from 'react-icons/hi2';
 
 
 

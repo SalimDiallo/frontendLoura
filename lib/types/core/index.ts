@@ -24,6 +24,7 @@ export interface AdminUser {
     subdomain: string;
     logo_url?: string;
     is_active: boolean;
+    role?: 'admin' | 'employee';
   }>;
   organizations_count?: number;
 }
@@ -92,6 +93,7 @@ export interface Organization {
   created_at: string;
   updated_at: string;
   settings: OrganizationSettings;
+  role?: 'admin' | 'employee';
 }
 
 // ============================================================================
